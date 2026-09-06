@@ -1,56 +1,53 @@
-# Welcome to your Expo app 👋
+# We Racha (app de jogador)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App móvel do jogador de pelada. React Native + Expo (SDK 57), TypeScript,
+expo-router. Consome a API `/api/v1/*` do site We Racha.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Rodar
 
 ```bash
-npm run reset-project
+npm install
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- `a` no terminal do Metro abre no emulador Android.
+- `npm run android` / `npm run ios` abrem direto.
+- Escolha o servidor (Local / Produção) na engrenagem da tela de login.
 
-### Other setup steps
+## Comandos
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+| Comando | O quê |
+|---|---|
+| `npm start` | Metro bundler |
+| `npm run android` / `ios` / `web` | abre na plataforma |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | jest (trava o contrato copiado do site) |
+| `npm run lint` | eslint (config do Expo) |
 
-## Learn more
+## Estrutura
 
-To learn more about developing your project with Expo, look at the following resources:
+```
+src/
+  app/                 rotas (expo-router). SÓ telas e layouts aqui.
+    _layout.tsx        SessaoProvider + Stack
+    index.tsx          porta de entrada: redireciona por sessão
+    login.tsx          login contra POST /api/v1/auth/token
+    (logado)/          grupo protegido (redireciona sem sessão)
+      _layout.tsx
+      partidas.tsx     placeholder da home logada
+  api/                 cliente HTTP + erros + chamadas
+  sessao/              SecureStore do Bearer + contexto de sessão + re-login em 401
+  config/              URL base do servidor (Local / Produção), em runtime
+  contrato/            CÓPIA do repo do site (Nível 1). Ver contrato/README.md
+  mensagens-erro.ts    codigo de erro -> texto pro usuário
+__tests__/             jest
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Estado
 
-## Join the community
+Scaffold + tela de login funcionando (fatia 1). Backlog e decisões:
+`../weracha-site/docs/pendente/10-app-de-jogador.md`.
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+> O template do Expo trouxe algumas libs que ainda não são usadas (`@expo/ui`,
+> `expo-symbols`, `expo-glass-effect`, `expo-web-browser`, `expo-image`). Dá pra
+> podar quando estabilizar o conjunto de telas.
