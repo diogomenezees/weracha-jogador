@@ -61,4 +61,13 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   vírgula ou duas frases. (Mesma regra do site; vale pra tela, não pra comentário
   nem doc.)
 - Credencial (token/senha) vive em SecureStore + `useRef`, nunca no state do React
-  nem em log.
+  nem em log. (Exceção herdada: o campo de senha da tela de acesso é um
+  `TextInput` controlado por `useState` enquanto o usuário digita — some no
+  submit; nada é logado.)
+- **Visual portado do site.** Tokens de cor/tipografia em `src/tema.ts` (espelham
+  `weracha-site/app/globals.css`: fundo `#161a22`, teal, laranja). Peças de UI
+  compartilhadas da tela de acesso em `src/acesso/ui.tsx`. Ao criar tela nova,
+  puxar de `src/tema.ts` em vez de hardcodar cor.
+- **Fluxo de acesso** (entrar / criar conta / criar senha / esqueci a senha) vive
+  em `src/acesso/` (`useFluxoAcesso.ts` + `TelaAcesso.tsx`), espelhando
+  `weracha-site/app/login/page.tsx`. `src/app/login.tsx` é só o wrapper de rota.

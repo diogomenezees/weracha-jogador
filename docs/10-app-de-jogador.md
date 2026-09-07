@@ -29,23 +29,60 @@ Nada mais no backend do site bloqueia o app. Tudo isto está em produção:
 | Rate limiting no `token` e login web | `loginBloqueioSeg` cobre `loginWeb` e `emitirTokenAcesso` (cooldown crescente a partir da 5ª senha errada) | commit `638b334` |
 | Código de erro estável | toda falha de `/api/v1/*` volta `{ codigo, mensagem, detalhe? }`; `codigo` é o enum de `lib/api/codigosErro.ts`; status HTTP por código (`STATUS_POR_CODIGO`) | commit `d0e967e` |
 
-### Feito agora: scaffold do app
+### Feito: scaffold do app
 
 - `weracha-jogador/` criado: Expo SDK 57 + expo-router + TypeScript, git próprio.
 - Contrato Nível 1 copiado do site pra `src/contrato/` (enum de códigos de erro +
   tipos de request/response + helpers de telefone), com teste que trava a lista.
 - Camada de sessão: Bearer + telefone + senha no `expo-secure-store`; re-login
   silencioso em `401`; URL base escolhida em runtime (Local / Produção).
-- Tela de **login** contra `POST /api/v1/auth/token`. Placeholder da home logada
-  (`/partidas`), a ser substituído.
+
+### Feito: fluxo de acesso completo (2026-09-07)
+
+Tela de acesso adaptável (`src/acesso/`), visual portado do site (fundo escuro,
+card teal, botão laranja, tokens em `src/tema.ts`). Um passo de cada vez, decidido
+pelo `POST /api/v1/auth/telefone/status`:
+
+- **entrar** (`com_senha`) → senha → `entrar()` do contexto (`/auth/token`).
+- **criar conta** (`novo`) → nome + SMS (`telefone/codigo` + `telefone/confirmar`)
+  → criar senha + aceite dos Termos → `POST /auth/senha/definir` → `entrar()`.
+- **criar senha** (`sem_senha`) → SMS → senha + Termos → `senha/definir` → `entrar()`.
+- **esqueci a senha** (link em `com_senha`) → `senha/recuperar` → código + nova
+  senha → `senha/definir` (com `codigo`) → `entrar()`.
+- Aceite dos Termos espelha o site: `GET /termos/status` no login com senha,
+  checkbox obrigatório em conta nova / termos atualizados, `POST /termos/aceite`
+  logo após o login (best-effort). O texto do checkbox linka pra
+  `weracha.app/{termos,privacidade}` (abre no navegador via `expo-web-browser`,
+  `src/config/links.ts`) — o conteúdo não é replicado no app.
+- Rodapé da tela: "Não consegue entrar? Fale com a gente" abre
+  `weracha.app/contato` no navegador (a ouvidoria tem Turnstile, não vale
+  replicar o form no app). Mais o seletor de servidor Local/Produção que já
+  existia.
+- URL base Local: em celular físico o app deriva o IP da máquina de dev do
+  `Constants.expoConfig.hostUri` (`src/config/servidor.ts`), sem `adb reverse`.
+
+**Mudança no site que isso exigiu** (ver `16-api-v1.md` §4 + changelog 2026-09-07):
+as 4 rotas de auth sem `Set-Cookie` viraram `csrf: false` (o `fetch` do RN não
+manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir`
+(sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
+1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
+
+**Falta validar:** rodar contra o site Local no Expo Go (device físico com
+`adb reverse tcp:3000 tcp:3000`), os 4 caminhos + erros (código errado, cooldown,
+senha curta). Fontes (Space Grotesk / Geist Mono) e ícones nos avisos ficaram de
+fora pra não adicionar dependência agora.
 
 ### Próximo passo
 
-1. **Disparar a conta Apple Developer** (seção 4 abaixo) — é puro lead time, a
+1. **Build EAS (APK preview)** pra rodar sem o Metro/notebook. Expo Go carrega o
+   JS da máquina; com o notebook desligado o app não abre. Precisa de `eas.json`
+   + conta Expo grátis (`npx eas login` + `npx eas build -p android --profile
+   preview`).
+2. **Disparar a conta Apple Developer** (seção 4 abaixo) — é puro lead time, a
    verificação leva dias a semanas. Fazer em paralelo, não esperar o app pronto.
-2. **Iterar as telas do app** contra a API (perfil, grupos, check-in, ao vivo,
+3. **Iterar as telas do app** contra a API (perfil, grupos, check-in, ao vivo,
    resultado, resenha, replays, enquetes, convites).
-3. Deixar necessidade real puxar o resto — push, deep links, camadas 2/3 do
+4. Deixar necessidade real puxar o resto — push, deep links, camadas 2/3 do
    anti-abuso de SMS, OpenAPI. Nada disso bloqueia iterar.
 
 ---
@@ -96,16 +133,28 @@ inteiro, não um endpoint.
 
 ### 3. Deep links / universal links
 
-- [ ] Link de convite (`/api/v1/convites/{token}`) e link de compartilhar replay
-      precisam abrir o app quando instalado e cair no site quando não.
-      Configurar em `weracha.app`: `.well-known/assetlinks.json` (Android App
-      Links) e `.well-known/apple-app-site-association` (iOS Universal Links),
-      servidos pelo Next. A estrutura da rota dá pra deixar pronta; os
-      fingerprints reais só entram quando o app estiver registrado.
-- [ ] Roteamento dentro do app pra cada tipo de link (convite, replay, partida,
-      grupo).
-- [ ] Comportamento de "recebi convite mas não tenho conta": abre o app na tela
-      de cadastro carregando o token, ou fluxo web primeiro.
+**Feito pro link de convite (2026-09-07):**
+- Site: `app/convite/[token]/page.tsx` (redireciona pro `/login?convite=...` na
+  web), `app/.well-known/{assetlinks.json,apple-app-site-association}/route.ts`
+  (⚠️ **fingerprint SHA-256 e Apple Team ID ainda são placeholder** — trocar
+  depois do EAS/conta Apple; sem isso o link abre com o seletor "abrir com" em
+  vez de direto), `proxy.ts` libera `/convite/` e `/.well-known/`. Os 3
+  geradores de link do site (`grupos/[id]`, `enquetes`, `grupos/[id]/enquetes`)
+  passaram a emitir `weracha.app/convite/{token}` no lugar de `/login?convite=`.
+- App: `app.json` com `intentFilters` (Android, `pathPrefix: /convite`,
+  `autoVerify`) + `associatedDomains` (iOS). Rota `src/app/convite/[token].tsx`:
+  deslogado guarda o token (`src/acesso/convitePendente.ts`) e manda pro login,
+  que entra no grupo ao terminar (`useFluxoAcesso.concluirLogin`); logado, botão
+  "Entrar no grupo" chama `POST /api/v1/convites/{token}`. `src/api/convites.ts`.
+- **Testável agora** em Expo Go via `exp://<ip>:8081/--/convite/<token>`. O app
+  link `https://` de verdade só depois do EAS Build (Expo Go não registra
+  intent filter). Pós-processamento hoje cai sempre em `/grupos` (o app não tem
+  as telas de partida/enquete pra usar o `destino` da resposta).
+
+- [ ] Link de **compartilhar replay** — mesma estrutura, quando as telas de
+      replay existirem no app.
+- [ ] Mapear o `destino` da resposta do convite pra rota do app (checkin,
+      enquete) quando essas telas existirem — hoje sempre `/grupos`.
 
 ### 4. Distribuição nas lojas
 

@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.weracha.jogador"
+      "bundleIdentifier": "com.weracha.jogador",
+      "associatedDomains": ["applinks:weracha.app"]
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +20,15 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.weracha.jogador"
+      "package": "com.weracha.jogador",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [{ "scheme": "https", "host": "weracha.app", "pathPrefix": "/convite" }]
+        }
+      ]
     },
     "web": {
       "output": "static",
