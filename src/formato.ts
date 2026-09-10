@@ -15,12 +15,19 @@ export function formatarDataPartida(iso: string): string {
   return `${DIAS[d.getDay()]}, ${dia}/${mes} · ${hora}:${min}`;
 }
 
-export function ehHoje(iso: string): boolean {
-  const d = new Date(iso);
+export function ehHoje(data: string | Date): boolean {
+  const d = data instanceof Date ? data : new Date(data);
   const hoje = new Date();
   return (
     d.getFullYear() === hoje.getFullYear() &&
     d.getMonth() === hoje.getMonth() &&
     d.getDate() === hoje.getDate()
   );
+}
+
+/** `Date` → `Qui · 15 set` (cabeçalho do painel). */
+export function rotuloDoDia(d: Date): string {
+  const dia = String(d.getDate());
+  const mes = new Intl.DateTimeFormat("pt-BR", { month: "short" }).format(d).replace(".", "");
+  return `${DIAS[d.getDay()]} · ${dia} ${mes}`;
 }

@@ -1,5 +1,9 @@
 import * as WebBrowser from "expo-web-browser";
 
+// Domínio de produção do site. Usado pra montar links de convite / de grupo
+// que vão pro WhatsApp (sempre apontam pro site no ar, nunca pro Local).
+export const PRODUCAO_URL = "https://weracha.app";
+
 // Documentos legais: sempre a versão web de produção (mesmo conteúdo, sempre no
 // ar, e é o que as lojas esperam num link público). Não replicamos o texto no
 // app de propósito. Ver weracha-site/app/{termos,privacidade}/page.tsx.

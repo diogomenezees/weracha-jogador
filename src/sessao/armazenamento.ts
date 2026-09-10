@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-import type { JogadorSessao } from "@/contrato/tipos";
+import type { MeuPerfil } from "@/contrato/tipos";
 
 // O Bearer, o telefone e a senha ficam no armazenamento seguro do sistema
 // (Keychain no iOS, Keystore/EncryptedSharedPreferences no Android), nunca em
@@ -12,15 +12,15 @@ import type { JogadorSessao } from "@/contrato/tipos";
 // de novo. `POST /api/v1/auth/refresh` (que evitaria guardar a senha) foi
 // adiado de propósito no doc do app.
 //
-// O `jogador` (perfil devolvido no login) também é guardado, pra tela ter nome
-// e foto no boot frio sem esperar uma chamada de rede. `GET /api/v1/me` (que
-// daria a versão fresca) segue adiado.
+// O `jogador` (perfil) também é guardado, pra tela ter nome e foto no boot frio
+// sem esperar rede. A versão fresca vem de `GET /api/v1/me` (`recarregarPerfil`
+// no contexto de sessão), chamado pelas telas logadas.
 
 export type SessaoGuardada = {
   token: string;
   telefone: string;
   senha: string;
-  jogador: JogadorSessao;
+  jogador: MeuPerfil;
 };
 
 const CHAVE_TOKEN = "weracha.token";
@@ -41,7 +41,7 @@ export async function guardarToken(token: string): Promise<void> {
   await SecureStore.setItemAsync(CHAVE_TOKEN, token);
 }
 
-export async function guardarJogador(jogador: JogadorSessao): Promise<void> {
+export async function guardarJogador(jogador: MeuPerfil): Promise<void> {
   await SecureStore.setItemAsync(CHAVE_JOGADOR, JSON.stringify(jogador));
 }
 
@@ -54,7 +54,9 @@ export async function lerSessao(): Promise<SessaoGuardada | null> {
       SecureStore.getItemAsync(CHAVE_JOGADOR),
     ]);
     if (!token || !telefone || !senha) return null;
-    const jogador = jogadorJson ? (parseJogador(jogadorJson) ?? placeholder(telefone)) : placeholder(telefone);
+    const jogador = jogadorJson
+      ? (parseJogador(jogadorJson) ?? placeholder(telefone))
+      : placeholder(telefone);
     return { token, telefone, senha, jogador };
   } catch {
     return null;
@@ -70,16 +72,27 @@ export async function limparSessao(): Promise<void> {
   ]);
 }
 
-function parseJogador(json: string): JogadorSessao | null {
+// Tolera cache antigo (gravado quando o `jogador` guardado era só o
+// `JogadorSessao` de 5 campos): os campos novos entram como null/false até o
+// próximo `GET /api/v1/me`.
+function parseJogador(json: string): MeuPerfil | null {
   try {
-    const v = JSON.parse(json) as Partial<JogadorSessao>;
-    if (typeof v.id === "string" && typeof v.telefone === "string" && typeof v.nome === "string") {
+    const v = JSON.parse(json) as Partial<MeuPerfil>;
+    if (
+      typeof v.id === "string" &&
+      typeof v.telefone === "string" &&
+      typeof v.nome === "string"
+    ) {
       return {
         id: v.id,
         telefone: v.telefone,
         nome: v.nome,
         apelido: v.apelido ?? null,
         fotoUrl: v.fotoUrl ?? null,
+        onboardingConcluidoEm: v.onboardingConcluidoEm ?? null,
+        email: v.email ?? null,
+        emailNotificacoes: v.emailNotificacoes ?? false,
+        dataNascimento: v.dataNascimento ?? null,
       };
     }
     return null;
@@ -88,6 +101,16 @@ function parseJogador(json: string): JogadorSessao | null {
   }
 }
 
-function placeholder(telefone: string): JogadorSessao {
-  return { id: "", telefone, nome: "", apelido: null, fotoUrl: null };
+function placeholder(telefone: string): MeuPerfil {
+  return {
+    id: "",
+    telefone,
+    nome: "",
+    apelido: null,
+    fotoUrl: null,
+    onboardingConcluidoEm: null,
+    email: null,
+    emailNotificacoes: false,
+    dataNascimento: null,
+  };
 }

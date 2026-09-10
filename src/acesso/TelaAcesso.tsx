@@ -40,7 +40,7 @@ export function TelaAcesso() {
   const { estado, ambiente, urlBase, entrar, trocarAmbiente, chamarApi } = useSessao();
   const f = useFluxoAcesso({ urlBase, entrar, chamarApi });
 
-  if (estado.fase === "logado") return <Redirect href="/grupos" />;
+  if (estado.fase === "logado") return <Redirect href="/painel" />;
 
   function escolherServidor() {
     const opcoes: Ambiente[] = ["producao", "local"];

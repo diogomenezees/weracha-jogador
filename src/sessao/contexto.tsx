@@ -11,6 +11,7 @@ import {
 import * as Device from "expo-device";
 
 import { emitirToken } from "@/api/auth";
+import { buscarMeuPerfil, buscarMeuPerfilComToken, concluirOnboarding } from "@/api/perfil";
 import { requisicao, type OpcoesRequisicao } from "@/api/cliente";
 import { ErroApi } from "@/api/erros";
 import {
@@ -27,12 +28,12 @@ import {
   lerSessao,
   limparSessao,
 } from "@/sessao/armazenamento";
-import type { JogadorSessao } from "@/contrato/tipos";
+import type { JogadorSessao, MeuPerfil } from "@/contrato/tipos";
 
 type Estado =
   | { fase: "carregando" }
   | { fase: "deslogado" }
-  | { fase: "logado"; jogador: JogadorSessao };
+  | { fase: "logado"; jogador: MeuPerfil };
 
 type Contexto = {
   estado: Estado;
@@ -47,12 +48,36 @@ type Contexto = {
    * falhar, limpa a sessão (a UI cai no /login) e levanta o erro.
    */
   chamarApi: <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
+  /** `GET /api/v1/me`: recarrega o perfil, atualiza o estado e o cache. */
+  recarregarPerfil: () => Promise<MeuPerfil>;
+  /**
+   * `POST /api/v1/perfil/onboarding-concluido` e atualiza o `onboardingConcluidoEm`
+   * local. Best-effort: um erro de rede não trava o app (o site cobra de novo
+   * se preciso).
+   */
+  marcarOnboardingConcluido: () => Promise<void>;
 };
 
 const SessaoContext = createContext<Contexto | null>(null);
 
 function nomeDoAparelho(): string | undefined {
   return Device.deviceName ?? Device.modelName ?? undefined;
+}
+
+// Retorno do `POST /auth/token` é o subconjunto de 5 campos; o resto de
+// `MeuPerfil` entra como null até o `GET /api/v1/me`.
+function perfilParcial(j: JogadorSessao): MeuPerfil {
+  return {
+    id: j.id,
+    telefone: j.telefone,
+    nome: j.nome,
+    apelido: j.apelido,
+    fotoUrl: j.fotoUrl,
+    onboardingConcluidoEm: null,
+    email: null,
+    emailNotificacoes: false,
+    dataNascimento: null,
+  };
 }
 
 export function SessaoProvider({ children }: { children: ReactNode }) {
@@ -64,7 +89,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     token: string;
     telefone: string;
     senha: string;
-    jogador: JogadorSessao;
+    jogador: MeuPerfil;
   } | null>(null);
 
   const urlBase = useMemo(() => urlBaseDoAmbiente(ambiente), [ambiente]);
@@ -78,8 +103,8 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
       if (sessao) {
         credenciais.current = sessao;
         // Não valida o token no boot: a 1ª chamada real revalida, e o fluxo de
-        // 401 já cobre token expirado. O `jogador` vem do que foi guardado no
-        // último login (pode estar levemente desatualizado até `GET /me` existir).
+        // 401 já cobre token expirado. O `jogador` vem do cache do último
+        // login/refresh (as telas logadas chamam `recarregarPerfil` no mount).
         setEstado({ fase: "logado", jogador: sessao.jogador });
       } else {
         setEstado({ fase: "deslogado" });
@@ -97,9 +122,18 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
         senha,
         nomeDispositivo: nomeDoAparelho(),
       });
-      credenciais.current = { token: resp.token, telefone, senha, jogador: resp.jogador };
-      await guardarSessao({ token: resp.token, telefone, senha, jogador: resp.jogador });
-      setEstado({ fase: "logado", jogador: resp.jogador });
+      // Já dá pra montar a sessão com o retorno do login; o `GET /api/v1/me`
+      // logo em seguida completa o perfil (onboardingConcluidoEm etc.). Se ele
+      // falhar (offline, site antigo sem a rota), o login não trava.
+      let jogador = perfilParcial(resp.jogador);
+      try {
+        jogador = await buscarMeuPerfilComToken(urlBase, resp.token);
+      } catch {
+        // segue com o perfil parcial
+      }
+      credenciais.current = { token: resp.token, telefone, senha, jogador };
+      await guardarSessao({ token: resp.token, telefone, senha, jogador });
+      setEstado({ fase: "logado", jogador });
     },
     [urlBase]
   );
@@ -137,10 +171,16 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
             senha: cred.senha,
             nomeDispositivo: nomeDoAparelho(),
           });
-          credenciais.current = { ...cred, token: resp.token, jogador: resp.jogador };
+          let jogador = perfilParcial(resp.jogador);
+          try {
+            jogador = await buscarMeuPerfilComToken(urlBase, resp.token);
+          } catch {
+            // segue com o perfil parcial
+          }
+          credenciais.current = { ...cred, token: resp.token, jogador };
           await guardarToken(resp.token);
-          await guardarJogador(resp.jogador);
-          setEstado({ fase: "logado", jogador: resp.jogador });
+          await guardarJogador(jogador);
+          setEstado({ fase: "logado", jogador });
         } catch {
           await sair();
           throw erro;
@@ -155,9 +195,50 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     [urlBase, sair]
   );
 
+  const recarregarPerfil = useCallback(async (): Promise<MeuPerfil> => {
+    const jogador = await buscarMeuPerfil(chamarApi);
+    if (credenciais.current) credenciais.current.jogador = jogador;
+    await guardarJogador(jogador);
+    setEstado({ fase: "logado", jogador });
+    return jogador;
+  }, [chamarApi]);
+
+  const marcarOnboardingConcluido = useCallback(async (): Promise<void> => {
+    await concluirOnboarding(chamarApi);
+    const cred = credenciais.current;
+    if (!cred) return;
+    const jogador: MeuPerfil = {
+      ...cred.jogador,
+      onboardingConcluidoEm: cred.jogador.onboardingConcluidoEm ?? new Date().toISOString(),
+    };
+    cred.jogador = jogador;
+    await guardarJogador(jogador);
+    setEstado({ fase: "logado", jogador });
+  }, [chamarApi]);
+
   const valor = useMemo<Contexto>(
-    () => ({ estado, ambiente, urlBase, entrar, sair, trocarAmbiente, chamarApi }),
-    [estado, ambiente, urlBase, entrar, sair, trocarAmbiente, chamarApi]
+    () => ({
+      estado,
+      ambiente,
+      urlBase,
+      entrar,
+      sair,
+      trocarAmbiente,
+      chamarApi,
+      recarregarPerfil,
+      marcarOnboardingConcluido,
+    }),
+    [
+      estado,
+      ambiente,
+      urlBase,
+      entrar,
+      sair,
+      trocarAmbiente,
+      chamarApi,
+      recarregarPerfil,
+      marcarOnboardingConcluido,
+    ]
   );
 
   return <SessaoContext.Provider value={valor}>{children}</SessaoContext.Provider>;

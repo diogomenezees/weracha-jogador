@@ -10,7 +10,9 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.weracha.jogador",
-      "associatedDomains": ["applinks:weracha.app"]
+      "associatedDomains": [
+        "applinks:weracha.app"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -25,8 +27,17 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "scheme": "https", "host": "weracha.app", "pathPrefix": "/convite" }]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "weracha.app",
+              "pathPrefix": "/convite"
+            }
+          ]
         }
       ]
     },
@@ -44,7 +55,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

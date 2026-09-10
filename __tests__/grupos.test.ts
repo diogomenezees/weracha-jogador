@@ -1,8 +1,11 @@
 import {
-  esperandoNovaData,
+  aguardandoRenovacao,
+  avulsoAguardandoNovoJogo,
   meuPapelNoGrupo,
   ordenarPorProximaPartida,
+  partidaEmAndamento,
   proximaPartida,
+  proximaPartidaInfo,
 } from "../src/grupos";
 import { formatarDataPartida } from "../src/formato";
 import type { Grupo, PartidaResumo } from "../src/contrato/tipos";
@@ -53,7 +56,34 @@ describe("proximaPartida", () => {
 
   it("null quando não há partida futura", () => {
     expect(proximaPartida(grupo({ partidas: [partida({ data: daquiA(-HORA) })] }))).toBeNull();
-    expect(esperandoNovaData(grupo())).toBe(true);
+    expect(aguardandoRenovacao(grupo())).toBe(true);
+    expect(avulsoAguardandoNovoJogo(grupo({ tipo: "AVULSO" }))).toBe(true);
+  });
+});
+
+describe("partidaEmAndamento / proximaPartidaInfo", () => {
+  it("acha a partida que já começou e ainda não terminou", () => {
+    const g = grupo({
+      partidas: [partida({ id: "rolando", data: daquiA(-0.5 * HORA), duracaoMin: 90 })],
+    });
+    expect(partidaEmAndamento(g)?.id).toBe("rolando");
+    const info = proximaPartidaInfo(g);
+    expect(info?.checkinDisponivel).toBe(true);
+  });
+
+  it("partida encerrada (fora da duração) não conta como em andamento", () => {
+    const g = grupo({
+      partidas: [partida({ data: daquiA(-3 * HORA), duracaoMin: 60 })],
+    });
+    expect(partidaEmAndamento(g)).toBeNull();
+    expect(aguardandoRenovacao(g)).toBe(true);
+  });
+
+  it("sem partida em andamento, aponta a próxima futura sem check-in", () => {
+    const g = grupo({ partidas: [partida({ data: daquiA(24 * HORA) })] });
+    const info = proximaPartidaInfo(g);
+    expect(info?.checkinDisponivel).toBe(false);
+    expect(aguardandoRenovacao(g)).toBe(false);
   });
 });
 

@@ -72,6 +72,105 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 senha curta). Fontes (Space Grotesk / Geist Mono) e ícones nos avisos ficaram de
 fora pra não adicionar dependência agora.
 
+### Feito: `/painel` + onboarding (2026-09-10)
+
+Área logada agora abre no **`/painel`** (`src/app/(logado)/painel.tsx`,
+renomeado de `grupos.tsx`), visual portado de `weracha-site/app/painel/page.tsx`
+(tema escuro, rodapé fixo). Três estados iguais aos do site:
+
+- **sem grupo + sem onboarding** → hero "seu racha começa aqui" + "como funciona"
+  em 3 passos; rodapé "Começar" → `/onboarding`.
+- **sem grupo + onboarding feito** → "De volta, {nome}. Falta só o grupo." + os
+  dois caminhos (convite / criar); rodapé "Criar grupo".
+- **com grupo** → "Olá, {nome}" + seções "Seus grupos" / "Aguardando renovação" /
+  "Aguardando novo jogo" com `CardGrupo` (badge de papel, próxima partida,
+  indicador de check-in quando a partida está em andamento).
+
+Carrossel de onboarding em `src/app/(logado)/onboarding.tsx` (3 slides, swipe +
+auto-avanço de 20s + "Pular"/"Vamos lá!"), porta de `app/painel/onboarding`.
+Concluir/pular → `POST /api/v1/perfil/onboarding-concluido` → volta pro painel.
+
+Banner "conta marcada para exclusão" + "Reativar minha conta" no painel
+(`GET`/`DELETE /api/v1/conta/exclusao`).
+
+**Mudança no site que isso exigiu:** rota nova **`GET /api/v1/me`** (retorna o
+`MeuPerfil` do `ator`) — o `POST /auth/token` só devolve 5 campos e o painel
+decide o rodapé por `onboardingConcluidoEm`. Sem service novo, sem migration
+(`16-api-v1.md` §4 + changelog 2026-09-10; adicionada à varredura
+`test:bearer`). No app: `MeuPerfil` + `DadosDaTelaExclusaoConta` em
+`src/contrato/tipos.ts`; `src/api/{perfil,conta}.ts`; o contexto de sessão
+guarda `MeuPerfil` e expõe `recarregarPerfil` / `marcarOnboardingConcluido`
+(`src/sessao/`).
+
+**Ficou stub** (tela "em breve", `src/app/(logado)/em-breve.tsx`): "Criar grupo"
+e "Entrar por convite". `src/app/(logado)/grupos/[id].tsx` é mínima (nome +
+esporte + próxima partida). "Sorteio rápido" do rodapé do site foi deixado de
+fora. Fontes/ícones seguem sem dependência nova (emoji + formas).
+
+**Falta validar:** rodar contra o site Local no Expo Go (device físico), os 3
+estados do painel + os 3 slides do onboarding + a reativação de conta.
+
+### Feito: criar grupo + tela do grupo (2026-09-10)
+
+- **Criar grupo** (`src/app/(logado)/criar-grupo.tsx`): nome, tipo
+  (recorrente/avulso), horários recorrentes ou datas avulsas, esporte
+  (`GET /api/v1/esportes`). `POST /api/v1/grupos` → `router.replace` pra tela do
+  grupo. Quadra fica pra depois (dentro do grupo), igual o site. Pickers de
+  data/hora em `src/grupo/pickers.tsx` (novas deps `@react-native-community/
+  datetimepicker` + `expo-clipboard`, ambas no Expo Go).
+- **Tela do grupo** (`src/app/(logado)/grupos/[id].tsx`, era stub): porta
+  completa de `weracha-site/app/grupos/[id]/page.tsx` com **tudo de admin** —
+  editar nome/descrição, cancelar (com justificativa) / reativar / excluir
+  partida, adicionar partida avulsa, renovar mês, vincular/cadastrar quadra,
+  gerar/regenerar link de convite, sair do grupo. Menu "mais opções" virou
+  action sheet de baixo (`src/grupo/MenuAcoes.tsx` — `Alert.alert` do RN só
+  mostra 3 botões no Android). Modais reusáveis em `src/grupo/modais.tsx`.
+  Compartilhar convite = `Share` do RN (texto, sem a imagem que o site gera);
+  copiar link = `expo-clipboard`. Helpers de janela de check-in / partida
+  portados pra `src/partidas.ts` (sem o fuso SP explícito: o cliente é local).
+- **Ainda stub** (`em-breve.tsx`): as sub-telas do grupo (jogadores, enquetes,
+  artilheiros, resenha, check-in, ao vivo, resultado) — o rodapé e os botões de
+  check-in levam pra lá. A tela do grupo em si está completa.
+- **Contrato novo** em `src/contrato/tipos.ts`: `Quadra`, `DadosDaTelaGrupo`,
+  `CriarGrupoRequest`, `EsporteOpcao`. APIs em `src/api/{grupos,quadras,partidas}.ts`.
+
+**Falta validar:** criar os dois tipos de grupo no device, o ciclo de vida de
+partida (cancelar/reativar/excluir), vincular quadra, renovar, convite.
+
+### Feito: artilheiros, resenha, enquetes, gerenciar jogadores (2026-09-10)
+
+As 4 sub-telas do grupo (não commitadas; typecheck/lint/jest limpos, endpoints
+verificados por curl no site Local). O grupo agora não tem mais botão de rodapé
+que caia em `em-breve` (só check-in / ao vivo / resultado das partidas seguem stub).
+
+- **Artilheiros** (`grupos/[id]/artilheiros.tsx` + global `(logado)/artilheiros.tsx`,
+  no menu ⚙ do painel): pódio + chips de mês + ranking + "zerados" + "sou eu".
+  Componente compartilhado `src/artilheiros/`. Compartilhar = `Share` só-texto.
+  `src/ui/AvatarJogador.tsx` novo (foto via `expo-image`, iniciais coloridas).
+- **Resenha** (`grupos/[id]/resenha.tsx`): feed paginado de replays comentados;
+  cada card abre um chat modal com polling de 3s (`src/resenha/ChatResenha.tsx`,
+  só enquanto `AppState === active`). Vídeo do replay = `Linking.openURL` (abre
+  no player do sistema; sem `expo-video` por ora). Apagar comentário = long-press.
+- **Enquetes** (`grupos/[id]/enquetes/{index,nova}.tsx` + global
+  `(logado)/enquetes.tsx`): listar/criar/votar (toggle)/editar pergunta/ver
+  votantes. `src/enquetes/ModalEnquete.tsx`.
+- **Gerenciar jogadores** (`grupos/[id]/jogadores.tsx`): elenco com busca +
+  ordenação + score visível/oculto; ⋯ por jogador (editar score/posição,
+  promover/rebaixar admin, deixar cargo, mudar de dono, remover); mensalista
+  toggle; perfil-resumo; adicionar jogador (`src/jogadores/FormNovoJogador.tsx`
+  com busca por telefone + score sugerido). Modais em `src/jogadores/modais.tsx`.
+- **Painel ⚙** virou action sheet (`MenuAcoes`) pra caber "Ver artilheiros",
+  "Ver enquetes", "Sair".
+- **Contrato**: `DadosArtilheiros`, `FeedResenha`/`BlocoFeedResenha`/
+  `ComentarioResenha`, `Enquete`/`EnquetesDoGrupo`/…, `MembroGrupo`/
+  `PosicaoEsporte`/`JogadorDoGrupo`/`DadosDaTelaJogadoresDoGrupo`/`PerfilJogador`
+  em `src/contrato/tipos.ts`. APIs em `src/api/{artilheiros,resenha,enquetes,jogadores}.ts`.
+- **Rota `[id]` virou pasta**: `grupos/[id].tsx` → `grupos/[id]/index.tsx` (pra
+  conviver com as sub-rotas). Rota `/grupos/{id}` inalterada.
+
+**Falta validar:** tudo em device — votar, comentar (polling), gerenciar elenco,
+compartilhar rankings.
+
 ### Próximo passo
 
 1. **Build EAS (APK preview)** pra rodar sem o Metro/notebook. Expo Go carrega o
@@ -80,8 +179,10 @@ fora pra não adicionar dependência agora.
    preview`).
 2. **Disparar a conta Apple Developer** (seção 4 abaixo) — é puro lead time, a
    verificação leva dias a semanas. Fazer em paralelo, não esperar o app pronto.
-3. **Iterar as telas do app** contra a API (perfil, grupos, check-in, ao vivo,
-   resultado, resenha, replays, enquetes, convites).
+3. **Iterar as telas do app** contra a API. Feito: `/painel`, onboarding,
+   criar grupo, tela do grupo (com admin), artilheiros, resenha, enquetes,
+   gerenciar jogadores. A seguir: check-in, ao vivo, resultado (o ciclo da
+   partida em si). Depois perfil, replays, entrada por convite manual.
 4. Deixar necessidade real puxar o resto — push, deep links, camadas 2/3 do
    anti-abuso de SMS, OpenAPI. Nada disso bloqueia iterar.
 

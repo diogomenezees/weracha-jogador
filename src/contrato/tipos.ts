@@ -16,13 +16,38 @@ export type RespostaErro = {
   detalhe?: Record<string, unknown>;
 };
 
-/** Jogador logado, como vem no login. Espelha o DTO `JogadorEmPartida` + telefone. */
+/** Jogador logado, como vem no login (`POST /auth/token`). Espelha o DTO
+ * `JogadorEmPartida` + telefone. Subconjunto de `MeuPerfil`. */
 export type JogadorSessao = {
   id: string;
   telefone: string;
   nome: string;
   apelido: string | null;
   fotoUrl: string | null;
+};
+
+/** GET /api/v1/me — perfil do jogador autenticado. Cópia literal do shape de
+ * `colunasMeuPerfil` em weracha-site/lib/jogadoresSeguro.ts. Sem credencial. */
+export type MeuPerfil = {
+  id: string;
+  telefone: string;
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+  /** ISO, ou null se nunca concluiu/pulou o onboarding. Decide o rodapé do /painel. */
+  onboardingConcluidoEm: string | null;
+  email: string | null;
+  emailNotificacoes: boolean;
+  /** "AAAA-MM-DD" ou null. */
+  dataNascimento: string | null;
+};
+
+/** GET /api/v1/conta/exclusao — pendências + solicitação de exclusão pendente.
+ * Cópia de `DadosDaTelaExclusaoConta` em
+ * weracha-site/lib/services/exclusaoConta.ts. */
+export type DadosDaTelaExclusaoConta = {
+  pendencias: { grupos: { id: string; nome: string }[] };
+  solicitacaoPendente: { criadoEm: string } | null;
 };
 
 // ── Fluxo de acesso pré-login (16-api-v1.md §4) ─────────────────────────────
@@ -138,3 +163,222 @@ export type Grupo = {
 };
 
 export type GruposResposta = { grupos: Grupo[] };
+
+// POST /api/v1/grupos — body de criação de grupo.
+export type HorarioRecorrenteInput = {
+  diaSemana: number;
+  horaInicio: string;
+  duracaoMin: number;
+};
+export type DataAvulsaInput = { data: string; horaInicio: string; duracaoMin: number };
+export type CriarGrupoRequest = {
+  nome: string;
+  tipo: TipoGrupo;
+  esporte: string;
+  quadraId?: string;
+  horariosRecorrentes?: HorarioRecorrenteInput[];
+  datasAvulsas?: DataAvulsaInput[];
+};
+
+// ── GET /api/v1/grupos/{grupoId} ────────────────────────────────────────────
+// Agregado da tela do grupo. Espelha `DadosDaTelaGrupo` + `Quadra` de
+// weracha-site/lib/actions/grupos.ts / lib/db/schema.ts.
+
+/** Subconjunto de `quadras` que a tela do grupo renderiza. */
+export type Quadra = {
+  id: string;
+  nome: string;
+  endereco: string;
+  /** "VALIDADA" | "PENDENTE". */
+  status: string;
+};
+
+export type DadosDaTelaGrupo = {
+  grupo?: Grupo;
+  quadra?: Quadra;
+  totalMembros: number;
+  idsComResultado: string[];
+  idsComMeuCheckin: string[];
+  temPartidaExcluida: boolean;
+};
+
+// ── GET /api/v1/esportes ────────────────────────────────────────────────────
+export type EsporteOpcao = { id: string; nome: string };
+
+// ── GET /api/v1/artilheiros ─────────────────────────────────────────────────
+// Cópia de weracha-site/lib/artilheiros.ts (tipos e helpers puros).
+
+/** Chave do período "desde sempre". Os outros são meses "AAAA-MM". */
+export const CHAVE_GERAL = "GERAL";
+
+export type PeriodoArtilheiros = {
+  chave: string;
+  rotulo: string;
+  rotuloCurto: string;
+  emAndamento: boolean;
+};
+
+export type StatsPeriodo = { gols: number; posicao: number };
+
+export type JogadorArtilheiro = {
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+  souEu: boolean;
+  porPeriodo: Record<string, StatsPeriodo>;
+};
+
+/** Linha achatada de um período (jogador + números daquele período). */
+export type LinhaRanking = {
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+  souEu: boolean;
+  gols: number;
+  posicao: number;
+};
+
+export type DadosArtilheiros = {
+  escopo:
+    | { tipo: "grupo"; grupoNome: string; esporte: string }
+    | {
+        tipo: "esporte";
+        esporteSelecionado: string | null;
+        esportesDisponiveis: string[];
+      };
+  periodos: PeriodoArtilheiros[];
+  periodoInicial: string;
+  jogadores: JogadorArtilheiro[];
+};
+
+// ── Resenha (16-api-v1.md §13) ──────────────────────────────────────────────
+// Cópia de weracha-site/lib/services/resenha.ts.
+
+export type AutorComentario = {
+  id: string;
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+};
+
+export type ComentarioResenha = {
+  id: string;
+  pedidoReplayId: string;
+  autor: AutorComentario;
+  texto: string;
+  criadoEm: string;
+};
+
+export type MotivoNaoPodeComentar = "sem-data-nascimento" | "menor" | "cancelada";
+export type PodeComentar = { ok: true } | { ok: false; motivo: MotivoNaoPodeComentar };
+
+export type BlocoFeedResenha = {
+  pedidoReplayId: string;
+  partidaId: string;
+  partidaData: string;
+  tipo: "GOL" | "LANCE";
+  criadoEm: string;
+  jogador: AutorComentario | null;
+  marcadoPor: string | null;
+  videos: { idCamera: string; link: string }[];
+  totalComentarios: number;
+  comentariosPreview: ComentarioResenha[];
+  ultimaAtividade: string;
+};
+
+export type FeedResenha = {
+  blocos: BlocoFeedResenha[];
+  temMais: boolean;
+  totalBlocos: number;
+  podeModerar: boolean;
+  meuJogadorId: string;
+  podeComentar: PodeComentar;
+};
+
+// ── Enquetes (16-api-v1.md §6) ─────────────────────────────────────────────
+// Cópia de weracha-site/lib/services/enquetes.ts.
+
+export type OpcaoEnquete = {
+  id: string;
+  texto: string;
+  votos: number;
+  votueiEu: boolean;
+};
+
+export type Enquete = {
+  id: string;
+  grupoId: string;
+  criadoPor: string;
+  criadoPorNome: string;
+  pergunta: string;
+  expiraEm: string;
+  criadoEm: string;
+  ativa: boolean;
+  anonima: boolean;
+  totalVotos: number;
+  opcoes: OpcaoEnquete[];
+};
+
+export type VotanteEnquete = { jogadorId: string; nome: string };
+
+export type EnquetesDoGrupo = {
+  ativas: Enquete[];
+  encerradas: Enquete[];
+  podeCriarEnquete: boolean;
+};
+
+export type EnqueteComGrupo = Enquete & { grupoNome: string; souAdminDoGrupo: boolean };
+
+export type EnquetesDoJogador = {
+  ativas: EnqueteComGrupo[];
+  encerradas: EnqueteComGrupo[];
+};
+
+// ── Gerenciar jogadores (16-api-v1.md §3) ──────────────────────────────────
+// Cópia de weracha-site/lib/actions/grupos.ts (DadosDaTelaJogadoresDoGrupo),
+// lib/services/membros.ts (JogadorDoGrupo), lib/db/schema.ts (membros_grupo,
+// posicoes_esporte) e lib/services/perfilJogador.ts (PerfilJogador).
+
+export type MembroGrupo = {
+  id: string;
+  grupoId: string;
+  jogadorId: string;
+  papel: "ADMIN" | "MEMBRO";
+  score: number;
+  scoreOrigem: string;
+  posicaoId: string | null;
+  /** "AAAA-MM-DD" ou null. Mensalista enquanto >= hoje. */
+  mensalistaAte: string | null;
+};
+
+/** Só os campos que a tela usa (a resposta traz o row inteiro de posicoes_esporte). */
+export type PosicaoEsporte = { id: string; nome: string };
+
+export type JogadorDoGrupo = {
+  id: string;
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+  /** Já formatado — mascarado se o chamador não for admin. */
+  telefone: string;
+  exclusaoPendente: boolean;
+};
+
+export type DadosDaTelaJogadoresDoGrupo = {
+  grupo?: Grupo;
+  meuId: string;
+  membros: MembroGrupo[];
+  jogadores: JogadorDoGrupo[];
+  posicoes: PosicaoEsporte[];
+};
+
+export type PerfilJogador = {
+  id: string;
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+  telefone: string;
+  totalGrupos: number;
+  totalPartidas: number;
+  totalGols: number;
+};

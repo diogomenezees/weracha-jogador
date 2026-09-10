@@ -9,5 +9,5 @@ export default function LayoutLogado() {
   if (estado.fase === "carregando") return null;
   if (estado.fase === "deslogado") return <Redirect href="/login" />;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: false }} initialRouteName="painel" />;
 }

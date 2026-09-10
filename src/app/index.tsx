@@ -16,7 +16,7 @@ export default function Entrada() {
     );
   }
 
-  return <Redirect href={estado.fase === "logado" ? "/grupos" : "/login"} />;
+  return <Redirect href={estado.fase === "logado" ? "/painel" : "/login"} />;
 }
 
 const styles = StyleSheet.create({

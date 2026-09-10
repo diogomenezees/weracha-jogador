@@ -56,7 +56,25 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
 - **Só arquivos de rota e layout em `src/app/`** (expo-router, file-based). Todo
   o resto do código em `src/` (`api/`, `sessao/`, `contrato/`, `config/`).
 - Rota `(logado)/` é grupo protegido: `src/app/(logado)/_layout.tsx` redireciona
-  pro `/login` sem sessão.
+  pro `/login` sem sessão. A home logada é `(logado)/painel.tsx` (`/painel`,
+  espelha `weracha-site/app/painel`); peças de UI dele em `src/painel/ui.tsx`.
+- **Tela do grupo** (`(logado)/grupos/[id]/index.tsx`) espelha
+  `weracha-site/app/grupos/[id]/page.tsx`; as sub-telas são irmãs
+  (`artilheiros.tsx`, `resenha.tsx`, `enquetes/`, `jogadores.tsx`). Peças de UI
+  em `src/grupo/` (`modais.tsx`, `MenuAcoes.tsx` — action sheet, o `Alert.alert`
+  do RN corta em 3 botões no Android; `pickers.tsx` — data/hora via
+  `@react-native-community/datetimepicker`), e por área em
+  `src/{artilheiros,resenha,enquetes,jogadores}/`. Avatar em
+  `src/ui/AvatarJogador.tsx`. Janela de check-in e formatação de partida em
+  `src/partidas.ts` (sem fuso SP explícito: o cliente é local).
+- Chat da resenha faz polling só enquanto `AppState.currentState === "active"`.
+- Vídeo de replay abre no player do sistema (`Linking.openURL`), sem `expo-video`.
+- Sub-telas ainda não portadas (check-in, ao vivo, resultado) caem em
+  `(logado)/em-breve.tsx` (`?titulo=`).
+- **Perfil vem do contexto de sessão.** `useSessao().estado.jogador` é `MeuPerfil`
+  (do cache no boot). Tela logada que precisa do perfil fresco chama
+  `recarregarPerfil()` (`GET /api/v1/me`) no mount; o contexto atualiza estado +
+  SecureStore. Nunca refazer o fetch de `/me` por conta própria numa tela.
 - **Nenhum texto visível pro usuário usa travessão ("—") pra montar frase.** Ponto,
   vírgula ou duas frases. (Mesma regra do site; vale pra tela, não pra comentário
   nem doc.)

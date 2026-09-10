@@ -11,12 +11,21 @@ export const cores = {
   orange: "#f28c1e",
   orangeClaro: "#ffa23f",
 
+  // Fundo um tom mais escuro que o `dark`, usado pelo carrossel de onboarding
+  // (site: #0f1319).
+  darkMaisEscuro: "#0f1319",
+
   // Neutros usados pelos textos do site (slate-*)
   branco: "#ffffff",
   slate200: "#e2e8f0",
   slate300: "#cbd5e1",
   slate400: "#94a3b8",
   slate500: "#64748b",
+  slate600: "#475569",
+
+  // Âmbar de "precisa de atenção" (site: amber-400 / amber-500)
+  ambar: "#fbbf24",
+  ambarEscuro: "#f59e0b",
 
   // Erro (red-300 / red-500)
   erroTexto: "#fca5a5",
@@ -30,6 +39,13 @@ export const cores = {
   campoBorda: "rgba(31, 179, 163, 0.2)",
   avisoFundo: "rgba(31, 179, 163, 0.07)",
   avisoBorda: "rgba(31, 179, 163, 0.25)",
+  linhaSutil: "rgba(255, 255, 255, 0.06)",
+  superficieSutil: "rgba(255, 255, 255, 0.02)",
+  superficieMedia: "rgba(255, 255, 255, 0.07)",
+  ambarFundo: "rgba(251, 191, 36, 0.08)",
+  ambarBorda: "rgba(251, 191, 36, 0.3)",
+  laranjaFundo: "rgba(242, 140, 30, 0.08)",
+  laranjaBorda: "rgba(242, 140, 30, 0.35)",
 } as const;
 
 export const raio = {

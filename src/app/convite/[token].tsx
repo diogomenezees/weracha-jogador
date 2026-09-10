@@ -68,7 +68,7 @@ export default function ConviteScreen() {
     try {
       await processarConvite(chamarApi, convite.token, alvo);
       limparConvitePendente();
-      router.replace("/grupos");
+      router.replace("/painel");
     } catch (e) {
       setErro(mensagemDoErro(e));
       setEntrando(false);
