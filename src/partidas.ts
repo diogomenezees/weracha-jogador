@@ -77,6 +77,53 @@ export function partidaEncerrada(
   return agora.getTime() > janelaDeCheckin(dataPartida, duracaoMin).fechamento.getTime();
 }
 
+/** Janela de check-in ainda não abriu (30min antes do início). */
+export function partidaAindaNaoComecou(
+  dataPartida: Date,
+  duracaoMin: number,
+  agora: Date = new Date()
+): boolean {
+  return agora.getTime() < janelaDeCheckin(dataPartida, duracaoMin).abertura.getTime();
+}
+
+// Depois desse prazo (contado do FIM da partida), o admin não pode mais
+// corrigir/cancelar/migrar gol. Mesmo número do site (lib/partidas.ts).
+export const PRAZO_EDICAO_GOLS_HORAS = 24;
+
+export function dentroDoPrazoDeEdicaoDeGols(
+  dataPartida: Date,
+  duracaoMin: number,
+  agora: Date = new Date()
+): boolean {
+  const fimPartida = dataPartida.getTime() + duracaoMin * 60_000;
+  const prazo = fimPartida + PRAZO_EDICAO_GOLS_HORAS * 60 * 60_000;
+  return agora.getTime() <= prazo;
+}
+
+// A partir desse prazo antes do início da próxima partida do grupo, a
+// autoavaliação do próprio score fica bloqueada (o admin nunca é bloqueado).
+// Mesmo número do site (lib/partidas.ts) — aqui só pro indício visual da tela
+// de perfil; o servidor é quem recusa de verdade.
+export const PRAZO_CONGELAMENTO_SCORE_HORAS = 1;
+
+export function scoreCongelado(
+  dataProximaPartida: Date | null | undefined,
+  agora: Date = new Date()
+): boolean {
+  if (!dataProximaPartida) return false;
+  return (
+    agora.getTime() >=
+    dataProximaPartida.getTime() - PRAZO_CONGELAMENTO_SCORE_HORAS * 60 * 60_000
+  );
+}
+
+// Sugestão inicial de "jogadores por time" pra rachas com poucos check-ins:
+// cresce junto com quem chegou (1 time por dupla) até o teto de 5.
+// De weracha-site/lib/balanceamento.ts.
+export function sugerirJogadoresPorTime(totalPresentes: number): number {
+  return Math.min(5, Math.max(1, Math.floor(totalPresentes / 2)));
+}
+
 export function formatarDiaSemanaData(data: Date): string {
   const semana = DIAS_SEMANA[data.getDay()];
   const dia = String(data.getDate()).padStart(2, "0");

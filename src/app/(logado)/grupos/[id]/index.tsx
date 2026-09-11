@@ -56,6 +56,7 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { SeletorData, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
+import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/tipos";
@@ -433,13 +434,7 @@ export default function TelaGrupo() {
   }
 
   // ---- Render -----------------------------------------------------------
-  const voltar = (
-    <View style={styles.topo}>
-      <Pressable hitSlop={10} onPress={() => router.back()}>
-        <Text style={styles.voltar}>‹ Painel</Text>
-      </Pressable>
-    </View>
-  );
+  const voltar = <Navbar voltar="Painel" />;
 
   if (contaPendente) {
     return (
@@ -501,7 +496,7 @@ export default function TelaGrupo() {
   function abrirPartida(p: PartidaResumo) {
     const temResultado = !p.cancelada && idsResultado.has(p.id);
     if (temResultado && !idsEmAndamento.has(p.id)) {
-      router.push({ pathname: "/em-breve", params: { titulo: "Resultado da partida" } });
+      router.push(`/grupos/${id}/partidas/${p.id}/resultado`);
       return;
     }
     setPartidaSel(p);
@@ -603,9 +598,7 @@ export default function TelaGrupo() {
                 souAdmin={!!souAdmin}
                 onAbrir={() => abrirPartida(p)}
                 onMenu={() => abrirMenuPartida(p, !p.cancelada && idsResultado.has(p.id))}
-                onCheckin={() =>
-                  router.push({ pathname: "/em-breve", params: { titulo: "Check-in" } })
-                }
+                onCheckin={() => router.push(`/grupos/${id}/partidas/${p.id}/checkin`)}
               />
             ))}
           </View>
@@ -702,9 +695,10 @@ export default function TelaGrupo() {
             temToken={!!tokenConvite}
             onCopiar={() => void copiarLink(partidaSel)}
             onCompartilhar={() => void compartilharConvite(partidaSel)}
-            onIr={(sufixo) =>
-              router.push({ pathname: "/em-breve", params: { titulo: sufixo } })
-            }
+            onIr={(rota) => {
+              setAba(null);
+              router.push(`/grupos/${grupo.id}/partidas/${partidaSel.id}/${rota}`);
+            }}
             onFechar={() => setAba(null)}
           />
         )}
@@ -1019,7 +1013,7 @@ function DetalhePartida({
   temToken: boolean;
   onCopiar: () => void;
   onCompartilhar: () => void;
-  onIr: (titulo: string) => void;
+  onIr: (rota: "checkin" | "ao-vivo" | "resultado") => void;
   onFechar: () => void;
 }) {
   const data = new Date(p.data);
@@ -1078,29 +1072,29 @@ function DetalhePartida({
       ) : null}
 
       {emCheckin && !jaFizCheckin ? (
-        <Pressable style={styles.modalBotao} onPress={() => onIr("Check-in")}>
+        <Pressable style={styles.modalBotao} onPress={() => onIr("checkin")}>
           <Text style={styles.modalBotaoTexto}>Check-in</Text>
         </Pressable>
       ) : emCheckin && temResultado ? (
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <Pressable style={[styles.modalBotao, { flex: 1 }]} onPress={() => onIr("Times")}>
+            <Pressable style={[styles.modalBotao, { flex: 1 }]} onPress={() => onIr("resultado")}>
               <Text style={styles.modalBotaoTexto}>Times</Text>
             </Pressable>
             <Pressable
               style={[styles.modalBotao, { flex: 1, backgroundColor: "#dc2626" }]}
-              onPress={() => onIr("Ao vivo")}
+              onPress={() => onIr("ao-vivo")}
             >
               <Text style={[styles.modalBotaoTexto, { color: cores.branco }]}>Ao vivo</Text>
             </Pressable>
           </View>
         </View>
       ) : emCheckin ? (
-        <Pressable style={styles.modalBotao} onPress={() => onIr("Check-in")}>
+        <Pressable style={styles.modalBotao} onPress={() => onIr("checkin")}>
           <Text style={styles.modalBotaoTexto}>Ir para o Check-in</Text>
         </Pressable>
       ) : temResultado ? (
-        <Pressable style={styles.modalBotao} onPress={() => onIr("Resultado da partida")}>
+        <Pressable style={styles.modalBotao} onPress={() => onIr("resultado")}>
           <Text style={styles.modalBotaoTexto}>Resultado</Text>
         </Pressable>
       ) : (
@@ -1239,8 +1233,6 @@ function ModalInput({
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  topo: { paddingHorizontal: 20, paddingTop: 4 },
-  voltar: { fontSize: 16, color: cores.slate400 },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   aviso: { fontSize: 14, color: cores.slate400, textAlign: "center" },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 190, gap: 16 },

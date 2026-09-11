@@ -171,6 +171,165 @@ que caia em `em-breve` (só check-in / ao vivo / resultado das partidas seguem s
 **Falta validar:** tudo em device — votar, comentar (polling), gerenciar elenco,
 compartilhar rankings.
 
+### Feito: ciclo da partida — check-in, configurar, ao vivo, resultado (2026-09-10)
+
+As 4 telas do ciclo da partida (não commitadas; typecheck/lint/jest limpos). O
+grupo não tem mais nada que caia em `em-breve` — os botões de partida
+(`index.tsx`) roteiam direto pras telas reais.
+
+- **Check-in** (`grupos/[id]/partidas/[partidaId]/checkin.tsx`): lista de
+  presença com polling 5s (`AppState` ativo). Membro: "Eu vou jogar" + aviso de
+  aguardando; se o sorteio saiu e ele já confirmou, vai direto pro resultado.
+  Admin: busca no elenco + adicionar, cadastrar novo (`FormNovoJogador`, agora
+  devolve o `MembroGrupo` pra fazer o check-in do recém-criado), badge de
+  pagamento clicável (`checkins/{id}/pagamento` + `membros/{id}/mensalista`
+  juntos), remover check-in de terceiro, toggle Score, ordenação.
+- **Configurar** (`.../configurar.tsx`, só admin): modo de sorteio, jogadores
+  por time com feedback de times/sobra, paleta de cores (grade de swatches +
+  hex manual, **sem** seletor nativo de cor — não tem no Expo Go), fixação de
+  time por jogador (`MenuAcoes`), avisos do modo POSIÇÃO. "Iniciar separação" =
+  `salvarConfiguracao` + `salvarPreAlocacoes` + `gerarSorteio` (o balanceamento
+  roda no servidor; o app só lê `ResultadoSalvo`).
+- **Ao vivo** (`.../ao-vivo.tsx`): ticker 1s + polling 3s do `estadoAoVivo`.
+  Cronômetro (play/pause, +30s, resetar com o texto condicional, editar
+  duração/gols). Abas Artilheiros (marcar/desmarcar gol otimista + cooldown 2s,
+  "N gravado", lance importante), Histórico e Lances (`ListaReplays`, busca só
+  quando os contadores do poll mudam). Comemoração "GOOOL!/LANCE!" = fade
+  `Animated` (sem confete de partículas).
+- **Resultado** (`.../resultado.tsx`): monta o equivalente de
+  `dadosDaTelaResultado` no cliente (`src/partida/montarResultado.ts`) — não há
+  endpoint agregado. Serve os dois momentos, igual o site:
+  - **Durante o jogo**: só a visão "Times" (cor do colete, cinza neutro sem cor
+    cadastrada, "começa com a bola" / "escolhe o lado"), rodapé leva pro "Ao
+    vivo", menu "⋯" com "Refazer o sorteio" (só admin, some quando encerra).
+  - **Depois do jogo** (`partidaEncerrada`): título "Resultado", botão de
+    compartilhar (`Share` só-texto), e as abas Artilheiros (linha do tempo +
+    admin dentro de `PRAZO_EDICAO_GOLS_HORAS`: adicionar gol, cancelar/reativar,
+    migrar — `MenuAcoes` por gol) e Lances (`ListaReplays` com comentário via
+    `ChatResenha`).
+- **Peças compartilhadas**: `src/partida/{ui.tsx,ListaReplays.tsx,montarResultado.ts}`.
+  Helpers `src/aoVivo.ts` (porte de `lib/aoVivo.ts`) + `src/partidas.ts` ganhou
+  `partidaAindaNaoComecou`, `dentroDoPrazoDeEdicaoDeGols`,
+  `PRAZO_EDICAO_GOLS_HORAS` (24), `sugerirJogadoresPorTime`.
+- **Contrato**: `CheckIn`, `JogadorEmPartida`, `DadosDeApoioDaPartida`,
+  `ConfiguracaoPartida`, `PreAlocacaoPartida`, `CorGrupo`, `ResultadoSalvo`,
+  `EstadoAoVivo`, `EstadoAoVivoCompleto`, `GolComVideos`, `ModoSorteio`,
+  `TipoPagamento` em `src/contrato/tipos.ts`. APIs em
+  `src/api/{checkins,cores,partidas}.ts` (+ `buscarComentariosEmLote` em
+  `src/api/resenha.ts`).
+- **Mudança no site**: `GET /api/v1/partidas/{id}/gols` passou a aceitar
+  `?incluirCancelados=true` (o serviço já suportava; faltava ler a query). A
+  linha do tempo do resultado do app precisa ver o gol cancelado pra reativar.
+  Registrado no changelog + §12 de `16-api-v1.md`, + 1 caso na varredura
+  `test:bearer`.
+
+**Falta validar:** tudo em device contra o site Local — ciclo completo
+check-in → sorteio → ao vivo → resultado, correções pós-jogo, cores, fixação de
+time, erros (fixação impossível, prazo de edição de gol).
+
+### Feito: cabeçalho padronizado com menu lateral (2026-09-10)
+
+Componente `src/ui/Navbar.tsx`, espelho de `weracha-site/components/navbar.tsx`:
+marca "We Racha" à esquerda (ou `‹ destino` quando a tela é interna) e um botão
+de menu (☰) à direita que abre uma gaveta deslizante da direita. A gaveta lista
+as telas principais na mesma ordem do site (Perfil, Grupos, Artilheiros, Replays,
+Enquetes, Parcerias, Contato, Sorteio rápido) + rodapé com o servidor atual e
+"Sair". As telas ainda não portadas (Perfil, Replays, Parcerias, Sorteio rápido)
+abrem `/em-breve` de propósito, para o menu não esconder o que falta. A seção de
+administração do menu do site fica de fora (as telas `/admin/*` não entram no app).
+
+- `<Navbar />` substituiu os topos ad-hoc (`⚙` do painel + as barras `‹ Painel`
+  / `‹ Grupo` / `‹ Enquetes`). O `MenuAcoes` do rodapé do painel saiu.
+- Presente em todas as telas logadas. No ciclo da partida (check-in, configurar,
+  ao vivo, resultado) entra via `TelaPartida` só com marca + menu: o voltar
+  dessas telas de foco continua no rodapé (`Rodape` / `AvisoPartida`).
+- Fora: `onboarding.tsx` (fluxo de primeira vez, tem "Pular"/"Vamos lá!" próprios).
+- Gaveta = `Modal` com fade + `translateX` animado (`Animated`, mesmo padrão do
+  "GOOOL!" do ao vivo). Ícone do menu desenhado com `View`s, sem lib de ícone.
+
+**Falta validar:** abrir/fechar a gaveta em device, navegação para cada destino,
+o "Sair" (deve cair no `/login` pelo redirect do `(logado)/_layout`).
+
+### Feito: tela de Perfil (2026-09-10)
+
+`src/app/(logado)/perfil.tsx` (rota `/perfil`, item "Perfil" do menu da `Navbar`).
+Porta de `weracha-site/app/perfil/page.tsx`. typecheck/lint/jest limpos, não
+rodou em device.
+
+- **Campos**: nome, apelido, data de nascimento (opcional, `SeletorData` nativo),
+  e-mail + opt-in de notificação. Telefone é só-leitura. Botão "Salvar" no rodapé
+  só aparece quando algo mudou, e faz um `PUT` por campo alterado
+  (`/api/v1/perfil/{nome,apelido,email,data-nascimento}`) + `recarregarPerfil`.
+- **Foto** (`src/perfil/FotoPerfil.tsx`): `expo-image-picker` (dep nova, plugin
+  no `app.json`) → `POST /api/v1/perfil/foto/upload-url` (rota Bearer nova no
+  site) → `PUT` do blob direto no R2 → `PUT /api/v1/perfil/foto`. Remover = `PUT`
+  com `fotoUrl: null`.
+- **Trocar senha** (`src/perfil/modais.tsx` `ModalTrocarSenha`): SMS via
+  `senha/recuperar` + `senha/definir` (com código), igual o /esqueci-senha. Não
+  pede a senha atual.
+- **Excluir meus dados** (`ModalExcluirConta`, exigência da Apple de ter isso
+  dentro do app): lista os grupos onde ainda é dono (bloqueia até resolver);
+  senão SMS via `conta/exclusao/codigo` + `conta/exclusao` (POST com código).
+  Banner "conta marcada para exclusão" + "Reativar" no topo da tela (o mesmo
+  `DELETE /api/v1/conta/exclusao` do painel).
+- **Score / posição por grupo**: cada grupo lista score + posição; toca e abre
+  `ModalScore` / `ModalPosicao` (reusados de `src/jogadores/modais.tsx`) →
+  `PUT .../membros/{meuId}/{score,posicao}`. Score fica travado (🔒) < 1h antes
+  da próxima partida pra quem não é admin (`scoreCongelado` portado pra
+  `src/partidas.ts`).
+- **Mudança no site**: rota nova **`POST /api/v1/perfil/foto/upload-url`**
+  (presigned R2, Bearer) — o `POST /api/perfil/foto` do site é só-cookie. Os dois
+  passaram a usar `gerarUrlUploadFoto` em `lib/services/jogadores.ts`. Sem
+  migration, sem código de erro novo. Changelog + §14 de `16-api-v1.md` +
+  1 caso na varredura `test:bearer`.
+
+**Falta validar:** tudo em device contra o site Local — salvar cada campo, o
+upload de foto (o `PUT` do blob no R2 via `fetch` do RN é o ponto de risco: se o
+`Content-Length` não bater, o R2 recusa; plano B é `expo-file-system`
+`uploadAsync`), trocar senha, pedir exclusão + reativar, editar score/posição.
+
+### Feito: tela de Replays (2026-09-10)
+
+`src/app/(logado)/replays.tsx` (rota `/replays`, item "Replays" do menu, com
+badge Beta). Porta de `weracha-site/app/replays/page.tsx`, **sem** o pager estilo
+Stories do site — lista vertical simples (`src/replays/ListaMeusReplays.tsx`),
+mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]). typecheck/
+lint/jest limpos, não rodou em device.
+
+- `GET /api/v1/replays` (`src/api/replays.ts`, tipo `MeuReplay` copiado pro
+  contrato) + `buscarComentariosEmLote` (já existia) pros comentários.
+- Card: grupo/esporte/data, chips de câmera quando tem mais de uma, "▶ Assistir"
+  abre o vídeo no player do sistema (`Linking.openURL`, sem `expo-video`),
+  atalhos "Grupo ›" / "Resultado ›", e "💬 Comentar" abre o `ChatResenha` (o
+  mesmo modal de polling da resenha). `grupoRemovido` esconde atalhos + resenha.
+- `podeComentar` = tem data de nascimento (o servidor faz o gate 18+ de verdade).
+  `podeModerar: false` — `/replays` não é escopado a grupo, então não há sinal de
+  admin; um master no app só apaga o próprio comentário (janela de 5min).
+- **Sem mudança no site** (a rota já existia da fatia 5a).
+
+### Feito: tela de Parcerias (2026-09-10)
+
+`src/app/(logado)/parcerias.tsx` (rota `/parcerias`, item "Parcerias" do menu).
+Porta de `weracha-site/app/parceiros/page.tsx`. `GET /api/v1/parceiros`
+(`src/api/parceiros.ts`, tipo `Parceiro` no contrato). Lista com logo
+(`expo-image`) + nome + descrição; toca e abre `ModalCartao` com "Visualizar" que
+abre o `link` no navegador (`abrirNoNavegador`). "Indicar parceria" abre
+`weracha.app/contato?motivo=Parceria`. Sem mudança no site. typecheck/lint/jest
+limpos, não rodou em device. Menu ainda leva a `/em-breve`: só Sorteio rápido.
+
+### Feito: Sorteio rápido (2026-09-10)
+
+`src/app/(logado)/sorteio.tsx` (rota `/sorteio`, último item do menu). 100%
+local, sem API: `src/sorteio.ts` é cópia literal de
+`weracha-site/lib/sorteio.ts` (`sortearTimes` + Fisher-Yates), mantida em
+sincronia à mão como o resto de `src/contrato/`. Formulário (nomes um por linha,
+stepper 2-8 times, toggle "sortear capitão") → grade de times (★ pro capitão),
+"Editar jogadores" / "Sortear de novo". CTA no rodapé leva pra `/criar-grupo`.
+typecheck/lint/jest limpos, não rodou em device.
+
+**Todas as telas do menu da `Navbar` agora existem** — nenhum item cai mais em
+`/em-breve` (o `em-breve.tsx` segue só pro "Entrar por convite" do painel).
+
 ### Próximo passo
 
 1. **Build EAS (APK preview)** pra rodar sem o Metro/notebook. Expo Go carrega o
@@ -181,8 +340,11 @@ compartilhar rankings.
    verificação leva dias a semanas. Fazer em paralelo, não esperar o app pronto.
 3. **Iterar as telas do app** contra a API. Feito: `/painel`, onboarding,
    criar grupo, tela do grupo (com admin), artilheiros, resenha, enquetes,
-   gerenciar jogadores. A seguir: check-in, ao vivo, resultado (o ciclo da
-   partida em si). Depois perfil, replays, entrada por convite manual.
+   gerenciar jogadores, o ciclo da partida (check-in, configurar, ao vivo,
+   resultado), o cabeçalho padronizado (`Navbar`), e todas as telas do menu
+   (perfil, replays, parcerias, sorteio rápido). A seguir: entrada por convite
+   manual, e mapear o `destino` do convite pra rota do app (hoje sempre
+   `/grupos`, agora que `/checkin` existe).
 4. Deixar necessidade real puxar o resto — push, deep links, camadas 2/3 do
    anti-abuso de SMS, OpenAPI. Nada disso bloqueia iterar.
 

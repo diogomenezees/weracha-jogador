@@ -26,6 +26,19 @@ export async function buscarComentarios(
   return comentarios;
 }
 
+// GET /api/v1/replays/comentarios?ids=<id1>,<id2>,... — comentários em lote de
+// vários replays, por pedidoReplayId. Chave por id, valor [] pros sem
+// comentário. Usado pela tela de Resultado (gols + lances de uma vez).
+export function buscarComentariosEmLote(
+  chamarApi: ChamarApi,
+  ids: string[]
+): Promise<Record<string, ComentarioResenha[]>> {
+  if (ids.length === 0) return Promise.resolve({});
+  return chamarApi<Record<string, ComentarioResenha[]>>(
+    `/api/v1/replays/comentarios?ids=${ids.map(encodeURIComponent).join(",")}`
+  );
+}
+
 // POST /api/v1/replays/{pedidoReplayId}/comentarios — posta um comentário
 // (1 a 500 caracteres após trim). 422: cooldown de 3s, menor de 18, etc.
 export async function enviarComentario(

@@ -8,6 +8,7 @@ import { buscarDadosDoGrupo } from "@/api/grupos";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalEnquete } from "@/enquetes/ModalEnquete";
+import { Navbar } from "@/ui/Navbar";
 import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -63,13 +64,7 @@ export default function EnquetesDoGrupoTela() {
     }
   }, [carregar]);
 
-  const voltar = (
-    <View style={styles.topo}>
-      <Pressable hitSlop={10} onPress={() => router.back()}>
-        <Text style={styles.voltar}>‹ Grupo</Text>
-      </Pressable>
-    </View>
-  );
+  const voltar = <Navbar voltar="Grupo" />;
 
   if (erro && !dados) {
     return (
@@ -194,8 +189,6 @@ function CardEnquete({ enquete, onPress }: { enquete: Enquete; onPress: () => vo
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  topo: { paddingHorizontal: 20, paddingTop: 4 },
-  voltar: { fontSize: 16, color: cores.slate400 },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 130, gap: 20 },
   cabecalho: { gap: 4 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },

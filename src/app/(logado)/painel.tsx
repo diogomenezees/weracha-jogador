@@ -13,7 +13,6 @@ import { router } from "expo-router";
 
 import { buscarStatusExclusao, cancelarExclusao } from "@/api/conta";
 import { listarMeusGrupos } from "@/api/grupos";
-import { rotuloDoAmbiente } from "@/config/servidor";
 import { ehHoje, formatarDataPartida, rotuloDoDia } from "@/formato";
 import {
   aguardandoRenovacao,
@@ -23,7 +22,7 @@ import {
   proximaPartidaInfo,
 } from "@/grupos";
 import { mensagemDoErro } from "@/mensagens-erro";
-import { MenuAcoes } from "@/grupo/MenuAcoes";
+import { Navbar } from "@/ui/Navbar";
 import {
   BotaoLaranja,
   CartaoCaminho,
@@ -39,7 +38,7 @@ import { cores, raio } from "@/tema";
 import type { Grupo } from "@/contrato/tipos";
 
 export default function Painel() {
-  const { estado, ambiente, urlBase, chamarApi, sair, recarregarPerfil } = useSessao();
+  const { estado, chamarApi, recarregarPerfil } = useSessao();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
   const primeiroNome = jogador?.nome.split(" ")[0] ?? "";
 
@@ -49,7 +48,6 @@ export default function Painel() {
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
   const [reativando, setReativando] = useState(false);
-  const [menuAberto, setMenuAberto] = useState(false);
 
   const carregar = useCallback(async () => {
     const [, status, lista] = await Promise.all([
@@ -94,10 +92,6 @@ export default function Painel() {
     [carregar]
   );
 
-  function abrirMenu() {
-    setMenuAberto(true);
-  }
-
   async function reativarConta() {
     setReativando(true);
     try {
@@ -110,25 +104,11 @@ export default function Painel() {
     }
   }
 
-  const menu = (
-    <MenuAcoes
-      aberto={menuAberto}
-      titulo={`${rotuloDoAmbiente(ambiente)} · ${urlBase}`}
-      itens={[
-        { rotulo: "Ver artilheiros", onPress: () => router.push("/artilheiros") },
-        { rotulo: "Ver enquetes", onPress: () => router.push("/enquetes") },
-        { rotulo: "Sair", destrutivo: true, onPress: () => void sair() },
-      ]}
-      onFechar={() => setMenuAberto(false)}
-    />
-  );
-
   if (!jogador || (carregando && grupos === null)) {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
-        <TopoMenu onMenu={abrirMenu} />
+        <Navbar />
         <TelaCarregando mensagem="Carregando seu painel..." />
-        {menu}
       </SafeAreaView>
     );
   }
@@ -136,9 +116,8 @@ export default function Painel() {
   if (erro && grupos === null) {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
-        <TopoMenu onMenu={abrirMenu} />
+        <Navbar />
         <TelaErro mensagem={erro} onTentar={() => void recarregar("botao")} />
-        {menu}
       </SafeAreaView>
     );
   }
@@ -153,7 +132,7 @@ export default function Painel() {
 
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
-      <TopoMenu onMenu={abrirMenu} />
+      <Navbar />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -217,18 +196,7 @@ export default function Painel() {
         onComecar={() => router.push("/onboarding")}
         onCriarGrupo={() => router.push("/criar-grupo")}
       />
-      {menu}
     </SafeAreaView>
-  );
-}
-
-function TopoMenu({ onMenu }: { onMenu: () => void }) {
-  return (
-    <View style={styles.topo}>
-      <Pressable hitSlop={12} onPress={onMenu}>
-        <Text style={styles.engrenagem}>⚙</Text>
-      </Pressable>
-    </View>
   );
 }
 
@@ -493,8 +461,6 @@ function Rodape({
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  topo: { flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: 20, paddingTop: 4 },
-  engrenagem: { fontSize: 22, color: cores.slate400 },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 170, gap: 24 },
 
   bloco: { gap: 8 },

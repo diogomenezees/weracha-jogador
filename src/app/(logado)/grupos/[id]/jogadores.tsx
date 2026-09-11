@@ -20,6 +20,7 @@ import { FormNovoJogador } from "@/jogadores/FormNovoJogador";
 import { ModalPerfil, ModalPosicao, ModalScore, ModalTransferirDono } from "@/jogadores/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { DadosDaTelaJogadoresDoGrupo, JogadorDoGrupo, MembroGrupo } from "@/contrato/tipos";
@@ -267,13 +268,7 @@ export default function GerenciarJogadores() {
     }
   }
 
-  const voltar = (
-    <View style={styles.topo}>
-      <Pressable hitSlop={10} onPress={() => router.back()}>
-        <Text style={styles.voltar}>‹ Grupo</Text>
-      </Pressable>
-    </View>
-  );
+  const voltar = <Navbar voltar="Grupo" />;
 
   if (erro && !dados) {
     return (
@@ -504,8 +499,6 @@ export default function GerenciarJogadores() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  topo: { paddingHorizontal: 20, paddingTop: 4 },
-  voltar: { fontSize: 16, color: cores.slate400 },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   aviso: { fontSize: 14, color: cores.slate400 },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 120, gap: 12 },

@@ -15,6 +15,7 @@ import { CaixaErro } from "@/acesso/ui";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { hojeISO, partidaEncerrada } from "@/partidas";
 import { BotaoLaranja } from "@/painel/ui";
+import { Navbar } from "@/ui/Navbar";
 import { SeletorData, SeletorDiaSemana, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -118,11 +119,7 @@ export default function CriarGrupo() {
 
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
-      <View style={styles.topo}>
-        <Pressable hitSlop={10} onPress={() => router.back()}>
-          <Text style={styles.voltar}>‹ Painel</Text>
-        </Pressable>
-      </View>
+      <Navbar voltar="Painel" />
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.h1}>Criar grupo</Text>
@@ -254,8 +251,6 @@ export default function CriarGrupo() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  topo: { paddingHorizontal: 20, paddingTop: 4 },
-  voltar: { fontSize: 16, color: cores.slate400 },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 140, gap: 20 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   campo: { gap: 8 },

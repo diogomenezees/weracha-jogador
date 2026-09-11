@@ -58,6 +58,12 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
 - Rota `(logado)/` é grupo protegido: `src/app/(logado)/_layout.tsx` redireciona
   pro `/login` sem sessão. A home logada é `(logado)/painel.tsx` (`/painel`,
   espelha `weracha-site/app/painel`); peças de UI dele em `src/painel/ui.tsx`.
+- **Cabeçalho padronizado**: `src/ui/Navbar.tsx` (espelha
+  `weracha-site/components/navbar.tsx`) — marca à esquerda ou `<Navbar voltar="Grupo" />`
+  pra nomear o destino do voltar, e o botão ☰ à direita que abre a gaveta com as
+  telas principais. Toda tela logada renderiza `<Navbar />` no topo (o ciclo da
+  partida herda via `TelaPartida`; `onboarding` é a exceção). Telas ainda não
+  portadas listadas no menu caem em `/em-breve`.
 - **Tela do grupo** (`(logado)/grupos/[id]/index.tsx`) espelha
   `weracha-site/app/grupos/[id]/page.tsx`; as sub-telas são irmãs
   (`artilheiros.tsx`, `resenha.tsx`, `enquetes/`, `jogadores.tsx`). Peças de UI

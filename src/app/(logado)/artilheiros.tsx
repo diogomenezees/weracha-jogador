@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 
 import { buscarArtilheiros } from "@/api/artilheiros";
 import { buscarStatusExclusao } from "@/api/conta";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaArtilheiros } from "@/artilheiros/TelaArtilheiros";
+import { Navbar } from "@/ui/Navbar";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -55,13 +55,7 @@ export default function ArtilheirosGlobal() {
     [chamarApi]
   );
 
-  const voltar = (
-    <View style={styles.topo}>
-      <Pressable hitSlop={10} onPress={() => router.back()}>
-        <Text style={styles.voltar}>‹ Painel</Text>
-      </Pressable>
-    </View>
-  );
+  const voltar = <Navbar voltar="Painel" />;
 
   if (erro) {
     return (
@@ -119,8 +113,6 @@ export default function ArtilheirosGlobal() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  topo: { paddingHorizontal: 20, paddingTop: 4 },
-  voltar: { fontSize: 16, color: cores.slate400 },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40, gap: 18 },
   cabecalho: { gap: 4 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },

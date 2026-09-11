@@ -15,12 +15,14 @@ type ChamarApi = <T>(
 
 export function BlocoCard({
   bloco,
+  grupoId,
   chamarApi,
   podeModerar,
   meuJogadorId,
   podeComentar,
 }: {
   bloco: BlocoFeedResenha;
+  grupoId: string;
   chamarApi: ChamarApi;
   podeModerar: boolean;
   meuJogadorId: string;
@@ -59,7 +61,7 @@ export function BlocoCard({
     opcoes.push({
       text: "Ver resultado da partida",
       onPress: () =>
-        router.push({ pathname: "/em-breve", params: { titulo: "Resultado da partida" } }),
+        router.push(`/grupos/${grupoId}/partidas/${bloco.partidaId}/resultado`),
     });
     if (video) {
       opcoes.push({ text: "Abrir vídeo", onPress: () => void Linking.openURL(video.link) });

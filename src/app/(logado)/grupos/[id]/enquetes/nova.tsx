@@ -8,6 +8,7 @@ import { buscarDadosDoGrupo } from "@/api/grupos";
 import { CaixaErro } from "@/acesso/ui";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
+import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 
@@ -99,11 +100,7 @@ export default function NovaEnquete() {
 
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
-      <View style={styles.topo}>
-        <Pressable hitSlop={10} onPress={() => router.back()}>
-          <Text style={styles.voltar}>‹ Enquetes</Text>
-        </Pressable>
-      </View>
+      <Navbar voltar="Enquetes" />
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View>
@@ -203,8 +200,6 @@ export default function NovaEnquete() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  topo: { paddingHorizontal: 20, paddingTop: 4 },
-  voltar: { fontSize: 16, color: cores.slate400 },
   scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 130, gap: 20 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   sub: { fontSize: 14, color: cores.slate400, marginTop: 2 },

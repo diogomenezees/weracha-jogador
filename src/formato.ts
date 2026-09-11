@@ -25,6 +25,14 @@ export function ehHoje(data: string | Date): boolean {
   );
 }
 
+/** Segundos → `45s` / `1min 20s` / `2min` (cooldown de reenvio de SMS). */
+export function formatarCooldown(segundos: number): string {
+  if (segundos < 60) return `${segundos}s`;
+  const min = Math.floor(segundos / 60);
+  const seg = segundos % 60;
+  return seg > 0 ? `${min}min ${seg}s` : `${min}min`;
+}
+
 /** `Date` → `Qui · 15 set` (cabeçalho do painel). */
 export function rotuloDoDia(d: Date): string {
   const dia = String(d.getDate());

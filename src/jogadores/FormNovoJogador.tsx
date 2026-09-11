@@ -16,6 +16,7 @@ import { formatarTelefoneBR, normalizarTelefone } from "@/contrato/telefone";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
 import { cores, raio } from "@/tema";
+import type { MembroGrupo } from "@/contrato/tipos";
 
 type ChamarApi = <T>(
   caminho: string,
@@ -38,7 +39,7 @@ export function FormNovoJogador({
   grupoId: string;
   esporte: string;
   onFechar: () => void;
-  onAdicionado: () => void;
+  onAdicionado: (membro: MembroGrupo) => void;
 }) {
   const [telefone, setTelefone] = useState("");
   const [nome, setNome] = useState("");
@@ -116,14 +117,14 @@ export function FormNovoJogador({
     }
     setEnviando(true);
     try {
-      await adicionarMembro(chamarApi, grupoId, {
+      const membro = await adicionarMembro(chamarApi, grupoId, {
         telefone,
         nome: nome.trim(),
         score,
         origemScore: scoreConhecido ? "ADMIN" : "PADRAO",
       });
       resetar();
-      onAdicionado();
+      onAdicionado(membro);
     } catch (e) {
       setErro(mensagemDoErro(e));
     } finally {

@@ -205,6 +205,16 @@ export type DadosDaTelaGrupo = {
 // ── GET /api/v1/esportes ────────────────────────────────────────────────────
 export type EsporteOpcao = { id: string; nome: string };
 
+// ── GET /api/v1/parceiros ───────────────────────────────────────────────────
+// Parceiros ativos, já na ordem de exibição. Ver 16-api-v1.md §3.
+export type Parceiro = {
+  id: string;
+  nome: string;
+  descricao: string;
+  link: string;
+  fotoUrl: string;
+};
+
 // ── GET /api/v1/artilheiros ─────────────────────────────────────────────────
 // Cópia de weracha-site/lib/artilheiros.ts (tipos e helpers puros).
 
@@ -295,6 +305,25 @@ export type FeedResenha = {
   podeComentar: PodeComentar;
 };
 
+// GET /api/v1/replays — gols do próprio jogador (qualquer grupo/partida) que já
+// têm vídeo, do mais recente pro mais antigo. Cópia de `MeuReplay` em
+// weracha-site/lib/services/aoVivo.ts. `videos` aqui é sempre NUVEM (o filtro do
+// serviço só traz gol com vídeo). `grupoRemovido`: o jogador saiu do grupo — o
+// replay continua visível, sem os atalhos pro grupo/resultado nem a resenha.
+export type MeuReplay = {
+  golId: string;
+  criadoEm: string;
+  pedidoReplayId: string;
+  grupoId: string;
+  grupoNome: string;
+  esporte: string;
+  partidaId: string;
+  partidaData: string;
+  marcadoPor: { nome: string };
+  videos: { idCamera: string; link: string }[];
+  grupoRemovido: boolean;
+};
+
 // ── Enquetes (16-api-v1.md §6) ─────────────────────────────────────────────
 // Cópia de weracha-site/lib/services/enquetes.ts.
 
@@ -381,4 +410,127 @@ export type PerfilJogador = {
   totalGrupos: number;
   totalPartidas: number;
   totalGols: number;
+};
+
+// ── Ciclo da partida: check-in, configurar, ao vivo, resultado ──────────────
+// (16-api-v1.md §8, §11, §12, §14). Cópia dos shapes de
+// weracha-site/lib/services/{checkins,aoVivo}.ts e lib/db/schema.ts.
+
+export type TipoPagamento = "MENSALISTA" | "AVULSO";
+export type ModoSorteio = "SCORE" | "SORTE" | "POSICAO";
+
+/** Row de `checkins` (timestamps chegam como ISO string). */
+export type CheckIn = {
+  id: string;
+  partidaId: string;
+  jogadorId: string;
+  tipoPagamento: TipoPagamento;
+  mensalistaAteNoCheckin: string | null;
+  scoreNoCheckin: number | null;
+  checkinEm: string;
+};
+
+/** Colega numa partida — só nome/apelido/foto (DTO `JogadorEmPartida` do site). */
+export type JogadorEmPartida = {
+  id: string;
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+};
+
+/** GET /api/v1/partidas/{id}/checkins — agregado de apoio das telas de partida. */
+export type DadosDeApoioDaPartida = {
+  membros: MembroGrupo[];
+  checkins: CheckIn[];
+  posicoes: PosicaoEsporteCompleta[];
+  jogadores: JogadorEmPartida[];
+};
+
+/** `posicoes` vem completa aqui (o `ehGoleiro` importa pro aviso do modo POSICAO). */
+export type PosicaoEsporteCompleta = {
+  id: string;
+  esporte: string;
+  nome: string;
+  ehGoleiro: boolean;
+};
+
+/** Row de `configuracoes_partida`. */
+export type ConfiguracaoPartida = {
+  partidaId: string;
+  jogadoresPorTime: number;
+  duracaoRodadaMin: number;
+  golsParaEncerrarRodada: number;
+  configuradoEm: string;
+};
+
+/** Row de `pre_alocacoes_partida`. */
+export type PreAlocacaoPartida = {
+  id: string;
+  partidaId: string;
+  jogadorId: string;
+  timeIndice: number;
+  criadoEm: string;
+};
+
+/** Row de `cores_grupo`. */
+export type CorGrupo = {
+  id: string;
+  grupoId: string;
+  hex: string;
+  desativadaEm: string | null;
+  criadoEm: string;
+};
+
+/** Row de `resultados` (sorteio salvo). `times` são listas de jogadorId. */
+export type ResultadoSalvo = {
+  id: string;
+  grupoId: string;
+  partidaId: string;
+  jogadoresPorTime: number;
+  times: string[][];
+  coresTimes: (string | null)[] | null;
+  comecaComABola: number | null;
+  ladoDireito: number | null;
+  modoSorteio: string;
+  ativo: boolean;
+  criadoEm: string;
+};
+
+/** Row de `estado_ao_vivo`. */
+export type EstadoAoVivo = {
+  partidaId: string;
+  status: "PARADO" | "RODANDO";
+  segundosRestantes: number;
+  atualizadoEm: string;
+  rodadaIniciadaEm: string;
+};
+
+/** GET /api/v1/partidas/{id}/ao-vivo — estado completo da tela (sem wrapper). */
+export type EstadoAoVivoCompleto = {
+  estado: EstadoAoVivo;
+  config: ConfiguracaoPartida;
+  golsNaRodadaAtual: number;
+  golsPorJogador: Record<string, number>;
+  golsGravadosPorJogador: Record<string, number>;
+  ultimoGolTemVideoPorJogador: Record<string, boolean>;
+  cameraAtiva: boolean;
+  lancesNaPartida: number;
+  lancesGravados: number;
+  lancesImportantesHabilitado: boolean;
+  golsGravadosNuvem: number;
+  lancesGravadosNuvem: number;
+};
+
+/** GET /api/v1/partidas/{id}/{gols,lances} — um gol ou lance com seus vídeos. */
+export type GolComVideos = {
+  golId: string;
+  criadoEm: string;
+  pedidoReplayId: string | null;
+  videos: { idCamera: string; link: string; origem: "NUVEM" | "LOCAL" }[];
+  tipo: "GOL" | "LANCE";
+  jogador?: { id: string; nome: string; apelido: string | null; fotoUrl: string | null };
+  marcadoPor?: { id: string; nome: string };
+  origem?: "AO_VIVO" | "CORRECAO";
+  migracao?: { deNome: string; porNome: string; em: string };
+  cancelado?: { porNome: string; em: string };
 };
