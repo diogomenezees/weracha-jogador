@@ -1,9 +1,11 @@
 import { type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { Check, ChevronLeft, type LucideIcon } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { cores, raio } from "@/tema";
 
@@ -65,7 +67,8 @@ export function AvisoPartida({
     <View style={styles.centro}>
       <Text style={styles.avisoTexto}>{mensagem}</Text>
       <Pressable style={styles.linkVoltar} onPress={() => router.replace(destino as never)}>
-        <Text style={styles.linkVoltarTexto}>‹ {rotuloDestino}</Text>
+        <ChevronLeft size={16} color={cores.teal} />
+        <Text style={styles.linkVoltarTexto}>{rotuloDestino}</Text>
       </Pressable>
     </View>
   );
@@ -112,8 +115,9 @@ export function ToggleScore({ ligado, onToggle }: { ligado: boolean; onToggle: (
       onPress={onToggle}
       hitSlop={6}
     >
+      {ligado ? <Check size={13} color={cores.dark} /> : null}
       <Text style={[styles.toggleScoreTexto, ligado && styles.toggleScoreTextoOn]}>
-        {ligado ? "Score ✓" : "Score"}
+        Score
       </Text>
     </Pressable>
   );
@@ -234,7 +238,8 @@ export function Rodape({
       <View style={styles.rodapeLinha}>
         {onVoltar && (
           <Pressable style={styles.rodapeVoltar} onPress={onVoltar}>
-            <Text style={styles.rodapeVoltarTexto}>‹ {voltarRotulo ?? "Voltar"}</Text>
+            <ChevronLeft size={16} color={cores.branco} />
+            <Text style={styles.rodapeVoltarTexto}>{voltarRotulo ?? "Voltar"}</Text>
           </Pressable>
         )}
         {primario}
@@ -248,11 +253,13 @@ export function BotaoPrimario({
   onPress,
   desativado,
   cor = "orange",
+  Icone,
 }: {
   titulo: string;
   onPress: () => void;
   desativado?: boolean;
   cor?: "orange" | "red" | "teal";
+  Icone?: LucideIcon;
 }) {
   const fundo = cor === "red" ? "#dc2626" : cor === "teal" ? cores.teal : cores.orange;
   const texto = cor === "red" ? cores.branco : cores.dark;
@@ -262,6 +269,7 @@ export function BotaoPrimario({
       onPress={onPress}
       disabled={desativado}
     >
+      {Icone ? <Icone size={16} color={texto} /> : null}
       <Text style={[styles.primarioTexto, { color: texto }]}>{titulo}</Text>
     </Pressable>
   );
@@ -281,7 +289,7 @@ const styles = StyleSheet.create({
   sub: { marginTop: 2, fontSize: 13, color: cores.slate400 },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 14 },
   avisoTexto: { fontSize: 14, color: cores.slate400, textAlign: "center", lineHeight: 20 },
-  linkVoltar: { paddingVertical: 6 },
+  linkVoltar: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 6 },
   linkVoltarTexto: { fontSize: 14, color: cores.branco, textDecorationLine: "underline" },
 
   stepper: {
@@ -304,6 +312,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: cores.campoBorda,
+    flexDirection: "row",
+    gap: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -367,11 +377,21 @@ const styles = StyleSheet.create({
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.avisoBorda,
+    flexDirection: "row",
+    gap: 2,
     alignItems: "center",
     justifyContent: "center",
   },
   rodapeVoltarTexto: { fontSize: 15, color: cores.branco },
-  primario: { flex: 1, height: 48, borderRadius: raio.campo, alignItems: "center", justifyContent: "center" },
+  primario: {
+    flex: 1,
+    height: 48,
+    borderRadius: raio.campo,
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   primarioOff: { opacity: 0.5 },
   primarioTexto: { fontSize: 15, fontWeight: "700" },
 });

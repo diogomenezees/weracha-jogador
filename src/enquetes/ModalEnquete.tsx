@@ -1,16 +1,9 @@
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { buscarVotantes, editarPergunta, votar } from "@/api/enquetes";
+import { Check, Clock, Pencil, Share2, X } from "@/ui/Icone";
 import { ModalCartao } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
@@ -156,10 +149,10 @@ export function ModalEnquete({
             autoFocus
           />
           <Pressable onPress={() => void salvarPergunta()} disabled={salvandoPergunta}>
-            <Text style={styles.editOk}>✓</Text>
+            <Check size={18} color="#10b981" />
           </Pressable>
           <Pressable onPress={() => setEditando(false)} disabled={salvandoPergunta}>
-            <Text style={styles.editX}>✕</Text>
+            <X size={16} color={cores.slate400} />
           </Pressable>
         </View>
       ) : (
@@ -174,7 +167,7 @@ export function ModalEnquete({
                 setEditando(true);
               }}
             >
-              <Text style={styles.editIcone}>✎</Text>
+              <Pencil size={15} color={cores.slate400} />
             </Pressable>
           )}
         </View>
@@ -216,8 +209,8 @@ export function ModalEnquete({
               >
                 <View style={[styles.barra, { width: `${pct}%` }]} />
                 <View style={styles.opcaoLinha}>
+                  {o.votueiEu ? <Check size={13} color={cores.teal} /> : null}
                   <Text style={styles.opcaoTexto} numberOfLines={1}>
-                    {o.votueiEu ? "✓ " : ""}
                     {o.texto}
                   </Text>
                   <Text style={styles.opcaoPct}>
@@ -258,15 +251,19 @@ export function ModalEnquete({
         </View>
       )}
 
-      <Text style={styles.prazo}>
-        🕒 {enquete.ativa ? "Encerra" : "Encerrou"}{" "}
-        {formatarDiaSemanaData(new Date(enquete.expiraEm))} às{" "}
-        {formatarHora(new Date(enquete.expiraEm))}
-      </Text>
+      <View style={styles.prazoLinha}>
+        <Clock size={13} color={cores.slate400} />
+        <Text style={styles.prazo}>
+          {enquete.ativa ? "Encerra" : "Encerrou"}{" "}
+          {formatarDiaSemanaData(new Date(enquete.expiraEm))} às{" "}
+          {formatarHora(new Date(enquete.expiraEm))}
+        </Text>
+      </View>
 
       {erroVoto ? <Text style={styles.erro}>{erroVoto}</Text> : null}
 
       <Pressable style={styles.compartilhar} onPress={() => void compartilhar()}>
+        <Share2 size={16} color={cores.dark} />
         <Text style={styles.compartilharTexto}>Compartilhar</Text>
       </Pressable>
     </ModalCartao>
@@ -283,7 +280,6 @@ const styles = StyleSheet.create({
   },
   perguntaLinha: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
   pergunta: { flex: 1, fontSize: 18, fontWeight: "700", color: cores.branco },
-  editIcone: { fontSize: 16, color: cores.slate400 },
   editLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
   editInput: {
     flex: 1,
@@ -297,8 +293,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: cores.branco,
   },
-  editOk: { fontSize: 18, color: "#10b981" },
-  editX: { fontSize: 16, color: cores.slate400 },
   meta: { fontSize: 13, color: cores.slate400 },
   tabs: {
     flexDirection: "row",
@@ -358,12 +352,15 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     maxWidth: 130,
   },
+  prazoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   prazo: { fontSize: 13, color: cores.slate400 },
   erro: { fontSize: 13, color: cores.erroTexto },
   compartilhar: {
     height: 48,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,

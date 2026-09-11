@@ -1,11 +1,12 @@
 import { type ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
+import type { LucideIcon } from "@/ui/Icone";
 import { cores, raio } from "@/tema";
 
 // Peças de UI do /painel e do onboarding, mesmo padrão de src/acesso/ui.tsx.
-// Visual portado de weracha-site/app/painel. Sem lib de ícone: formas + emoji,
-// como a tela de acesso.
+// Visual portado de weracha-site/app/painel.
 
 type Cor = "teal" | "orange";
 
@@ -121,14 +122,14 @@ export function LinhaEsqueleto({ selo, cor }: { selo: string; cor: Cor }) {
 }
 
 export function CartaoCaminho({
-  emoji,
+  Icone,
   titulo,
   texto,
   chamada,
   cor,
   onPress,
 }: {
-  emoji: string;
+  Icone: LucideIcon;
   titulo: string;
   texto: string;
   chamada: string;
@@ -139,7 +140,9 @@ export function CartaoCaminho({
   const fundo = cor === "teal" ? cores.avisoFundo : cores.laranjaFundo;
   return (
     <Pressable style={[styles.caminho, { borderColor: c + "55", backgroundColor: fundo }]} onPress={onPress}>
-      <Text style={styles.caminhoEmoji}>{emoji}</Text>
+      <View style={[styles.caminhoIcone, { backgroundColor: c + "26" }]}>
+        <Icone size={16} color={c} />
+      </View>
       <Text style={styles.caminhoTitulo}>{titulo}</Text>
       <Text style={styles.caminhoTexto}>{texto}</Text>
       <Text style={[styles.caminhoChamada, { color: c }]}>{chamada}</Text>
@@ -211,7 +214,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
   },
-  caminhoEmoji: { fontSize: 18 },
+  caminhoIcone: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   caminhoTitulo: { fontSize: 14, fontWeight: "700", color: cores.branco },
   caminhoTexto: { fontSize: 11, lineHeight: 16, color: cores.slate400 },
   caminhoChamada: { fontSize: 10, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase", marginTop: 2 },

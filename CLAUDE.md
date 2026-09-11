@@ -62,8 +62,9 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   `weracha-site/components/navbar.tsx`) — marca à esquerda ou `<Navbar voltar="Grupo" />`
   pra nomear o destino do voltar, e o botão ☰ à direita que abre a gaveta com as
   telas principais. Toda tela logada renderiza `<Navbar />` no topo (o ciclo da
-  partida herda via `TelaPartida`; `onboarding` é a exceção). Telas ainda não
-  portadas listadas no menu caem em `/em-breve`.
+  partida herda via `TelaPartida`; `onboarding` é a exceção). Todas as telas do
+  menu já existem; `(logado)/em-breve.tsx` (item `tipo: "em-breve"` da `Navbar`)
+  fica de prontidão pra uma tela nova, sem rota apontando pra ele hoje.
 - **Tela do grupo** (`(logado)/grupos/[id]/index.tsx`) espelha
   `weracha-site/app/grupos/[id]/page.tsx`; as sub-telas são irmãs
   (`artilheiros.tsx`, `resenha.tsx`, `enquetes/`, `jogadores.tsx`). Peças de UI
@@ -75,8 +76,12 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   `src/partidas.ts` (sem fuso SP explícito: o cliente é local).
 - Chat da resenha faz polling só enquanto `AppState.currentState === "active"`.
 - Vídeo de replay abre no player do sistema (`Linking.openURL`), sem `expo-video`.
-- Sub-telas ainda não portadas (check-in, ao vivo, resultado) caem em
-  `(logado)/em-breve.tsx` (`?titulo=`).
+- **Convite**: `src/app/convite/[token].tsx` (deep link) e
+  `(logado)/entrar-por-convite.tsx` (colar link manual) reusam o mesmo fluxo.
+  `src/convites.ts`: `tokenDeConvite` extrai o token de uma URL colada;
+  `rotaDoConvite` traduz o `destino` da resposta (caminho do site, mesmo formato
+  das rotas do app). Login vindo de convite guarda o destino em
+  `src/acesso/destinoPosLogin.ts` (consumido uma vez pela `TelaAcesso`).
 - **Perfil vem do contexto de sessão.** `useSessao().estado.jogador` é `MeuPerfil`
   (do cache no boot). Tela logada que precisa do perfil fresco chama
   `recarregarPerfil()` (`GET /api/v1/me`) no mount; o contexto atualiza estado +
@@ -92,6 +97,17 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   `weracha-site/app/globals.css`: fundo `#161a22`, teal, laranja). Peças de UI
   compartilhadas da tela de acesso em `src/acesso/ui.tsx`. Ao criar tela nova,
   puxar de `src/tema.ts` em vez de hardcodar cor.
+- **Fontes**: Space Grotesk (texto) + Geist Mono (eyebrow), carregadas em
+  `src/app/_layout.tsx`. **Todo texto importa `Text` de `@/ui/Texto`, nunca de
+  `react-native`** — o wrapper resolve a família pelo `fontWeight` do style (RN
+  não herda `fontFamily` nem combina família custom com peso). `tema.ts` exporta
+  `fontes.{regular,medium,semibold,bold,light,mono}` pra quem precisa do nome
+  explícito (`Animated.Text`, texto fora do wrapper).
+- **Ícones**: `lucide-react-native`, reexportado com nomes curados em
+  `src/ui/Icone.tsx` (mesmos nomes do `lucide-react` do site). Import direto
+  (`import { Users } from "@/ui/Icone"`), `<Users size={18} color={cores.teal} />`.
+  Emoji só onde o site também usa emoji (medalhas do pódio, comemoração de gol).
+  `src/ui/TituloTela.tsx` monta o `<h1 icon+texto>` padrão de tela.
 - **Fluxo de acesso** (entrar / criar conta / criar senha / esqueci a senha) vive
   em `src/acesso/` (`useFluxoAcesso.ts` + `TelaAcesso.tsx`), espelhando
   `weracha-site/app/login/page.tsx`. `src/app/login.tsx` é só o wrapper de rota.

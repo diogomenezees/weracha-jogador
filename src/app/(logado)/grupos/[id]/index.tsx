@@ -1,14 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
@@ -32,6 +24,18 @@ import {
   reativarPartida,
 } from "@/api/partidas";
 import { buscarQuadras, sugerirQuadra } from "@/api/quadras";
+import {
+  BarChart3,
+  ChevronRight,
+  Clock,
+  EllipsisVertical,
+  MapPin,
+  MessageCircle,
+  Plus,
+  Star,
+  Trophy,
+  Users,
+} from "@/ui/Icone";
 import { PRODUCAO_URL } from "@/config/links";
 import { ehHoje } from "@/formato";
 import {
@@ -520,7 +524,7 @@ export default function TelaGrupo() {
             {grupo.nome}
           </Text>
           <Pressable hitSlop={10} onPress={abrirMenuGrupo}>
-            <Text style={styles.menu}>⋯</Text>
+            <EllipsisVertical size={22} color={cores.slate400} />
           </Pressable>
         </View>
 
@@ -540,15 +544,18 @@ export default function TelaGrupo() {
               setAba("quadra");
             }}
           >
+            <MapPin size={12} color={cores.branco} />
             <Text style={styles.pillTexto}>
-              📍 {grupo.quadraId ? (dados.quadra?.nome ?? "Quadra") : grupo.esporte}
+              {grupo.quadraId ? (dados.quadra?.nome ?? "Quadra") : grupo.esporte}
             </Text>
           </Pressable>
           <Pressable style={styles.pill} onPress={() => setAba("horarios")}>
-            <Text style={styles.pillTexto}>🕒 Horários</Text>
+            <Clock size={12} color={cores.branco} />
+            <Text style={styles.pillTexto}>Horários</Text>
           </Pressable>
           <View style={styles.pill}>
-            <Text style={styles.pillTexto}>⭐ Score {grupo.meuScore}</Text>
+            <Star size={12} color={cores.branco} />
+            <Text style={styles.pillTexto}>Score {grupo.meuScore}</Text>
           </View>
         </View>
 
@@ -646,20 +653,21 @@ export default function TelaGrupo() {
         <View style={styles.rodapeLinha}>
           {grupo.tipo === "AVULSO" && souAdmin && (
             <Pressable style={styles.rodapeIcone} onPress={() => abrirAdicionarPartida()}>
-              <Text style={styles.rodapeIconeTexto}>＋</Text>
+              <Plus size={18} color={cores.branco} />
             </Pressable>
           )}
           <Pressable
             style={styles.rodapeIcone}
             onPress={() => router.push(`/grupos/${grupo.id}/enquetes`)}
           >
-            <Text style={styles.rodapeIconeTexto}>📊</Text>
+            <BarChart3 size={18} color={cores.branco} />
           </Pressable>
           <Pressable
             style={styles.rodapeBotao}
             onPress={() => router.push(`/grupos/${grupo.id}/artilheiros`)}
           >
-            <Text style={styles.rodapeBotaoTexto}>🏆 Artilheiros</Text>
+            <Trophy size={16} color={cores.branco} />
+            <Text style={styles.rodapeBotaoTexto}>Artilheiros</Text>
           </Pressable>
         </View>
         <View style={styles.rodapeLinha}>
@@ -667,14 +675,15 @@ export default function TelaGrupo() {
             style={styles.rodapeIconeTeal}
             onPress={() => router.push(`/grupos/${grupo.id}/resenha`)}
           >
-            <Text style={styles.rodapeIconeTexto}>💬</Text>
+            <MessageCircle size={18} color={cores.branco} />
           </Pressable>
           <Pressable
             style={styles.rodapeBotaoLaranja}
             onPress={() => router.push(`/grupos/${grupo.id}/jogadores`)}
           >
+            <Users size={16} color={cores.dark} />
             <Text style={styles.rodapeBotaoLaranjaTexto}>
-              👥 {souAdmin ? "Gerenciar jogadores" : "Ver jogadores"} · {dados.totalMembros}
+              {souAdmin ? "Gerenciar jogadores" : "Ver jogadores"} · {dados.totalMembros}
             </Text>
           </Pressable>
         </View>
@@ -953,7 +962,8 @@ function CardPartida({
           {checkinAberto && !p.cancelada ? (
             !jaFizCheckin ? (
               <Pressable style={styles.checkinBtn} onPress={onCheckin}>
-                <Text style={styles.checkinBtnTexto}>Check-in →</Text>
+                <Text style={styles.checkinBtnTexto}>Check-in</Text>
+                <ChevronRight size={14} color={cores.dark} />
               </Pressable>
             ) : (
               <View style={styles.confirmadoPill}>
@@ -969,7 +979,7 @@ function CardPartida({
               <Text style={styles.concluidaTexto}>Concluída</Text>
             </View>
           ) : (
-            <Text style={styles.chevron}>›</Text>
+            <ChevronRight size={18} color={cores.slate500} />
           )}
         </View>
         {p.descricao ? (
@@ -980,7 +990,7 @@ function CardPartida({
       </Pressable>
       {souAdmin && (
         <Pressable style={styles.cardMenu} hitSlop={8} onPress={onMenu}>
-          <Text style={styles.cardMenuTexto}>⋯</Text>
+          <EllipsisVertical size={18} color={cores.slate400} />
         </Pressable>
       )}
     </View>
@@ -1239,11 +1249,13 @@ const styles = StyleSheet.create({
 
   cabecalho: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   h1: { flex: 1, fontSize: 24, fontWeight: "700", color: cores.branco },
-  menu: { fontSize: 26, color: cores.slate400, lineHeight: 26 },
   descricao: { fontSize: 13, lineHeight: 19, color: cores.slate400 },
 
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     borderRadius: 999,
     backgroundColor: cores.tealDark,
     paddingHorizontal: 10,
@@ -1298,12 +1310,14 @@ const styles = StyleSheet.create({
     borderTopColor: cores.linhaSutil,
     paddingTop: 6,
   },
-  chevron: { fontSize: 20, color: cores.slate500 },
   checkinBtn: {
     backgroundColor: cores.orange,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
   checkinBtnTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
   confirmadoPill: { backgroundColor: "#10b981", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
@@ -1313,7 +1327,6 @@ const styles = StyleSheet.create({
   concluidaPill: { backgroundColor: "rgba(16,185,129,0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   concluidaTexto: { fontSize: 12, fontWeight: "600", color: "#6ee7b7" },
   cardMenu: { padding: 6 },
-  cardMenuTexto: { fontSize: 22, color: cores.slate400 },
 
   rodape: {
     position: "absolute",
@@ -1346,13 +1359,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeIconeTexto: { fontSize: 18 },
   rodapeBotao: {
     flex: 1,
     height: 48,
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.avisoBorda,
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1362,6 +1376,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
     justifyContent: "center",
   },

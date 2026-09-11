@@ -1,21 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  AppState,
-  FlatList,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, AppState, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { apagarComentario, buscarComentarios, enviarComentario } from "@/api/resenha";
 import { ErroApi } from "@/api/erros";
+import { MessageCircle, Send, X } from "@/ui/Icone";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { podeApagarComentario, reconciliarComentarios } from "@/resenha/reconciliar";
 import { AvatarJogador } from "@/ui/AvatarJogador";
@@ -144,11 +133,14 @@ export function ChatResenha({
           style={styles.folha}
         >
           <View style={styles.cabecalho}>
-            <Text style={styles.titulo} numberOfLines={1}>
-              💬 {titulo}
-            </Text>
+            <View style={styles.tituloLinha}>
+              <MessageCircle size={16} color={cores.slate300} />
+              <Text style={styles.titulo} numberOfLines={1}>
+                {titulo}
+              </Text>
+            </View>
             <Pressable hitSlop={10} onPress={onFechar}>
-              <Text style={styles.fechar}>✕</Text>
+              <X size={18} color={cores.slate400} />
             </Pressable>
           </View>
 
@@ -219,7 +211,7 @@ export function ChatResenha({
                 {enviando ? (
                   <ActivityIndicator color={cores.dark} size="small" />
                 ) : (
-                  <Text style={styles.enviarBtnTexto}>Enviar</Text>
+                  <Send size={16} color={cores.dark} />
                 )}
               </Pressable>
             </View>
@@ -252,8 +244,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: cores.linhaSutil,
   },
+  tituloLinha: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
   titulo: { flex: 1, fontSize: 14, fontWeight: "700", color: cores.branco },
-  fechar: { fontSize: 16, color: cores.slate400 },
   avisoGrupo: {
     marginHorizontal: 16,
     marginTop: 12,
@@ -304,13 +296,12 @@ const styles = StyleSheet.create({
     color: cores.branco,
   },
   enviarBtn: {
+    width: 42,
     height: 42,
-    paddingHorizontal: 16,
     borderRadius: raio.campo,
-    backgroundColor: cores.orange,
+    backgroundColor: cores.teal,
     alignItems: "center",
     justifyContent: "center",
   },
   enviarBtnOff: { opacity: 0.5 },
-  enviarBtnTexto: { fontSize: 14, fontWeight: "700", color: cores.dark },
 });

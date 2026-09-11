@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { buscarMinhasEnquetes } from "@/api/enquetes";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalEnquete } from "@/enquetes/ModalEnquete";
+import { BarChart3 } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
+import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -73,7 +76,7 @@ export default function EnquetesGlobal() {
       {voltar}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
-          <Text style={styles.h1}>📊 Enquetes</Text>
+          <TituloTela Icone={BarChart3}>Enquetes</TituloTela>
           <Text style={styles.sub}>Votações de todos os seus grupos.</Text>
         </View>
 

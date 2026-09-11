@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { buscarPerfilJogador } from "@/api/jogadores";
+import { Phone } from "@/ui/Icone";
 import { ModalCartao } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { AvatarJogador } from "@/ui/AvatarJogador";
@@ -163,7 +165,10 @@ export function ModalPerfil({
               {perfil.apelido ? <Text style={styles.meta}>{perfil.apelido}</Text> : null}
             </View>
           </View>
-          <Text style={styles.meta}>📞 {perfil.telefone}</Text>
+          <View style={styles.metaLinha}>
+            <Phone size={12} color={cores.slate400} />
+            <Text style={styles.meta}>{perfil.telefone}</Text>
+          </View>
           <View style={styles.statsLinha}>
             <Stat n={perfil.totalGrupos} label="grupos" />
             <Stat n={perfil.totalPartidas} label="partidas" />
@@ -260,6 +265,7 @@ const styles = StyleSheet.create({
   },
   titulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
   meta: { fontSize: 13, color: cores.slate400 },
+  metaLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   erro: { fontSize: 13, color: cores.erroTexto },
   stepper: {
     flexDirection: "row",

@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { router } from "expo-router";
 
 import type { OpcoesRequisicao } from "@/api/cliente";
 import { formatarDataPartida } from "@/formato";
 import { formatarHora } from "@/partidas";
 import { ChatResenha } from "@/resenha/ChatResenha";
+import { ChevronRight, MessageCircle, Play } from "@/ui/Icone";
 import { cores, raio } from "@/tema";
 import type { ComentarioResenha, MeuReplay, PodeComentar } from "@/contrato/tipos";
 
@@ -112,7 +114,8 @@ function CardReplay({
       )}
 
       <Pressable style={styles.assistir} onPress={() => void Linking.openURL(video.link).catch(() => {})}>
-        <Text style={styles.assistirTexto}>▶ Assistir</Text>
+        <Play size={14} color={cores.dark} fill={cores.dark} />
+        <Text style={styles.assistirTexto}>Assistir</Text>
       </Pressable>
 
       <Text style={styles.registrado}>
@@ -125,7 +128,8 @@ function CardReplay({
             style={styles.acaoSec}
             onPress={() => router.push(`/grupos/${replay.grupoId}`)}
           >
-            <Text style={styles.acaoSecTexto}>Grupo ›</Text>
+            <Text style={styles.acaoSecTexto}>Grupo</Text>
+            <ChevronRight size={12} color={cores.slate200} />
           </Pressable>
           <Pressable
             style={styles.acaoSec}
@@ -135,11 +139,13 @@ function CardReplay({
               )
             }
           >
-            <Text style={styles.acaoSecTexto}>Resultado ›</Text>
+            <Text style={styles.acaoSecTexto}>Resultado</Text>
+            <ChevronRight size={12} color={cores.slate200} />
           </Pressable>
           <Pressable style={styles.acaoComentar} onPress={onComentar}>
+            <MessageCircle size={12} color={cores.slate300} />
             <Text style={styles.acaoComentarTexto}>
-              💬 {nComentarios > 0 ? nComentarios : "Comentar"}
+              {nComentarios > 0 ? nComentarios : "Comentar"}
             </Text>
           </Pressable>
         </View>
@@ -191,6 +197,8 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,
+    flexDirection: "row",
+    gap: 6,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -199,6 +207,9 @@ const styles = StyleSheet.create({
   registradoNome: { color: cores.slate200, fontWeight: "600" },
   acoes: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   acaoSec: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: cores.linhaSutil,
@@ -208,6 +219,9 @@ const styles = StyleSheet.create({
   },
   acaoSecTexto: { fontSize: 12, fontWeight: "600", color: cores.slate200 },
   acaoComentar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     marginLeft: "auto",
     borderRadius: 8,
     borderWidth: 1,

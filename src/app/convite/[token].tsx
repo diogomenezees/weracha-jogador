@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -10,6 +11,7 @@ import {
   limparConvitePendente,
 } from "@/acesso/convitePendente";
 import { BotaoPrimario, CaixaErro, Cartao, Eyebrow } from "@/acesso/ui";
+import { rotaDoConvite } from "@/convites";
 import { useSessao } from "@/sessao/contexto";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { cores, tipografia } from "@/tema";
@@ -66,9 +68,9 @@ export default function ConviteScreen() {
     setEntrando(true);
     setErro(null);
     try {
-      await processarConvite(chamarApi, convite.token, alvo);
+      const r = await processarConvite(chamarApi, convite.token, alvo);
       limparConvitePendente();
-      router.replace("/painel");
+      router.replace(rotaDoConvite(r.destino, r.grupoId));
     } catch (e) {
       setErro(mensagemDoErro(e));
       setEntrando(false);

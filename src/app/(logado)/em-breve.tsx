@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
@@ -7,8 +8,9 @@ import { BotaoContorno } from "@/painel/ui";
 import { Navbar } from "@/ui/Navbar";
 import { cores, tipografia } from "@/tema";
 
-// Stub genérico pras partes ainda não portadas pro app (criar grupo, entrar por
-// convite). Some quando a tela de verdade entrar numa próxima leva.
+// Stub genérico pras partes ainda não portadas pro app. Hoje nenhuma rota cai
+// aqui (todo o menu e o painel têm tela real); fica de prontidão pro padrão do
+// menu da Navbar (item `tipo: "em-breve"`) quando surgir uma tela nova.
 export default function EmBreve() {
   const { titulo } = useLocalSearchParams<{ titulo?: string }>();
 

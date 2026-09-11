@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { Podio } from "@/artilheiros/Podio";

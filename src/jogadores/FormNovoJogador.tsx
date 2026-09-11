@@ -1,14 +1,6 @@
 import { useRef, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { adicionarMembro, buscarJogadorPorTelefone, buscarSugestaoScore } from "@/api/jogadores";
 import { CaixaErro } from "@/acesso/ui";

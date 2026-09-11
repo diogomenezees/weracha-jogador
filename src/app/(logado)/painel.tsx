@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  Alert,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
@@ -22,6 +15,7 @@ import {
   proximaPartidaInfo,
 } from "@/grupos";
 import { mensagemDoErro } from "@/mensagens-erro";
+import { LogIn, Plus } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import {
   BotaoLaranja,
@@ -266,17 +260,15 @@ function HeroSemGrupo({ nome }: { nome: string }) {
         <Text style={styles.rotuloSecao}>Dois caminhos</Text>
         <View style={styles.caminhos}>
           <CartaoCaminho
-            emoji="📲"
+            Icone={LogIn}
             titulo="Já te chamaram"
             texto="Peça o link pra quem organiza e entre no grupo."
             chamada="Entrar por convite"
             cor="teal"
-            onPress={() =>
-              router.push({ pathname: "/em-breve", params: { titulo: "Entrar por convite" } })
-            }
+            onPress={() => router.push("/entrar-por-convite")}
           />
           <CartaoCaminho
-            emoji="➕"
+            Icone={Plus}
             titulo="Ninguém chamou"
             texto="Monte o seu racha e chame a turma você mesmo."
             chamada="Criar grupo"

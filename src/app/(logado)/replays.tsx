@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { buscarStatusExclusao } from "@/api/conta";
@@ -10,7 +11,9 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { ListaMeusReplays } from "@/replays/ListaMeusReplays";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import { Video } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
+import { TituloTela } from "@/ui/TituloTela";
 import type { ComentarioResenha, MeuReplay, PodeComentar } from "@/contrato/tipos";
 
 export default function Replays() {
@@ -102,7 +105,7 @@ export default function Replays() {
         }
       >
         <View style={styles.cabecalho}>
-          <Text style={styles.h1}>🎬 Replays</Text>
+          <TituloTela Icone={Video}>Replays</TituloTela>
           <Text style={styles.sub}>
             Os replays dos seus gols em qualquer partida, de qualquer grupo, sem precisar entrar
             em cada uma.

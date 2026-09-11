@@ -53,18 +53,29 @@ export const raio = {
   card: 16,
 } as const;
 
-// O site usa Space Grotesk nos títulos e Geist Mono no "eyebrow". Sem carregar
-// fonte customizada por ora (evita dependência nova) — só os pesos/tamanhos.
+// O site usa Space Grotesk em todo texto e Geist Mono no "eyebrow". As fontes
+// são carregadas no src/app/_layout.tsx; o wrapper src/ui/Texto.tsx resolve a
+// família pelo fontWeight. Aqui os tokens já trazem fontFamily explícito pra
+// funcionarem também em Animated.Text / Text cru.
+export const fontes = {
+  regular: "SpaceGrotesk_400Regular",
+  medium: "SpaceGrotesk_500Medium",
+  semibold: "SpaceGrotesk_600SemiBold",
+  bold: "SpaceGrotesk_700Bold",
+  light: "SpaceGrotesk_300Light",
+  mono: "GeistMono_400Regular",
+} as const;
+
 export const tipografia = {
-  titulo: { fontSize: 26, fontWeight: "700" as const, color: cores.branco },
-  subtitulo: { fontSize: 14, lineHeight: 22, color: cores.slate400 },
+  titulo: { fontSize: 26, fontWeight: "700" as const, fontFamily: fontes.bold, color: cores.branco },
+  subtitulo: { fontSize: 14, lineHeight: 22, fontFamily: fontes.regular, color: cores.slate400 },
   eyebrow: {
     fontSize: 11,
-    fontWeight: "600" as const,
+    fontFamily: fontes.mono,
     letterSpacing: 2,
     color: cores.teal,
     textTransform: "uppercase" as const,
   },
-  rotulo: { fontSize: 13, fontWeight: "600" as const, color: cores.slate300 },
-  corpo: { fontSize: 14, lineHeight: 21, color: cores.slate200 },
+  rotulo: { fontSize: 13, fontWeight: "600" as const, fontFamily: fontes.semibold, color: cores.slate300 },
+  corpo: { fontSize: 14, lineHeight: 21, fontFamily: fontes.regular, color: cores.slate200 },
 } as const;

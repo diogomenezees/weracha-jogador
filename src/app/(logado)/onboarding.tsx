@@ -1,18 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Animated, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
+import {
+  BarChart3,
+  ChevronRight,
+  type LucideIcon,
+  MessageCircle,
+  Radio,
+  Trophy,
+} from "@/ui/Icone";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 
@@ -151,7 +150,8 @@ export default function Onboarding() {
                     <Text style={styles.pular}>Pular</Text>
                   </Pressable>
                   <Pressable style={styles.proximo} onPress={() => irPara(i + 1)}>
-                    <Text style={styles.proximoTexto}>Próximo ›</Text>
+                    <Text style={styles.proximoTexto}>Próximo</Text>
+                    <ChevronRight size={14} color={cores.teal} />
                   </Pressable>
                 </View>
               )}
@@ -249,11 +249,11 @@ function VisualCalendario() {
 }
 
 function VisualRecursos() {
-  const itens: { emoji: string; cor: Cor; titulo: string; texto: string }[] = [
-    { emoji: "🏆", cor: "teal", titulo: "Score de 0 a 100", texto: "Times equilibrados automaticamente" },
-    { emoji: "📊", cor: "teal", titulo: "Enquete", texto: "O grupo decide junto antes do jogo" },
-    { emoji: "📡", cor: "orange", titulo: "Modo ao vivo", texto: "Cronômetro e gols em tempo real" },
-    { emoji: "💬", cor: "orange", titulo: "Resenha", texto: "Chat aberto durante e depois do jogo" },
+  const itens: { Icone: LucideIcon; cor: Cor; titulo: string; texto: string }[] = [
+    { Icone: Trophy, cor: "teal", titulo: "Score de 0 a 100", texto: "Times equilibrados automaticamente" },
+    { Icone: BarChart3, cor: "teal", titulo: "Enquete", texto: "O grupo decide junto antes do jogo" },
+    { Icone: Radio, cor: "orange", titulo: "Modo ao vivo", texto: "Cronômetro e gols em tempo real" },
+    { Icone: MessageCircle, cor: "orange", titulo: "Resenha", texto: "Chat aberto durante e depois do jogo" },
   ];
   return (
     <View style={{ gap: 10, width: "100%" }}>
@@ -265,7 +265,7 @@ function VisualRecursos() {
             { borderColor: it.cor === "teal" ? "rgba(31,179,163,0.2)" : "rgba(242,140,30,0.2)" },
           ]}
         >
-          <Text style={visualStyles.recursoEmoji}>{it.emoji}</Text>
+          <it.Icone size={20} color={it.cor === "teal" ? cores.teal : cores.orange} />
           <View style={{ flex: 1 }}>
             <Text style={visualStyles.recursoTitulo}>{it.titulo}</Text>
             <Text style={visualStyles.recursoTexto}>{it.texto}</Text>
@@ -318,6 +318,9 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   proximo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     borderRadius: raio.card,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
@@ -373,7 +376,6 @@ const visualStyles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.03)",
     padding: 14,
   },
-  recursoEmoji: { fontSize: 20 },
   recursoTitulo: { fontSize: 14, fontWeight: "700", color: cores.branco },
   recursoTexto: { fontSize: 12, color: cores.slate400 },
 });

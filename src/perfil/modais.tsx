@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { router } from "expo-router";
 
 import type { OpcoesRequisicao } from "@/api/cliente";
@@ -8,6 +9,7 @@ import { buscarStatusExclusao, confirmarExclusao, enviarCodigoExclusao } from "@
 import { formatarTelefoneBR } from "@/contrato/telefone";
 import { formatarCooldown } from "@/formato";
 import { ModalCartao } from "@/grupo/modais";
+import { ChevronRight } from "@/ui/Icone";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { cores, raio } from "@/tema";
 import type { EnvioCodigoSms } from "@/contrato/tipos";
@@ -344,7 +346,10 @@ export function ModalExcluirConta({
               <Text style={styles.grupoPendenteNome} numberOfLines={1}>
                 {g.nome}
               </Text>
-              <Text style={styles.grupoPendenteAcao}>Gerenciar ›</Text>
+              <View style={styles.grupoPendenteAcaoLinha}>
+                <Text style={styles.grupoPendenteAcao}>Gerenciar</Text>
+                <ChevronRight size={13} color={cores.teal} />
+              </View>
             </Pressable>
           ))}
         </>
@@ -460,5 +465,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   grupoPendenteNome: { flex: 1, fontSize: 14, color: cores.branco },
+  grupoPendenteAcaoLinha: { flexDirection: "row", alignItems: "center", gap: 2 },
   grupoPendenteAcao: { fontSize: 12, color: cores.teal },
 });

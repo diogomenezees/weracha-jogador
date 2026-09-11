@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  AppState,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { AppState, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+
+import { Text } from "@/ui/Texto";
+import { Comemoracao } from "@/partida/Comemoracao";
+import { Pause, Play, RotateCcw, Sparkles, Timer } from "@/ui/Icone";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarApoioDaPartida } from "@/api/checkins";
@@ -86,8 +82,11 @@ export default function TelaAoVivo() {
   const [modalConfig, setModalConfig] = useState(false);
   const [perfilId, setPerfilId] = useState<string | null>(null);
 
-  const [comemoracao, setComemoracao] = useState<{ titulo: string; sub?: string } | null>(null);
-  const [anim] = useState(() => new Animated.Value(0));
+  const [comemoracao, setComemoracao] = useState<{
+    titulo: string;
+    sub?: string;
+    key: number;
+  } | null>(null);
 
   const carregarAoVivo = useCallback(async () => {
     setAoVivo(await buscarEstadoAoVivo(chamarApi, partidaId));
@@ -183,13 +182,8 @@ export default function TelaAoVivo() {
   }, [aba, totMarcados, totGravados, totLances, totLancesGrav, totNuvem, partida, chamarApi, partidaId]);
 
   function comemorar(titulo: string, sub?: string) {
-    setComemoracao({ titulo, sub });
-    anim.setValue(0);
-    Animated.sequence([
-      Animated.timing(anim, { toValue: 1, duration: 200, useNativeDriver: true }),
-      Animated.delay(1400),
-      Animated.timing(anim, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start(() => setComemoracao(null));
+    // `key` incremental remonta o <Comemoracao> a cada gol/lance.
+    setComemoracao((prev) => ({ titulo, sub, key: (prev?.key ?? 0) + 1 }));
   }
 
   async function comErroAcao(fn: () => Promise<unknown>) {
@@ -318,7 +312,8 @@ export default function TelaAoVivo() {
             </Text>
             <View style={styles.cronBotoes}>
               <Pressable style={styles.cronBtn} onPress={() => setConfirmarReset(true)}>
-                <Text style={styles.cronBtnTexto}>↺ Resetar</Text>
+                <RotateCcw size={14} color={cores.slate200} />
+                <Text style={styles.cronBtnTexto}>Resetar</Text>
               </Pressable>
               <Pressable
                 style={styles.cronPlay}
@@ -333,7 +328,11 @@ export default function TelaAoVivo() {
                   })
                 }
               >
-                <Text style={styles.cronPlayTexto}>{rodando ? "❚❚" : "▶"}</Text>
+                {rodando ? (
+                  <Pause size={22} color={cores.dark} fill={cores.dark} />
+                ) : (
+                  <Play size={22} color={cores.dark} fill={cores.dark} />
+                )}
               </Pressable>
               <Pressable
                 style={styles.cronBtn}
@@ -354,7 +353,8 @@ export default function TelaAoVivo() {
           </View>
         ) : (
           <Pressable style={styles.semCron} onPress={() => setModalConfig(true)}>
-            <Text style={styles.semCronTexto}>⏱ Incluir cronômetro na partida?</Text>
+            <Timer size={16} color={cores.slate300} />
+            <Text style={styles.semCronTexto}>Incluir cronômetro na partida?</Text>
           </Pressable>
         )}
 
@@ -364,7 +364,8 @@ export default function TelaAoVivo() {
           <View style={{ gap: 10 }}>
             {aoVivo.cameraAtiva && aoVivo.lancesImportantesHabilitado && (
               <BotaoPrimario
-                titulo="✨ Lance importante"
+                titulo="Lance importante"
+                Icone={Sparkles}
                 desativado={cooldownLance}
                 onPress={() => void handleLance()}
               />
@@ -451,16 +452,12 @@ export default function TelaAoVivo() {
       />
 
       {comemoracao && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.comemoracao,
-            { opacity: anim, transform: [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) }] },
-          ]}
-        >
-          <Text style={styles.comemoracaoTitulo}>{comemoracao.titulo}</Text>
-          {comemoracao.sub && <Text style={styles.comemoracaoSub}>{comemoracao.sub}</Text>}
-        </Animated.View>
+        <Comemoracao
+          key={comemoracao.key}
+          titulo={comemoracao.titulo}
+          sub={comemoracao.sub}
+          onFim={() => setComemoracao(null)}
+        />
       )}
 
       <ModalConfirmar
@@ -598,6 +595,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: cores.campoBorda,
+    flexDirection: "row",
+    gap: 6,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -610,7 +609,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cronPlayTexto: { fontSize: 18, color: cores.dark },
   cronEditar: { fontSize: 12, color: cores.teal, textDecorationLine: "underline" },
   cronErro: { fontSize: 12, color: cores.erroTexto },
   semCron: {
@@ -619,7 +617,10 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     borderColor: cores.avisoBorda,
     padding: 14,
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
+    justifyContent: "center",
   },
   semCronTexto: { fontSize: 13, color: cores.slate400 },
   tituloLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
@@ -647,24 +648,6 @@ const styles = StyleSheet.create({
   },
   golBtnTexto: { fontSize: 13, fontWeight: "800", color: cores.dark },
   golGrav: { fontSize: 11, color: cores.slate400 },
-  comemoracao: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  comemoracaoTitulo: {
-    fontSize: 64,
-    fontWeight: "900",
-    color: cores.orange,
-    textShadowColor: "rgba(0,0,0,0.6)",
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 12,
-  },
-  comemoracaoSub: { fontSize: 26, fontWeight: "900", color: cores.branco },
   modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
   modalLinha: { gap: 6 },
   modalLabel: { fontSize: 13, color: cores.slate300 },

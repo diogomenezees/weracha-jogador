@@ -8,8 +8,11 @@ import {
   statusTelefone,
 } from "@/api/auth";
 import { aceitarTermos as aceitarTermosApi } from "@/api/termos";
+import { ErroApi } from "@/api/erros";
 import { processarConvite } from "@/api/convites";
 import { lerConvitePendente, limparConvitePendente } from "@/acesso/convitePendente";
+import { guardarDestinoPosLogin } from "@/acesso/destinoPosLogin";
+import { rotaDoConvite } from "@/convites";
 import type { OpcoesRequisicao } from "@/api/cliente";
 import { formatarTelefoneBR, normalizarTelefone } from "@/contrato/telefone";
 import { mensagemDoErro } from "@/mensagens-erro";
@@ -72,6 +75,11 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
   const [validadoNestaSessao, setValidadoNestaSessao] = useState(false);
   const [cooldownReenvio, setCooldownReenvio] = useState(0);
   const [tentativasEnvio, setTentativasEnvio] = useState(0);
+  // Só o modo reset usa: `senha/recuperar` recusou com TELEFONE_NAO_VERIFICADO
+  // ou SENHA_NAO_DEFINIDA (o status com_senha que trouxe o usuário até aqui
+  // ficou obsoleto nesse meio-tempo). Mesma checagem do site
+  // (weracha-site/app/esqueci-senha/page.tsx).
+  const [mostrarIrParaLogin, setMostrarIrParaLogin] = useState(false);
 
   const [ocupado, setOcupado] = useState(false);
 
@@ -98,6 +106,7 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
     setValidadoNestaSessao(false);
     setCooldownReenvio(0);
     setTentativasEnvio(0);
+    setMostrarIrParaLogin(false);
     setErro(null);
   }, []);
 
@@ -144,6 +153,7 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
   const dispararSms = useCallback(
     async (alvo: "login" | "reset") => {
       setErro(null);
+      setMostrarIrParaLogin(false);
       if (alvo === "login" && status?.estado === "novo" && !nome.trim()) {
         setErro("Digite seu nome pra criar a conta.");
         return;
@@ -163,6 +173,13 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
         setTentativasEnvio((v) => v + 1);
       } catch (e) {
         setErro(mensagemDoErro(e));
+        if (
+          alvo === "reset" &&
+          e instanceof ErroApi &&
+          (e.codigo === "TELEFONE_NAO_VERIFICADO" || e.codigo === "SENHA_NAO_DEFINIDA")
+        ) {
+          setMostrarIrParaLogin(true);
+        }
       } finally {
         setOcupado(false);
       }
@@ -202,12 +219,14 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
         }
       }
       // Veio de um link de convite (tela /convite/[token] abriu deslogada e
-      // mandou pra cá): agora que tem Bearer, entra no grupo. Best-effort — o
-      // <Redirect> da tela cai em /grupos de qualquer forma.
+      // mandou pra cá): agora que tem Bearer, entra no grupo e guarda o destino
+      // pra TelaAcesso mandar pra lá. Best-effort — sem convite (ou se falhar) o
+      // <Redirect> da tela cai no /painel.
       const convite = lerConvitePendente();
       if (convite) {
         try {
-          await processarConvite(chamarApi, convite.token, convite);
+          const r = await processarConvite(chamarApi, convite.token, convite);
+          guardarDestinoPosLogin(rotaDoConvite(r.destino, r.grupoId));
         } catch {
           // Convite pode ter sido revogado no meio; a conta já foi criada/logada.
         }
@@ -307,6 +326,7 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
     setCodigoEnviado(false);
     setSenha("");
     setConfirmarSenha("");
+    setMostrarIrParaLogin(false);
   }, []);
 
   // --- Derivados que a view usa ---------------------------------------------
@@ -374,6 +394,7 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
     codigoEnviado,
     cooldownReenvio,
     tentativasEnvio,
+    mostrarIrParaLogin,
     ocupado,
     erro,
     // setters

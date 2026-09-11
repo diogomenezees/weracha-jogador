@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 
@@ -10,7 +11,9 @@ import { ModalCartao } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import { ChevronRight, ExternalLink, Store } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
+import { TituloTela } from "@/ui/TituloTela";
 import type { Parceiro } from "@/contrato/tipos";
 
 export default function Parcerias() {
@@ -61,7 +64,7 @@ export default function Parcerias() {
       <Navbar voltar="Painel" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
-          <Text style={styles.h1}>🏪 Parcerias</Text>
+          <TituloTela Icone={Store}>Parcerias</TituloTela>
           <Text style={styles.sub}>
             Negócios de gente do próprio racha, com condição especial pra quem é do We Racha.
           </Text>
@@ -85,7 +88,7 @@ export default function Parcerias() {
                     {p.descricao}
                   </Text>
                 </View>
-                <Text style={styles.chevron}>›</Text>
+                <ChevronRight size={18} color={cores.slate500} />
               </Pressable>
             ))}
           </View>
@@ -117,7 +120,8 @@ export default function Parcerias() {
               abrirNoNavegador(link);
             }}
           >
-            <Text style={styles.modalBotaoTexto}>Visualizar ↗</Text>
+            <ExternalLink size={16} color={cores.dark} />
+            <Text style={styles.modalBotaoTexto}>Visualizar</Text>
           </Pressable>
         </ModalCartao>
       )}
@@ -177,7 +181,6 @@ const styles = StyleSheet.create({
   cardInfo: { flex: 1 },
   cardNome: { fontSize: 15, fontWeight: "700", color: cores.branco },
   cardDesc: { fontSize: 13, color: cores.slate400, marginTop: 2 },
-  chevron: { fontSize: 20, color: cores.slate500 },
   indicar: {
     flexDirection: "row",
     alignItems: "center",
@@ -206,6 +209,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,
+    flexDirection: "row",
+    gap: 8,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,

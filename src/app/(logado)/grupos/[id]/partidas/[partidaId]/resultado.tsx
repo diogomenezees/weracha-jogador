@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
@@ -34,6 +35,7 @@ import {
   ToggleScore,
 } from "@/partida/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { EllipsisVertical, Plus, Share2 } from "@/ui/Icone";
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import {
   dentroDoPrazoDeEdicaoDeGols,
@@ -253,12 +255,12 @@ export default function TelaResultado() {
           <View style={styles.cabDireita}>
             {encerrada && (
               <Pressable hitSlop={8} onPress={() => void compartilhar()}>
-                <Text style={styles.cabIcone}>↗</Text>
+                <Share2 size={18} color={cores.slate300} />
               </Pressable>
             )}
             {souAdmin && !encerrada && (
               <Pressable hitSlop={8} onPress={() => setMenuMais(true)}>
-                <Text style={styles.cabIcone}>⋯</Text>
+                <EllipsisVertical size={20} color={cores.slate300} />
               </Pressable>
             )}
           </View>
@@ -339,7 +341,8 @@ export default function TelaResultado() {
           <View style={{ gap: 10 }}>
             {podeEditarGols && (
               <Pressable style={styles.adicionarGol} onPress={() => setAdicionarGol(true)}>
-                <Text style={styles.adicionarGolTexto}>＋ Adicionar gol</Text>
+                <Plus size={14} color={cores.ambar} />
+                <Text style={styles.adicionarGolTexto}>Adicionar gol</Text>
               </Pressable>
             )}
             {erroAcao && <Text style={styles.erroAcao}>{erroAcao}</Text>}
@@ -371,7 +374,7 @@ export default function TelaResultado() {
                       {gol.migracao ? `  ·  de ${gol.migracao.deNome}` : ""}
                     </Text>
                   </View>
-                  {podeEditarGols && <Text style={styles.golMenu}>⋯</Text>}
+                  {podeEditarGols && <EllipsisVertical size={16} color={cores.slate400} />}
                 </Pressable>
               ))
             )}
@@ -594,7 +597,6 @@ function ModalMigrarGol({
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 150, gap: 16 },
   cabDireita: { flexDirection: "row", gap: 12, paddingTop: 4 },
-  cabIcone: { fontSize: 20, color: cores.slate400 },
   timesTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   avisoErro: {
     borderRadius: raio.campo,
@@ -622,7 +624,10 @@ const styles = StyleSheet.create({
     borderColor: cores.ambarBorda,
     backgroundColor: cores.ambarFundo,
     padding: 10,
+    flexDirection: "row",
+    gap: 6,
     alignItems: "center",
+    justifyContent: "center",
   },
   adicionarGolTexto: { fontSize: 13, fontWeight: "700", color: cores.ambar },
   erroAcao: { fontSize: 13, color: cores.erroTexto },
@@ -641,7 +646,6 @@ const styles = StyleSheet.create({
   golCancelado: { opacity: 0.5 },
   golNome: { fontSize: 14, fontWeight: "600", color: cores.branco },
   golHora: { fontSize: 12, color: cores.slate500 },
-  golMenu: { fontSize: 18, color: cores.slate400 },
   opcao: {
     paddingVertical: 11,
     paddingHorizontal: 12,

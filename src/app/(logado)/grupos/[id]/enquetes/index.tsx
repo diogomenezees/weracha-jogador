@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -8,14 +9,18 @@ import { buscarDadosDoGrupo } from "@/api/grupos";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalEnquete } from "@/enquetes/ModalEnquete";
+import { BarChart3 } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
+import { TituloTela } from "@/ui/TituloTela";
 import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { Enquete, EnquetesDoGrupo } from "@/contrato/tipos";
 
 export default function EnquetesDoGrupoTela() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `enquete` vem do link de convite (destino .../enquetes?enquete={id}): abre a
+  // enquete direto ao chegar.
+  const { id, enquete: enqueteInicial } = useLocalSearchParams<{ id: string; enquete?: string }>();
   const { estado, chamarApi } = useSessao();
   const meuId = estado.fase === "logado" ? estado.jogador.id : null;
 
@@ -24,7 +29,7 @@ export default function EnquetesDoGrupoTela() {
   const [souAdmin, setSouAdmin] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
-  const [detalheId, setDetalheId] = useState<string | null>(null);
+  const [detalheId, setDetalheId] = useState<string | null>(enqueteInicial ?? null);
 
   const carregar = useCallback(async () => {
     const [g, d] = await Promise.all([
@@ -91,7 +96,7 @@ export default function EnquetesDoGrupoTela() {
       {voltar}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
-          <Text style={styles.h1}>📊 Enquetes</Text>
+          <TituloTela Icone={BarChart3}>Enquetes</TituloTela>
           <Text style={styles.sub} numberOfLines={1}>
             {grupoNome}
           </Text>
@@ -134,7 +139,7 @@ export default function EnquetesDoGrupoTela() {
 
       <ModalEnquete
         enquete={detalhe}
-        aberto={detalheId !== null}
+        aberto={detalhe !== null}
         onFechar={() => setDetalheId(null)}
         chamarApi={chamarApi}
         meuId={meuId}

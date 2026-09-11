@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { DIAS_SEMANA } from "@/partidas";

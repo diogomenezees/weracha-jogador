@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
@@ -16,6 +9,7 @@ import { buscarFeedResenha } from "@/api/resenha";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { Navbar } from "@/ui/Navbar";
+import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores } from "@/tema";
@@ -131,7 +125,7 @@ export default function ResenhaDoGrupo() {
         onEndReached={() => void carregarMais()}
         ListHeaderComponent={
           <View style={styles.cabecalho}>
-            <Text style={styles.h1}>💬 Resenha</Text>
+            <TituloTela>Resenha</TituloTela>
             <Text style={styles.sub} numberOfLines={1}>
               {grupoNome}
             </Text>

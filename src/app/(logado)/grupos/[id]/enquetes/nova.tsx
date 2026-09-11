@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -9,6 +10,7 @@ import { CaixaErro } from "@/acesso/ui";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
 import { Navbar } from "@/ui/Navbar";
+import { X } from "@/ui/Icone";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 
@@ -140,7 +142,7 @@ export default function NovaEnquete() {
               />
               {i >= 2 && (
                 <Pressable onPress={() => removerOpcao(o.id)} hitSlop={8}>
-                  <Text style={styles.remover}>✕</Text>
+                  <X size={16} color={cores.slate400} />
                 </Pressable>
               )}
             </View>

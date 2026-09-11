@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import * as ImagePicker from "expo-image-picker";
 
 import type { OpcoesRequisicao } from "@/api/cliente";
 import { definirFotoUrl, pedirUrlUploadFoto } from "@/api/perfil";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { Camera } from "@/ui/Icone";
 import { cores } from "@/tema";
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
@@ -92,7 +94,7 @@ export function FotoPerfil({
           {ocupado ? (
             <ActivityIndicator size="small" color={cores.dark} />
           ) : (
-            <Text style={styles.badgeTexto}>📷</Text>
+            <Camera size={14} color={cores.dark} />
           )}
         </View>
       </Pressable>
@@ -129,7 +131,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeTexto: { fontSize: 14 },
   acoes: { flexDirection: "row", gap: 16 },
   link: { fontSize: 13, color: cores.teal },
   linkRemover: { fontSize: 13, color: cores.erroTexto },

@@ -328,7 +328,77 @@ stepper 2-8 times, toggle "sortear capitão") → grade de times (★ pro capit�
 typecheck/lint/jest limpos, não rodou em device.
 
 **Todas as telas do menu da `Navbar` agora existem** — nenhum item cai mais em
-`/em-breve` (o `em-breve.tsx` segue só pro "Entrar por convite" do painel).
+`/em-breve`.
+
+### Feito: entrada por convite manual + destino do convite (2026-09-10)
+
+Fecha o último caminho que ainda caía em `/em-breve` (o card "Entrar por convite"
+do painel sem grupo) e o item "mapear o `destino`" da seção 3.
+
+- **Tela `/entrar-por-convite`** (`src/app/(logado)/entrar-por-convite.tsx`): campo
+  pra colar o link do WhatsApp + botão "Colar" (`expo-clipboard`). `tokenDeConvite`
+  em `src/convites.ts` extrai o token da URL completa (`weracha.app/convite/<t>`,
+  `weracha://`, `exp://.../--/convite/<t>`) ou do token solto, e a tela reusa
+  `/convite/[token]` (que com sessão ativa já mostra o nome do grupo + "Entrar no
+  grupo"). O painel (`HeroSemGrupo`) aponta o card "Já te chamaram" pra cá em vez
+  do stub. No site esse card é só texto informativo; o app tem o formulário de
+  verdade porque o deep link `https://` só resolve depois do EAS Build.
+- **`destino` do convite** (`rotaDoConvite` em `src/convites.ts`): o
+  `POST /api/v1/convites/{token}` devolve `destino` como caminho do site
+  (`/grupos/{id}`, `.../partidas/{id}/checkin`, `.../enquetes?enquete={id}`) e as
+  rotas do app têm o mesmo formato, então o caminho serve direto (com fallback pra
+  `/grupos/{id}` se vier algo fora do padrão). Antes o app ignorava e caía sempre
+  em `/painel` / `/grupos`. Agora:
+  - `src/app/convite/[token].tsx` (logado toca "Entrar no grupo") roteia pro `destino`.
+  - login vindo de convite: `useFluxoAcesso.concluirLogin` guarda o destino em
+    `src/acesso/destinoPosLogin.ts` (estado de módulo, consumido uma vez) e o
+    `RedirectPosLogin` da `TelaAcesso` manda pra lá em vez de `/painel`.
+  - `grupos/[id]/enquetes` passou a ler `?enquete=` e abrir a enquete direto.
+- Sem mudança no site. typecheck/lint/jest limpos, não rodou em device.
+
+**Falta validar:** colar link válido/inválido/revogado, entrar logado e via
+login, cair na tela certa pra cada `destino` (grupo / check-in aberto / enquete).
+
+### Em andamento: paridade visual/funcional com o site (a partir de 2026-09-11)
+
+Plano em 8 fases (fora do doc, no plano da sessão) pra fechar as lacunas de
+fidelidade listadas na seção "Aberto" abaixo: fontes/ícones/confete, vídeo
+embutido, pager estilo Stories, seletor de cor, compartilhar com imagem, deep
+link de replay. Fora de escopo confirmado: marketing/SEO, `/admin/*`, páginas
+legais.
+
+- **Fase 1 (EAS, parcial)**: `eas.json` criado (perfis `development`/`preview`/
+  `production`). Deps: `expo-dev-client`, `react-native-svg`, `lucide-react-native`,
+  `@expo-google-fonts/{space-grotesk,geist-mono}`. **Falta o dono rodar**
+  `npx eas login` + `npx eas build -p android --profile development`, depois
+  `npx eas credentials` pro SHA-256 real (troca o placeholder em
+  `weracha-site/app/.well-known/assetlinks.json/route.ts`).
+- **Fase 2 (design system), maior parte feita**: fontes Space Grotesk + Geist
+  Mono (`src/ui/Texto.tsx` novo, sweep de `import { Text }` em ~45 arquivos,
+  `src/app/_layout.tsx` carrega + segura o splash); ícones lucide
+  (`src/ui/Icone.tsx` novo, `src/ui/TituloTela.tsx` novo) substituindo emoji/formas
+  desenhadas na Navbar, títulos de tela, painel, onboarding, cronômetro do ao
+  vivo, tela do grupo (pills + rodapé + cards), resenha, chat, enquetes,
+  replays, resultado, checkboxes; confete de gol (`src/partida/Comemoracao.tsx`
+  novo, porta `gerarParticulas` do site, 14 partículas em leque via
+  `Animated`). Emoji mantido só onde o site também usa (medalhas do pódio,
+  comemoração). typecheck/lint/jest limpos, não rodou em device.
+  **Ainda sobra** um punhado de glifos menores (steppers `−`/`+`, setas `▾`/`▲`/`▼`
+  de dropdown/ordenação em `TelaArtilheiros`/`configurar`/`enquetes/nova`,
+  `⋯` em `jogadores.tsx`) — baixa prioridade, ficam pra quando mexer nesses
+  arquivos de novo.
+- **Fase 3 (feita)**: `/esqueci-senha` (modo `reset` de `src/acesso/`) ganhou
+  paridade com `weracha-site/app/esqueci-senha/page.tsx` — aviso de spam depois
+  de `AVISO_SPAM_APOS` tentativas (já existia só no passo `codigo`), botão
+  "Corrigir número" ao lado de "Reenviar código", e link "Ir pro login" quando
+  `senha/recuperar` recusa com `TELEFONE_NAO_VERIFICADO`/`SENHA_NAO_DEFINIDA`
+  (`mostrarIrParaLogin` novo em `useFluxoAcesso.ts`, checa `e.codigo` do
+  `ErroApi`, não o texto da mensagem como o site faz). typecheck/lint/jest
+  limpos, não rodou em device.
+- **Fases 4-8 (pendentes)**: vídeo embutido (`expo-video`), pager estilo
+  Stories (`/replays`, `/resenha`), seletor de cor em configurar, compartilhar
+  como imagem (`react-native-view-shot`), deep link de compartilhar replay
+  (novo nos dois repos). Todas exigem o dev client da Fase 1.
 
 ### Próximo passo
 
@@ -341,12 +411,14 @@ typecheck/lint/jest limpos, não rodou em device.
 3. **Iterar as telas do app** contra a API. Feito: `/painel`, onboarding,
    criar grupo, tela do grupo (com admin), artilheiros, resenha, enquetes,
    gerenciar jogadores, o ciclo da partida (check-in, configurar, ao vivo,
-   resultado), o cabeçalho padronizado (`Navbar`), e todas as telas do menu
-   (perfil, replays, parcerias, sorteio rápido). A seguir: entrada por convite
-   manual, e mapear o `destino` do convite pra rota do app (hoje sempre
-   `/grupos`, agora que `/checkin` existe).
-4. Deixar necessidade real puxar o resto — push, deep links, camadas 2/3 do
-   anti-abuso de SMS, OpenAPI. Nada disso bloqueia iterar.
+   resultado), o cabeçalho padronizado (`Navbar`), todas as telas do menu
+   (perfil, replays, parcerias, sorteio rápido), a entrada por convite manual e
+   o mapeamento do `destino` do convite. Nada cai mais em `/em-breve`. A seguir:
+   rodar tudo em device contra o site Local (a lista de "falta validar" das
+   seções acima).
+4. Deixar necessidade real puxar o resto — push, deep links (link de
+   compartilhar replay), camadas 2/3 do anti-abuso de SMS, OpenAPI. Nada disso
+   bloqueia iterar.
 
 ---
 
@@ -411,13 +483,16 @@ inteiro, não um endpoint.
   "Entrar no grupo" chama `POST /api/v1/convites/{token}`. `src/api/convites.ts`.
 - **Testável agora** em Expo Go via `exp://<ip>:8081/--/convite/<token>`. O app
   link `https://` de verdade só depois do EAS Build (Expo Go não registra
-  intent filter). Pós-processamento hoje cai sempre em `/grupos` (o app não tem
-  as telas de partida/enquete pra usar o `destino` da resposta).
+  intent filter).
+- **Entrada manual + `destino` (2026-09-10):** além do deep link, tela
+  `/entrar-por-convite` pra colar o link (o painel sem grupo aponta pra ela). O
+  `destino` da resposta do `POST /convites/{token}` agora é seguido de verdade
+  (`rotaDoConvite` em `src/convites.ts`): grupo / check-in aberto / enquete, tanto
+  no toque de "Entrar no grupo" quanto no login vindo de convite
+  (`src/acesso/destinoPosLogin.ts`). Ver a seção "Feito" acima.
 
 - [ ] Link de **compartilhar replay** — mesma estrutura, quando as telas de
       replay existirem no app.
-- [ ] Mapear o `destino` da resposta do convite pra rota do app (checkin,
-      enquete) quando essas telas existirem — hoje sempre `/grupos`.
 
 ### 4. Distribuição nas lojas
 

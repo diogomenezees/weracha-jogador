@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { AppState, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+
+import { Text } from "@/ui/Texto";
+import { X } from "@/ui/Icone";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import {
@@ -414,7 +417,7 @@ export default function TelaCheckin() {
                               : setConfirmar({ tipo: "removerOutro", jogador: j })
                           }
                         >
-                          <Text style={styles.removerTexto}>✕</Text>
+                          <X size={15} color={cores.slate400} />
                         </Pressable>
                       )}
                     </View>

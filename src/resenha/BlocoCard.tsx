@@ -1,9 +1,11 @@
 import { useCallback, useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { router } from "expo-router";
 
 import { ChatResenha } from "@/resenha/ChatResenha";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { EllipsisVertical, Goal, MessageCircle, Play, Sparkles } from "@/ui/Icone";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
 import type { BlocoFeedResenha, ComentarioResenha, PodeComentar } from "@/contrato/tipos";
@@ -75,7 +77,9 @@ export function BlocoCard({
       <View style={styles.cabecalho}>
         <View style={styles.cabecalhoEsq}>
           {ehLance ? (
-            <Text style={styles.lanceIcone}>⚡</Text>
+            <View style={styles.lanceIcone}>
+              <Sparkles size={15} color={cores.orange} />
+            </View>
           ) : bloco.jogador ? (
             <AvatarJogador
               id={bloco.jogador.id}
@@ -84,7 +88,9 @@ export function BlocoCard({
               tamanho={26}
             />
           ) : (
-            <Text style={styles.lanceIcone}>⚽</Text>
+            <View style={styles.lanceIcone}>
+              <Goal size={15} color={cores.teal} />
+            </View>
           )}
           <View style={styles.cabecalhoTextos}>
             <Text style={styles.cabecalhoNome} numberOfLines={1}>
@@ -101,7 +107,7 @@ export function BlocoCard({
           </View>
         </View>
         <Pressable hitSlop={8} onPress={abrirMenu}>
-          <Text style={styles.menu}>⋯</Text>
+          <EllipsisVertical size={18} color={cores.slate400} />
         </Pressable>
       </View>
 
@@ -112,7 +118,7 @@ export function BlocoCard({
       >
         {video ? (
           <>
-            <Text style={styles.videoPlay}>▶</Text>
+            <Play size={22} color={cores.branco} fill={cores.branco} />
             <Text style={styles.videoLegenda}>
               Toque pra ver o replay
               {bloco.videos.length > 1 ? ` · câmera ${video.idCamera}` : ""}
@@ -124,7 +130,10 @@ export function BlocoCard({
       </Pressable>
 
       <View style={styles.resenha}>
-        <Text style={styles.resenhaTitulo}>💬 Resenha · {total}</Text>
+        <View style={styles.resenhaTituloLinha}>
+          <MessageCircle size={14} color={cores.slate300} />
+          <Text style={styles.resenhaTitulo}>Resenha · {total}</Text>
+        </View>
         {preview.map((c) => (
           <View key={c.id} style={styles.comentario}>
             <AvatarJogador id={c.autor.id} nome={c.autor.nome} fotoUrl={c.autor.fotoUrl} tamanho={24} />
@@ -140,7 +149,8 @@ export function BlocoCard({
           </Pressable>
         )}
         <Pressable style={styles.responder} onPress={() => setChatAberto(true)}>
-          <Text style={styles.responderTexto}>💬 Responder</Text>
+          <MessageCircle size={13} color={cores.slate300} />
+          <Text style={styles.responderTexto}>Responder</Text>
         </Pressable>
       </View>
 
@@ -177,11 +187,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cabecalhoEsq: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
-  lanceIcone: { fontSize: 16 },
+  lanceIcone: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: cores.superficieMedia,
+  },
   cabecalhoTextos: { flex: 1 },
   cabecalhoNome: { fontSize: 14, fontWeight: "700", color: cores.branco },
   cabecalhoData: { fontSize: 12, color: cores.slate500, marginTop: 2 },
-  menu: { fontSize: 22, color: cores.slate400 },
   video: {
     marginHorizontal: 14,
     height: 150,
@@ -191,9 +207,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
-  videoPlay: { fontSize: 30, color: "rgba(255,255,255,0.9)" },
   videoLegenda: { fontSize: 12, color: cores.slate400 },
   resenha: { padding: 14, gap: 10 },
+  resenhaTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   resenhaTitulo: {
     fontSize: 12,
     fontWeight: "700",
@@ -211,6 +227,8 @@ const styles = StyleSheet.create({
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.avisoBorda,
+    flexDirection: "row",
+    gap: 6,
     alignItems: "center",
     justifyContent: "center",
   },

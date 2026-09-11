@@ -1,16 +1,11 @@
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
+import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Redirect } from "expo-router";
+import { Redirect, type Href } from "expo-router";
 
+import { consumirDestinoPosLogin } from "@/acesso/destinoPosLogin";
+import { Check } from "@/ui/Icone";
 import { rotuloDoAmbiente, type Ambiente } from "@/config/servidor";
 import { abrirNoNavegador, URL_CONTATO, URL_PRIVACIDADE, URL_TERMOS } from "@/config/links";
 import { useSessao } from "@/sessao/contexto";
@@ -29,6 +24,14 @@ import { useFluxoAcesso } from "@/acesso/useFluxoAcesso";
 
 const AVISO_SPAM_APOS = 1;
 
+// Pós-login: se veio de um convite, `concluirLogin` deixou o destino em
+// destinoPosLogin; senão cai no /painel. Monta só quando a sessão já está logada,
+// então o initializer do useState lê o valor no momento certo e consome uma vez.
+function RedirectPosLogin() {
+  const [href] = useState<Href>(() => consumirDestinoPosLogin() ?? "/painel");
+  return <Redirect href={href} />;
+}
+
 function formatarCooldown(segundos: number): string {
   if (segundos < 60) return `${segundos}s`;
   const min = Math.floor(segundos / 60);
@@ -40,7 +43,7 @@ export function TelaAcesso() {
   const { estado, ambiente, urlBase, entrar, trocarAmbiente, chamarApi } = useSessao();
   const f = useFluxoAcesso({ urlBase, entrar, chamarApi });
 
-  if (estado.fase === "logado") return <Redirect href="/painel" />;
+  if (estado.fase === "logado") return <RedirectPosLogin />;
 
   function escolherServidor() {
     const opcoes: Ambiente[] = ["producao", "local"];
@@ -209,7 +212,7 @@ export function TelaAcesso() {
                     onPress={() => f.setAceitouTermos(!f.aceitouTermos)}
                   >
                     <View style={[styles.checkbox, f.aceitouTermos && styles.checkboxMarcado]}>
-                      {f.aceitouTermos ? <Text style={styles.check}>✓</Text> : null}
+                      {f.aceitouTermos ? <Check size={13} color={cores.dark} /> : null}
                     </View>
                     <Text style={[tipografia.corpo, styles.termosTexto]}>
                       Li e concordo com os{" "}
@@ -244,6 +247,12 @@ export function TelaAcesso() {
             {f.passo === "reset" && (
               <>
                 <Aviso>Enviamos um código de 6 dígitos por SMS pro número digitado.</Aviso>
+                {f.tentativasEnvio > AVISO_SPAM_APOS && (
+                  <Aviso>
+                    Não chegou? Veja a caixa de spam e apps de bloqueio de SMS. Se não
+                    vier, fale com o administrador do site.
+                  </Aviso>
+                )}
                 <CampoComRotulo
                   rotulo="Código"
                   value={f.codigo}
@@ -273,12 +282,16 @@ export function TelaAcesso() {
                   editable={!f.ocupado}
                 />
                 {f.erro ? <CaixaErro>{f.erro}</CaixaErro> : null}
+                {f.mostrarIrParaLogin ? (
+                  <LinkBotao titulo="Ir pro login" onPress={f.voltarParaLogin} />
+                ) : null}
                 <BotaoPrimario
                   titulo="Redefinir e entrar"
                   onPress={() => void f.enviar()}
                   carregando={f.ocupado}
                 />
                 <View style={styles.linhaLinks}>
+                  <LinkBotao titulo="Corrigir número" onPress={f.corrigirNumero} />
                   <LinkBotao
                     titulo={
                       f.cooldownReenvio > 0
@@ -288,8 +301,8 @@ export function TelaAcesso() {
                     onPress={() => void f.enviarCodigo()}
                     desabilitado={f.cooldownReenvio > 0 || f.ocupado}
                   />
-                  <LinkBotao titulo="Lembrei minha senha" onPress={f.voltarParaLogin} />
                 </View>
+                <LinkBotao titulo="Lembrei minha senha" onPress={f.voltarParaLogin} />
               </>
             )}
 
@@ -351,7 +364,6 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   checkboxMarcado: { backgroundColor: cores.orange, borderColor: cores.orange },
-  check: { color: cores.dark, fontSize: 13, fontWeight: "700" },
   termosTexto: { flex: 1 },
   termosLink: { color: cores.teal, textDecorationLine: "underline" },
   rodape: { alignItems: "center", gap: 10, paddingTop: 8 },

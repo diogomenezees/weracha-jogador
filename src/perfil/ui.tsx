@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { SeletorData } from "@/grupo/pickers";
 import { hojeISO } from "@/partidas";
+import { Check } from "@/ui/Icone";
 import { cores } from "@/tema";
 
 // Peças da tela /perfil. Espelham weracha-site/app/perfil/page.tsx: campos com
@@ -126,7 +128,7 @@ export function Checkbox({
           desabilitado && styles.inativo,
         ]}
       >
-        {marcado ? <Text style={styles.checkboxMarca}>✓</Text> : null}
+        {marcado ? <Check size={12} color={cores.dark} /> : null}
       </View>
       <Text style={[styles.checkboxTexto, desabilitado && styles.inativo]}>{rotulo}</Text>
     </Pressable>
@@ -164,7 +166,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxCaixaOn: { backgroundColor: cores.teal, borderColor: cores.teal },
-  checkboxMarca: { fontSize: 12, fontWeight: "700", color: cores.dark },
   checkboxTexto: { flex: 1, fontSize: 13, color: cores.slate400 },
   inativo: { opacity: 0.4 },
 });

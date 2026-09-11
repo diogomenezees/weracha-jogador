@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { ChatResenha } from "@/resenha/ChatResenha";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { MessageCircle, Play, Sparkles } from "@/ui/Icone";
 import { formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
 import type { ComentarioResenha, GolComVideos, PodeComentar } from "@/contrato/tipos";
@@ -69,7 +71,7 @@ export function ListaReplays({
                 />
               ) : (
                 <View style={styles.lanceIcone}>
-                  <Text style={{ fontSize: 16 }}>✨</Text>
+                  <Sparkles size={15} color={cores.orange} />
                 </View>
               )}
               <View style={{ flex: 1 }}>
@@ -90,7 +92,8 @@ export function ListaReplays({
             <View style={styles.acoes}>
               {nuvem ? (
                 <Pressable style={styles.acaoAssistir} onPress={() => void assistir(g)}>
-                  <Text style={styles.acaoAssistirTexto}>▶ Assistir</Text>
+                  <Play size={13} color={cores.dark} fill={cores.dark} />
+                  <Text style={styles.acaoAssistirTexto}>Assistir</Text>
                 </Pressable>
               ) : soLocal ? (
                 <Text style={styles.acaoLocal}>Salvo só no celular da câmera</Text>
@@ -104,8 +107,9 @@ export function ListaReplays({
                     setChatDe({ pedidoReplayId: g.pedidoReplayId!, titulo })
                   }
                 >
+                  <MessageCircle size={13} color={cores.slate300} />
                   <Text style={styles.acaoComentarTexto}>
-                    💬 {nComentarios > 0 ? nComentarios : "Comentar"}
+                    {nComentarios > 0 ? nComentarios : "Comentar"}
                   </Text>
                 </Pressable>
               )}
@@ -168,6 +172,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 8,
     backgroundColor: cores.orange,
+    flexDirection: "row",
+    gap: 6,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -180,6 +186,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: cores.campoBorda,
+    flexDirection: "row",
+    gap: 5,
     alignItems: "center",
     justifyContent: "center",
   },

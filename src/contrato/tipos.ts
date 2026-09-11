@@ -95,7 +95,9 @@ export type ConvitePublico = {
   enqueteId: string | null;
 };
 // POST /api/v1/convites/{token} — autenticado (o app chama logo após o login).
-// `destino` é um caminho do site; o app hoje só cai em /grupos.
+// `destino` é um caminho do site (/grupos/{id}, .../partidas/{id}/checkin,
+// .../enquetes?enquete={id}); as rotas do app têm o mesmo formato. Ver rotaDoConvite
+// em src/convites.ts.
 export type ResultadoConvite = {
   ok: true;
   grupoId: string;

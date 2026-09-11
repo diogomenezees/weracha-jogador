@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
@@ -7,7 +8,9 @@ import { buscarArtilheiros } from "@/api/artilheiros";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaArtilheiros } from "@/artilheiros/TelaArtilheiros";
+import { Goal } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
+import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores } from "@/tema";
@@ -68,7 +71,7 @@ export default function ArtilheirosDoGrupo() {
       {voltar}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
-          <Text style={styles.h1}>⚽ Artilheiros</Text>
+          <TituloTela Icone={Goal}>Artilheiros</TituloTela>
           <Text style={styles.sub} numberOfLines={1}>
             {grupoNome}
           </Text>

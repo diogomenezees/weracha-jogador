@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { sortearTimes, type JogadorSorteado } from "@/sorteio";
 import { cores, raio } from "@/tema";
 import { Navbar } from "@/ui/Navbar";
+import { TituloTela } from "@/ui/TituloTela";
 
 const MIN_TIMES = 2;
 const MAX_TIMES = 8;
@@ -40,9 +42,9 @@ export default function Sorteio() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.cabecalho}>
-          <Text style={styles.h1}>🎲 Sorteio rápido</Text>
+          <TituloTela>Organizar pessoas</TituloTela>
           <Text style={styles.sub}>
-            Cola os nomes, escolhe quantos times. Nada é salvo. É só pra separar na hora.
+            Sorteio rápido e local. Nada aqui é salvo na sua conta.
           </Text>
         </View>
 

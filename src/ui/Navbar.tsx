@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  Animated,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Animated, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
 
@@ -16,6 +9,21 @@ import { rotuloDoAmbiente } from "@/config/servidor";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import {
+  BarChart3,
+  ChevronLeft,
+  CircleUserRound,
+  Goal,
+  type LucideIcon,
+  LogOut,
+  Mail,
+  Menu,
+  Shuffle,
+  Store,
+  Users,
+  Video,
+  X,
+} from "@/ui/Icone";
 
 // Cabeçalho padronizado das telas logadas. Espelha `weracha-site/components/navbar.tsx`:
 // marca à esquerda (ou um "‹ destino" quando a tela é interna) e um botão de menu
@@ -23,21 +31,22 @@ import { AvatarJogador } from "@/ui/AvatarJogador";
 // estado — cada tela só renderiza `<Navbar />` (ou `<Navbar voltar="Grupo" />`).
 
 type Item =
-  | { rotulo: string; emoji: string; tipo: "rota"; rota: Href; beta?: boolean }
-  | { rotulo: string; emoji: string; tipo: "em-breve"; beta?: boolean }
-  | { rotulo: string; emoji: string; tipo: "externo"; url: string };
+  | { rotulo: string; Icone: LucideIcon; tipo: "rota"; rota: Href; beta?: boolean }
+  | { rotulo: string; Icone: LucideIcon; tipo: "em-breve"; beta?: boolean }
+  | { rotulo: string; Icone: LucideIcon; tipo: "externo"; url: string };
 
-// Mesma ordem do menu do site. As telas ainda não portadas caem no /em-breve
-// (decidido com o dono: espelhar o menu inteiro, não esconder o que falta).
+// Mesma ordem e mesmos ícones (lucide) do menu do site
+// (weracha-site/components/navbar.tsx). Telas não portadas cairiam no /em-breve
+// (nenhuma hoje).
 const ITENS: Item[] = [
-  { rotulo: "Perfil", emoji: "👤", tipo: "rota", rota: "/perfil" },
-  { rotulo: "Grupos", emoji: "👥", tipo: "rota", rota: "/painel" },
-  { rotulo: "Artilheiros", emoji: "⚽", tipo: "rota", rota: "/artilheiros" },
-  { rotulo: "Replays", emoji: "🎬", tipo: "rota", rota: "/replays", beta: true },
-  { rotulo: "Enquetes", emoji: "📊", tipo: "rota", rota: "/enquetes" },
-  { rotulo: "Parcerias", emoji: "🏪", tipo: "rota", rota: "/parcerias" },
-  { rotulo: "Contato", emoji: "✉️", tipo: "externo", url: URL_CONTATO },
-  { rotulo: "Sorteio rápido", emoji: "🔀", tipo: "rota", rota: "/sorteio" },
+  { rotulo: "Perfil", Icone: CircleUserRound, tipo: "rota", rota: "/perfil" },
+  { rotulo: "Grupos", Icone: Users, tipo: "rota", rota: "/painel" },
+  { rotulo: "Artilheiros", Icone: Goal, tipo: "rota", rota: "/artilheiros" },
+  { rotulo: "Replays", Icone: Video, tipo: "rota", rota: "/replays", beta: true },
+  { rotulo: "Enquetes", Icone: BarChart3, tipo: "rota", rota: "/enquetes" },
+  { rotulo: "Parcerias", Icone: Store, tipo: "rota", rota: "/parcerias" },
+  { rotulo: "Contato", Icone: Mail, tipo: "externo", url: URL_CONTATO },
+  { rotulo: "Sorteio rápido", Icone: Shuffle, tipo: "rota", rota: "/sorteio" },
 ];
 
 export function Navbar({ voltar }: { voltar?: string }) {
@@ -53,7 +62,8 @@ export function Navbar({ voltar }: { voltar?: string }) {
           accessibilityRole="button"
           accessibilityLabel={`Voltar para ${voltar}`}
         >
-          <Text style={styles.voltarTexto}>{`‹ ${voltar}`}</Text>
+          <ChevronLeft size={18} color={cores.slate400} />
+          <Text style={styles.voltarTexto}>{voltar}</Text>
         </Pressable>
       ) : (
         <Text style={styles.marca}>
@@ -68,9 +78,7 @@ export function Navbar({ voltar }: { voltar?: string }) {
         accessibilityRole="button"
         accessibilityLabel="Abrir menu"
       >
-        <View style={styles.traco} />
-        <View style={styles.traco} />
-        <View style={styles.traco} />
+        <Menu size={26} color={cores.slate300} />
       </Pressable>
 
       <Gaveta aberto={aberto} onFechar={() => setAberto(false)} />
@@ -151,14 +159,16 @@ function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void })
                 accessibilityRole="button"
                 accessibilityLabel="Fechar menu"
               >
-                <Text style={styles.fecharTexto}>✕</Text>
+                <X size={20} color={cores.slate300} />
               </Pressable>
             </View>
 
             <ScrollView contentContainerStyle={styles.itens} showsVerticalScrollIndicator={false}>
               {ITENS.map((item) => (
                 <Pressable key={item.rotulo} style={styles.item} onPress={() => irPara(item)}>
-                  <Text style={styles.itemEmoji}>{item.emoji}</Text>
+                  <View style={styles.itemIcone}>
+                    <item.Icone size={20} color={cores.slate400} />
+                  </View>
                   <Text style={styles.itemTexto}>{item.rotulo}</Text>
                   {item.tipo !== "externo" && item.beta ? (
                     <Text style={styles.beta}>Beta</Text>
@@ -177,7 +187,9 @@ function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void })
                 }}
                 accessibilityRole="button"
               >
-                <Text style={styles.itemEmoji}>⎋</Text>
+                <View style={styles.itemIcone}>
+                  <LogOut size={18} color={cores.erroTexto} />
+                </View>
                 <Text style={[styles.itemTexto, styles.sairTexto]}>Sair</Text>
               </Pressable>
             </View>
@@ -198,7 +210,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     minHeight: 40,
   },
-  voltarBotao: { paddingVertical: 4 },
+  voltarBotao: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 4 },
   voltarTexto: { fontSize: 16, color: cores.slate400 },
   marca: { fontSize: 17, fontWeight: "700", color: cores.branco },
   marcaForte: { color: cores.teal },
@@ -207,9 +219,7 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: "flex-end",
     justifyContent: "center",
-    gap: 5,
   },
-  traco: { width: 22, height: 2, borderRadius: 2, backgroundColor: cores.slate300 },
 
   gavetaRaiz: { flex: 1, flexDirection: "row", justifyContent: "flex-end" },
   fundo: {
@@ -245,7 +255,6 @@ const styles = StyleSheet.create({
   perfilNome: { fontSize: 14, fontWeight: "700", color: cores.slate200 },
   perfilApelido: { fontSize: 12, color: cores.slate400 },
   fechar: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  fecharTexto: { fontSize: 16, color: cores.slate300 },
 
   itens: { paddingVertical: 8, paddingHorizontal: 10 },
   item: {
@@ -256,7 +265,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: raio.campo,
   },
-  itemEmoji: { fontSize: 16, width: 22, textAlign: "center" },
+  itemIcone: { width: 22, alignItems: "center" },
   itemTexto: { flex: 1, fontSize: 15, fontWeight: "600", color: cores.slate200 },
   beta: {
     fontSize: 9,

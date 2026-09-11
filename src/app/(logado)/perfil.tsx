@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
@@ -23,6 +24,7 @@ import { CampoDataNascimento, CampoLeitura, CampoTexto, Checkbox } from "@/perfi
 import { ModalExcluirConta, ModalTrocarSenha } from "@/perfil/modais";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import { ChevronRight, Lock } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import type { Grupo, PosicaoEsporte } from "@/contrato/tipos";
 
@@ -323,7 +325,7 @@ export default function Perfil() {
                         </Text>
                         <Text style={styles.grupoEsporte}>{g.esporte}</Text>
                       </View>
-                      <Text style={styles.grupoChevron}>›</Text>
+                      <ChevronRight size={16} color={cores.slate500} />
                     </Pressable>
                     <View style={styles.grupoAcoes}>
                       <Pressable
@@ -332,10 +334,12 @@ export default function Perfil() {
                         disabled={congelado}
                       >
                         <Text style={styles.grupoAcaoRotulo}>Score</Text>
-                        <Text style={[styles.grupoAcaoValor, congelado && styles.grupoAcaoTravado]}>
-                          {g.meuScore}
-                          {congelado ? " 🔒" : ""}
-                        </Text>
+                        <View style={styles.grupoAcaoValorLinha}>
+                          <Text style={[styles.grupoAcaoValor, congelado && styles.grupoAcaoTravado]}>
+                            {g.meuScore}
+                          </Text>
+                          {congelado ? <Lock size={11} color={cores.slate500} /> : null}
+                        </View>
                       </Pressable>
                       <Pressable style={styles.grupoAcao} onPress={() => setPosicaoDe(g)}>
                         <Text style={styles.grupoAcaoRotulo}>Posição</Text>
@@ -489,7 +493,6 @@ const styles = StyleSheet.create({
   grupoInfo: { flex: 1 },
   grupoNome: { fontSize: 15, fontWeight: "700", color: cores.branco },
   grupoEsporte: { fontSize: 12, color: cores.slate400, textTransform: "capitalize" },
-  grupoChevron: { fontSize: 20, color: cores.slate500 },
   grupoAcoes: {
     flexDirection: "row",
     gap: 10,
@@ -508,6 +511,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   grupoAcaoRotulo: { fontSize: 11, color: cores.slate500, textTransform: "uppercase", letterSpacing: 1 },
+  grupoAcaoValorLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
   grupoAcaoValor: { fontSize: 15, fontWeight: "700", color: cores.teal },
   grupoAcaoTravado: { color: cores.slate400 },
   grupoNota: { fontSize: 12, color: cores.slate500 },

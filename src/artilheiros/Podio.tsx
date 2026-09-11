@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { cores } from "@/tema";

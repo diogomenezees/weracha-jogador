@@ -1,13 +1,6 @@
 import { type ReactNode } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  type TextInputProps,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, type TextInputProps, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { cores, raio, tipografia } from "@/tema";
 
