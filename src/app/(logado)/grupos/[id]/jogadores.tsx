@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
 import {
@@ -21,6 +21,7 @@ import { FormNovoJogador } from "@/jogadores/FormNovoJogador";
 import { ModalPerfil, ModalPosicao, ModalScore, ModalTransferirDono } from "@/jogadores/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { Crown, Pencil, ShieldCheck, ShieldOff, Trash2 } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -35,6 +36,7 @@ function normalizar(t: string): string {
 export default function GerenciarJogadores() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { chamarApi } = useSessao();
+  const insets = useSafeAreaInsets();
 
   const [dados, setDados] = useState<DadosDaTelaJogadoresDoGrupo | undefined>(undefined);
   const [erro, setErro] = useState<string | null>(null);
@@ -141,26 +143,34 @@ export default function GerenciarJogadores() {
     itens.push(
       {
         rotulo: "Editar score",
+        Icone: Pencil,
         onPress: () => setScoreDe({ jogadorId: j.id, nome: j.nome, score: m.score }),
       },
       {
         rotulo: "Editar posição",
+        Icone: Pencil,
         onPress: () =>
           setPosicaoDe({ jogadorId: j.id, nome: j.nome, posicaoId: m.posicaoId }),
       }
     );
     if (j.id === dados!.meuId && ehDono) {
-      itens.push({ rotulo: "Mudar de dono", onPress: () => setTransferindo(true) });
+      itens.push({
+        rotulo: "Mudar de dono",
+        Icone: Crown,
+        onPress: () => setTransferindo(true),
+      });
     }
     if (!ehDono && souDono) {
       if (m.papel === "ADMIN") {
         itens.push({
           rotulo: "Remover admin",
+          Icone: ShieldOff,
           onPress: () => void acao(() => definirPapel(chamarApi, id, j.id, "MEMBRO")),
         });
       } else if (!j.exclusaoPendente) {
         itens.push({
           rotulo: "Tornar admin",
+          Icone: ShieldCheck,
           onPress: () => void acao(() => definirPapel(chamarApi, id, j.id, "ADMIN")),
         });
       }
@@ -168,12 +178,14 @@ export default function GerenciarJogadores() {
     if (j.id === dados!.meuId && m.papel === "ADMIN" && !ehDono) {
       itens.push({
         rotulo: "Deixar o cargo de admin",
+        Icone: ShieldOff,
         onPress: () => void acao(() => deixarCargoAdmin(chamarApi, id)),
       });
     }
     if (!ehDono) {
       itens.push({
         rotulo: "Remover jogador",
+        Icone: Trash2,
         destrutivo: true,
         onPress: () => confirmarRemover(j),
       });
@@ -413,7 +425,7 @@ export default function GerenciarJogadores() {
         )}
       </ScrollView>
 
-      <View style={styles.rodape}>
+      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
         {souAdmin && (
           <Pressable style={styles.novoBtn} onPress={() => setFormAberto(true)}>
             <Text style={styles.novoBtnTexto}>Novo jogador</Text>
@@ -502,7 +514,7 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   aviso: { fontSize: 14, color: cores.slate400 },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 120, gap: 12 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120, gap: 12 },
   cabecalho: { gap: 4 },
   h1: { fontSize: 23, fontWeight: "700", color: cores.branco },
   sub: { fontSize: 13, color: cores.slate400 },
@@ -589,9 +601,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 14,
-    paddingBottom: 28,
   },
   novoBtn: {
     height: 50,

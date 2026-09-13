@@ -581,7 +581,7 @@ function ModalEditarCronometro({
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 150, gap: 16 },
+  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
   cron: { borderRadius: raio.card, borderWidth: 1, padding: 16, alignItems: "center", gap: 8 },
   cronParado: { borderColor: cores.cardBorda, backgroundColor: cores.cardFundo },
   cronRodando: { borderColor: "rgba(16,185,129,0.5)", backgroundColor: "rgba(16,185,129,0.1)" },

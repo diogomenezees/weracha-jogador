@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { criarGrupo, listarEsportes } from "@/api/grupos";
@@ -29,6 +29,7 @@ function dataHoraJaPassou(data: string, hora: string, duracaoMin: number): boole
 
 export default function CriarGrupo() {
   const { chamarApi } = useSessao();
+  const insets = useSafeAreaInsets();
 
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState<TipoGrupo>("RECORRENTE");
@@ -236,7 +237,7 @@ export default function CriarGrupo() {
         {erro && <CaixaErro>{erro}</CaixaErro>}
       </ScrollView>
 
-      <View style={styles.rodape}>
+      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
         <BotaoLaranja titulo="Salvar" onPress={() => void salvar()} carregando={salvando} />
       </View>
     </SafeAreaView>
@@ -245,7 +246,7 @@ export default function CriarGrupo() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 140, gap: 20 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 140, gap: 20 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   campo: { gap: 8 },
   label: { fontSize: 13, fontWeight: "600", color: cores.slate300 },
@@ -319,8 +320,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 14,
-    paddingBottom: 28,
   },
 });

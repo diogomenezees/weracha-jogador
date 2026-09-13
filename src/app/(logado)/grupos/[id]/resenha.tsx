@@ -169,7 +169,7 @@ export default function ResenhaDoGrupo() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  lista: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40, gap: 16 },
+  lista: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 16 },
   cabecalho: { gap: 4, marginBottom: 2 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   sub: { fontSize: 14, color: cores.slate400 },

@@ -20,10 +20,12 @@ export function BotaoLaranja({
   titulo,
   onPress,
   carregando,
+  Icone,
 }: {
   titulo: string;
   onPress: () => void;
   carregando?: boolean;
+  Icone?: LucideIcon;
 }) {
   return (
     <Pressable
@@ -34,7 +36,10 @@ export function BotaoLaranja({
       {carregando ? (
         <ActivityIndicator color={cores.dark} />
       ) : (
-        <Text style={styles.botaoLaranjaTexto}>{titulo}</Text>
+        <>
+          {Icone && <Icone size={16} color={cores.dark} />}
+          <Text style={styles.botaoLaranjaTexto}>{titulo}</Text>
+        </>
       )}
     </Pressable>
   );
@@ -160,6 +165,8 @@ const styles = StyleSheet.create({
   },
   botaoLaranja: {
     height: 52,
+    flexDirection: "row",
+    gap: 8,
     borderRadius: raio.card,
     backgroundColor: cores.orange,
     alignItems: "center",

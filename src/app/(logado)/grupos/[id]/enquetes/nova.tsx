@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { criarEnquete } from "@/api/enquetes";
@@ -25,6 +25,7 @@ type OpcaoForm = { id: string; texto: string };
 export default function NovaEnquete() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { chamarApi } = useSessao();
+  const insets = useSafeAreaInsets();
   const proxId = useRef(2);
 
   const [pergunta, setPergunta] = useState("");
@@ -193,7 +194,7 @@ export default function NovaEnquete() {
         {erro ? <CaixaErro>{erro}</CaixaErro> : null}
       </ScrollView>
 
-      <View style={styles.rodape}>
+      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
         <BotaoLaranja titulo="Criar enquete" onPress={() => void salvar()} carregando={salvando} />
       </View>
     </SafeAreaView>
@@ -202,7 +203,7 @@ export default function NovaEnquete() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 130, gap: 20 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   sub: { fontSize: 14, color: cores.slate400, marginTop: 2 },
   campo: { gap: 8 },
@@ -245,8 +246,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 14,
-    paddingBottom: 28,
   },
 });

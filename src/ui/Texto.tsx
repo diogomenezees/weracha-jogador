@@ -27,8 +27,15 @@ export function familiaDoPeso(peso: string | number | undefined): string {
   return PESO_PARA_FAMILIA[String(peso ?? "400")] ?? "SpaceGrotesk_400Regular";
 }
 
+// O texto do app estava saindo maior do que o do site pro mesmo tamanho
+// declarado. Em vez de revisitar cada `fontSize` espalhado pelas telas, o
+// ajuste entra uma vez aqui: todo texto do app passa por este wrapper, então
+// um fator único cobre o app inteiro.
+const ESCALA_FONTE = 0.9;
+
 export function Text({ style, ...rest }: TextProps) {
   const plano = StyleSheet.flatten(style) ?? {};
   const familia = plano.fontFamily ?? familiaDoPeso(plano.fontWeight);
-  return <TextRN {...rest} style={[style, { fontFamily: familia }]} />;
+  const fontSize = typeof plano.fontSize === "number" ? plano.fontSize * ESCALA_FONTE : undefined;
+  return <TextRN {...rest} style={[style, { fontFamily: familia }, fontSize ? { fontSize } : null]} />;
 }

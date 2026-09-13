@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { buscarStatusExclusao, cancelarExclusao } from "@/api/conta";
@@ -31,6 +31,7 @@ import type { Grupo, PosicaoEsporte } from "@/contrato/tipos";
 export default function Perfil() {
   const { estado, chamarApi, urlBase, recarregarPerfil } = useSessao();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
+  const insets = useSafeAreaInsets();
 
   const [nome, setNome] = useState("");
   const [apelido, setApelido] = useState("");
@@ -361,7 +362,7 @@ export default function Perfil() {
         </ScrollView>
       )}
 
-      <View style={styles.rodape}>
+      <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
         {erroSalvar && <Text style={styles.rodapeErro}>{erroSalvar}</Text>}
         <View style={styles.rodapeLinha}>
           <Pressable
@@ -432,7 +433,7 @@ export default function Perfil() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 130, gap: 18 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 18 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
 
   bannerExclusao: {
@@ -524,9 +525,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 28,
     gap: 8,
   },
   rodapeErro: { fontSize: 12, color: cores.erroTexto, textAlign: "center" },

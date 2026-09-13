@@ -13,6 +13,7 @@ import {
 import { GeistMono_400Regular } from "@expo-google-fonts/geist-mono";
 
 import { SessaoProvider } from "@/sessao/contexto";
+import { BlurTargetProvider } from "@/ui/BlurTarget";
 
 // Segura o splash até as fontes carregarem (o site usa Space Grotesk em tudo e
 // Geist Mono no eyebrow; ver src/ui/Texto.tsx).
@@ -35,14 +36,16 @@ export default function RootLayout() {
   if (!fontesCarregadas) return null;
 
   return (
-    <SessaoProvider>
-      <StatusBar style="auto" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="convite/[token]" />
-        <Stack.Screen name="(logado)" />
-      </Stack>
-    </SessaoProvider>
+    <BlurTargetProvider>
+      <SessaoProvider>
+        <StatusBar style="auto" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="convite/[token]" />
+          <Stack.Screen name="(logado)" />
+        </Stack>
+      </SessaoProvider>
+    </BlurTargetProvider>
   );
 }

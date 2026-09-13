@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, AppState, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 
 import { apagarComentario, buscarComentarios, enviarComentario } from "@/api/resenha";
@@ -9,6 +10,7 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { podeApagarComentario, reconciliarComentarios } from "@/resenha/reconciliar";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { cores, raio } from "@/tema";
+import { useBlurTarget } from "@/ui/BlurTarget";
 import type { ComentarioResenha, PodeComentar } from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: import("@/api/cliente").OpcoesRequisicao) => Promise<T>;
@@ -46,6 +48,7 @@ export function ChatResenha({
   comentariosIniciais: ComentarioResenha[];
   onComentarios: (lista: ComentarioResenha[]) => void;
 }) {
+  const blurTarget = useBlurTarget();
   const [comentarios, setComentarios] = useState<ComentarioResenha[]>(comentariosIniciais);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -126,7 +129,13 @@ export function ChatResenha({
 
   return (
     <Modal visible={aberto} transparent animationType="slide" onRequestClose={onFechar}>
-      <View style={styles.fundo}>
+      <BlurView
+        intensity={40}
+        tint="dark"
+        blurMethod="dimezisBlurView"
+        blurTarget={blurTarget}
+        style={styles.fundo}
+      >
         <Pressable style={styles.fundoToque} onPress={onFechar} />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -217,13 +226,13 @@ export function ChatResenha({
             </View>
           )}
         </KeyboardAvoidingView>
-      </View>
+      </BlurView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  fundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)" },
+  fundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   fundoToque: { flex: 1 },
   folha: {
     maxHeight: "85%",

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, type Href } from "expo-router";
@@ -9,6 +10,8 @@ import { rotuloDoAmbiente } from "@/config/servidor";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { useBlurTarget } from "@/ui/BlurTarget";
+import { LogoWeRacha } from "@/ui/LogoWeRacha";
 import {
   BarChart3,
   ChevronLeft,
@@ -62,13 +65,16 @@ export function Navbar({ voltar }: { voltar?: string }) {
           accessibilityRole="button"
           accessibilityLabel={`Voltar para ${voltar}`}
         >
-          <ChevronLeft size={18} color={cores.slate400} />
+          <ChevronLeft size={24} color={cores.slate400} />
           <Text style={styles.voltarTexto}>{voltar}</Text>
         </Pressable>
       ) : (
-        <Text style={styles.marca}>
-          We <Text style={styles.marcaForte}>Racha</Text>
-        </Text>
+        <View style={styles.marcaLinha}>
+          <LogoWeRacha tamanho={32} />
+          <Text style={styles.marca}>
+            We<Text style={styles.marcaForte}>Racha</Text>
+          </Text>
+        </View>
       )}
 
       <Pressable
@@ -87,28 +93,45 @@ export function Navbar({ voltar }: { voltar?: string }) {
 }
 
 const LARGURA_GAVETA = 300;
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
   const { estado, ambiente, sair } = useSessao();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
+  const blurTarget = useBlurTarget();
 
-  // A entrada desliza da direita; o Modal com `animationType="fade"` cuida do
-  // fade do conjunto (fundo + painel) e da saída. `anim`: 1 = fora, 0 = aberto.
+  // Desliza da direita, sem fade nativo do Modal por cima (igual ao
+  // `slide-in-from-right` / `slide-out-to-right` do Sheet do site). `anim`:
+  // 1 = fora da tela, 0 = aberto. O Modal só desmonta depois que a animação de
+  // saída termina, senão o painel some de repente em vez de deslizar pra fora.
+  const [montado, setMontado] = useState(aberto);
   const [anim] = useState(() => new Animated.Value(aberto ? 0 : 1));
 
-  useEffect(() => {
-    Animated.timing(anim, {
-      toValue: aberto ? 0 : 1,
-      duration: aberto ? 220 : 0,
-      useNativeDriver: true,
-    }).start();
-  }, [aberto, anim]);
+  // Ajuste de estado durante o render (não num efeito): abrir precisa montar
+  // o Modal na hora, antes de qualquer animação rodar.
+  if (aberto && !montado) {
+    setMontado(true);
+  }
 
-  if (!aberto) return null;
+  useEffect(() => {
+    if (aberto) {
+      Animated.timing(anim, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+    } else if (montado) {
+      Animated.timing(anim, { toValue: 1, duration: 200, useNativeDriver: true }).start(() => {
+        setMontado(false);
+      });
+    }
+  }, [aberto, anim, montado]);
+
+  if (!montado) return null;
 
   const translateX = anim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, LARGURA_GAVETA],
+  });
+  const opacidadeFundo = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
   });
 
   function irPara(item: Item) {
@@ -123,9 +146,21 @@ function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void })
   }
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onFechar}>
+    <Modal visible transparent animationType="none" onRequestClose={onFechar}>
       <View style={styles.gavetaRaiz}>
-        <Pressable style={styles.fundo} onPress={onFechar} accessibilityLabel="Fechar menu" />
+        <AnimatedBlurView
+          intensity={40}
+          tint="dark"
+          blurMethod="dimezisBlurView"
+          blurTarget={blurTarget}
+          style={[styles.fundo, { opacity: opacidadeFundo }]}
+        >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={onFechar}
+            accessibilityLabel="Fechar menu"
+          />
+        </AnimatedBlurView>
 
         <Animated.View style={[styles.painel, { transform: [{ translateX }] }]}>
           <SafeAreaView style={styles.painelInterno} edges={["top", "bottom", "right"]}>
@@ -205,14 +240,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 6,
-    minHeight: 40,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
+    minHeight: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: cores.cardBorda,
   },
-  voltarBotao: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 4 },
-  voltarTexto: { fontSize: 16, color: cores.slate400 },
-  marca: { fontSize: 17, fontWeight: "700", color: cores.branco },
+  voltarBotao: { flexDirection: "row", alignItems: "center", gap: 4 },
+  voltarTexto: { fontSize: 19, fontWeight: "600", color: cores.slate400 },
+  marcaLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
+  marca: { fontSize: 20, fontWeight: "700", color: cores.branco },
   marcaForte: { color: cores.teal },
   menuBotao: {
     width: 32,
@@ -228,7 +266,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "rgba(0,0,0,0.35)",
   },
   painel: {
     width: LARGURA_GAVETA,

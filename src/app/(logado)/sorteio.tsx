@@ -183,7 +183,7 @@ function Time({
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 40, gap: 18 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 18 },
   cabecalho: { gap: 4 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   sub: { fontSize: 14, lineHeight: 20, color: cores.slate400 },

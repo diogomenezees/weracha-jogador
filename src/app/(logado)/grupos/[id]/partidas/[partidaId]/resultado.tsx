@@ -35,7 +35,7 @@ import {
   ToggleScore,
 } from "@/partida/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { EllipsisVertical, Plus, Share2 } from "@/ui/Icone";
+import { ArrowLeftRight, Ban, EllipsisVertical, Plus, RotateCcw, Share2, Shuffle } from "@/ui/Icone";
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import {
   dentroDoPrazoDeEdicaoDeGols,
@@ -416,6 +416,7 @@ export default function TelaResultado() {
         itens={[
           {
             rotulo: "Refazer o sorteio",
+            Icone: Shuffle,
             destrutivo: true,
             onPress: () => setConfirmarRefazer(true),
           },
@@ -432,10 +433,12 @@ export default function TelaResultado() {
                 menuGol.cancelado
                   ? {
                       rotulo: "Reativar gol",
+                      Icone: RotateCcw,
                       onPress: () => void acaoGol(() => reativarGol(chamarApi, menuGol.golId)),
                     }
                   : {
                       rotulo: "Cancelar gol",
+                      Icone: Ban,
                       destrutivo: true,
                       onPress: () => void acaoGol(() => cancelarGol(chamarApi, menuGol.golId)),
                     },
@@ -443,6 +446,7 @@ export default function TelaResultado() {
                   ? [
                       {
                         rotulo: "Migrar pra outro jogador",
+                        Icone: ArrowLeftRight,
                         onPress: () => setMigrar(menuGol),
                       } as ItemMenu,
                     ]
@@ -595,7 +599,7 @@ function ModalMigrarGol({
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 150, gap: 16 },
+  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
   cabDireita: { flexDirection: "row", gap: 12, paddingTop: 4 },
   timesTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   avisoErro: {

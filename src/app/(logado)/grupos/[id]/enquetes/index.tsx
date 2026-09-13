@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { buscarEnquetesDoGrupo } from "@/api/enquetes";
@@ -23,6 +23,7 @@ export default function EnquetesDoGrupoTela() {
   const { id, enquete: enqueteInicial } = useLocalSearchParams<{ id: string; enquete?: string }>();
   const { estado, chamarApi } = useSessao();
   const meuId = estado.fase === "logado" ? estado.jogador.id : null;
+  const insets = useSafeAreaInsets();
 
   const [dados, setDados] = useState<EnquetesDoGrupo | undefined>(undefined);
   const [grupoNome, setGrupoNome] = useState("");
@@ -125,7 +126,7 @@ export default function EnquetesDoGrupoTela() {
         )}
       </ScrollView>
 
-      <View style={styles.rodape}>
+      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
         {!podeCriarEnquete && (
           <Text style={styles.rodapeNota}>Você só pode ter uma enquete ativa por vez.</Text>
         )}
@@ -194,7 +195,7 @@ function CardEnquete({ enquete, onPress }: { enquete: Enquete; onPress: () => vo
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 130, gap: 20 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
   cabecalho: { gap: 4 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   sub: { fontSize: 14, color: cores.slate400 },
@@ -264,9 +265,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 14,
-    paddingBottom: 28,
     gap: 8,
   },
   rodapeNota: { fontSize: 12, color: cores.slate400, textAlign: "center" },

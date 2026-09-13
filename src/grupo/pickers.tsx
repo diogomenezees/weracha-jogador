@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { DIAS_SEMANA } from "@/partidas";
 import { cores, raio } from "@/tema";
+import { useBlurTarget } from "@/ui/BlurTarget";
 
 // Seletores de data / hora / duração / dia da semana, reusados por "Criar
 // grupo" e pelo modal "Adicionar partida" da tela do grupo. O site usa
@@ -190,16 +192,24 @@ function ModalPicker({
   onFechar: () => void;
   children: React.ReactNode;
 }) {
+  const blurTarget = useBlurTarget();
   return (
     <Modal visible={aberto} transparent animationType="fade" onRequestClose={onFechar}>
-      <Pressable style={styles.modalFundo} onPress={onFechar}>
+      <BlurView
+        intensity={40}
+        tint="dark"
+        blurMethod="dimezisBlurView"
+        blurTarget={blurTarget}
+        style={styles.modalFundo}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={onFechar} />
         <Pressable style={styles.modalCartao} onPress={(e) => e.stopPropagation()}>
           {children}
           <Pressable style={styles.modalOk} onPress={onFechar}>
             <Text style={styles.modalOkTexto}>Pronto</Text>
           </Pressable>
         </Pressable>
-      </Pressable>
+      </BlurView>
     </Modal>
   );
 }
@@ -243,7 +253,7 @@ const styles = StyleSheet.create({
   diaChipAtivo: { backgroundColor: cores.teal, borderColor: cores.teal },
   diaTexto: { fontSize: 13, color: cores.slate300 },
   diaTextoAtivo: { color: cores.dark, fontWeight: "700" },
-  modalFundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", padding: 24 },
+  modalFundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 24 },
   modalCartao: { backgroundColor: cores.dark, borderRadius: raio.card, padding: 16, gap: 12 },
   modalOk: {
     height: 44,

@@ -1,11 +1,19 @@
 import { type ReactNode } from "react";
 import { ActivityIndicator, Modal, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 
 import { cores, raio } from "@/tema";
+import { useBlurTarget } from "@/ui/BlurTarget";
+import { X } from "@/ui/Icone";
 
 // Modais reusados pela tela do grupo. Cartão centralizado sobre um fundo
-// escurecido, no mesmo espírito do DialogConfirmar / Dialog do site.
+// borrado (BlurView), no mesmo espírito do `backdrop-blur` do Dialog do site
+// — sem o blur, o conteúdo por trás ficava nítido e confundia o usuário sobre
+// onde estava clicável. No Android, `blurMethod="dimezisBlurView"` só borra de
+// verdade com `blurTarget` apontando pro `BlurTargetView` raiz do app (ver
+// src/ui/BlurTarget.tsx); sem isso cai num tint sólido sem desfoque, com um
+// warning no console. iOS borra nativamente e ignora as duas props.
 
 function Base({
   aberto,
@@ -16,13 +24,30 @@ function Base({
   onFechar: () => void;
   children: ReactNode;
 }) {
+  const blurTarget = useBlurTarget();
   return (
     <Modal visible={aberto} transparent animationType="fade" onRequestClose={onFechar}>
-      <Pressable style={styles.fundo} onPress={onFechar}>
+      <BlurView
+        intensity={40}
+        tint="dark"
+        blurMethod="dimezisBlurView"
+        blurTarget={blurTarget}
+        style={styles.fundo}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={onFechar} />
         <Pressable style={styles.cartao} onPress={(e) => e.stopPropagation()}>
           {children}
+          <Pressable
+            style={styles.fechar}
+            onPress={onFechar}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar"
+          >
+            <X size={16} color={cores.slate400} />
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </BlurView>
     </Modal>
   );
 }
@@ -169,7 +194,7 @@ export function ModalCartao({
 const styles = StyleSheet.create({
   fundo: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     padding: 24,
   },
@@ -178,8 +203,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
-    padding: 22,
+    padding: 18,
     gap: 10,
+  },
+  fechar: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   eyebrow: {
     fontSize: 11,

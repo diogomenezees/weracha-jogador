@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { buscarStatusExclusao, cancelarExclusao } from "@/api/conta";
@@ -15,7 +15,7 @@ import {
   proximaPartidaInfo,
 } from "@/grupos";
 import { mensagemDoErro } from "@/mensagens-erro";
-import { LogIn, Plus } from "@/ui/Icone";
+import { Calendar, ChevronRight, LogIn, Plus } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import {
   BotaoLaranja,
@@ -321,7 +321,7 @@ function SecaoGrupos({
   if (grupos.length === 0) return null;
   return (
     <View style={styles.bloco}>
-      <Text style={styles.rotuloSecao}>{titulo}</Text>
+      <Text style={styles.rotuloSecaoTeal}>{titulo}</Text>
       <Text style={styles.paragrafo}>{sub}</Text>
       <View style={styles.listaGrupos}>
         {grupos.map((g) => (
@@ -348,45 +348,51 @@ function CardGrupo({
 
   const corpo = (
     <>
-      <View style={styles.cardTopo}>
-        <Text style={styles.cardNome} numberOfLines={1}>
-          {grupo.nome}
-        </Text>
-        {papel !== "MEMBRO" && (
-          <View style={styles.badge}>
-            <Text style={styles.badgeTexto}>{papel === "DONO" ? "Dono" : "Admin"}</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.cardSub}>
-        {grupo.esporte} · {grupo.tipo === "RECORRENTE" ? "Semanal" : "Avulso"}
-      </Text>
-      <View style={styles.cardRodape}>
-        {info ? (
-          <>
-            {hoje ? (
-              <View style={styles.hojePill}>
-                <Text style={styles.hojePillTexto}>hoje</Text>
-              </View>
-            ) : (
-              <Text style={styles.cardData}>Próxima: {formatarDataPartida(info.data.toISOString())}</Text>
-            )}
-            {hoje && (
-              <Text style={styles.cardDataHoje}>{formatarDataPartida(info.data.toISOString())}</Text>
-            )}
-            {info.checkinDisponivel && (
-              <View style={styles.checkin}>
-                <View style={styles.checkinPonto} />
-                <Text style={styles.checkinTexto}>Check-in</Text>
-              </View>
-            )}
-          </>
-        ) : (
-          <Text style={styles.cardAtencao}>
-            {grupo.tipo === "RECORRENTE" ? "Aguardando renovação" : "Aguardando novo jogo"}
+      <View style={styles.cardConteudo}>
+        <View style={styles.cardTopo}>
+          <Text style={styles.cardNome} numberOfLines={1}>
+            {grupo.nome}
           </Text>
-        )}
+          {papel !== "MEMBRO" && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeTexto}>{papel === "DONO" ? "Dono" : "Admin"}</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.cardSub}>
+          {grupo.esporte} · {grupo.tipo === "RECORRENTE" ? "Semanal" : "Avulso"}
+        </Text>
+        <View style={styles.cardRodape}>
+          {info ? (
+            <>
+              {hoje ? (
+                <View style={styles.hojePill}>
+                  <Text style={styles.hojePillTexto}>hoje</Text>
+                </View>
+              ) : (
+                <>
+                  <Calendar size={16} color={cores.orange} />
+                  <Text style={styles.cardData}>Próxima: {formatarDataPartida(info.data.toISOString())}</Text>
+                </>
+              )}
+              {hoje && (
+                <Text style={styles.cardDataHoje}>{formatarDataPartida(info.data.toISOString())}</Text>
+              )}
+              {info.checkinDisponivel && (
+                <View style={styles.checkin}>
+                  <View style={styles.checkinPonto} />
+                  <Text style={styles.checkinTexto}>Check-in</Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <Text style={styles.cardAtencao}>
+              {grupo.tipo === "RECORRENTE" ? "Aguardando renovação" : "Aguardando novo jogo"}
+            </Text>
+          )}
+        </View>
       </View>
+      <ChevronRight size={20} color={cores.slate500} />
     </>
   );
 
@@ -436,15 +442,17 @@ function Rodape({
     nota = "Veja como funciona em 3 passos.";
     botao = <BotaoLaranja titulo="Começar" onPress={onComecar} />;
   } else if (temGrupo) {
-    nota = "Crie outro grupo pra organizar os jogos e chamar a galera.";
-    botao = <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} />;
+    nota = "Crie outro grupo pra organizar os jogos.";
+    botao = <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />;
   } else {
     nota = "Crie um grupo pra organizar os jogos e chamar a galera.";
-    botao = <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} />;
+    botao = <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />;
   }
 
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.rodape}>
+    <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
       <Text style={styles.rodapeNota}>{nota}</Text>
       {botao}
     </View>
@@ -453,18 +461,25 @@ function Rodape({
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 170, gap: 24 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 170, gap: 24 },
 
-  bloco: { gap: 8 },
+  bloco: { gap: 4 },
   heroBloco: { gap: 10, borderBottomWidth: 1, borderBottomColor: cores.linhaSutil, paddingBottom: 20 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   hero: { fontSize: 28, lineHeight: 33, fontWeight: "700", color: cores.branco },
   paragrafo: { fontSize: 14, lineHeight: 21, color: cores.slate400 },
   rotuloSecao: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "600",
     letterSpacing: 2,
     color: cores.slate500,
+    textTransform: "uppercase",
+  },
+  rotuloSecaoTeal: {
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 2,
+    color: cores.teal,
     textTransform: "uppercase",
   },
   passos: { marginTop: 4 },
@@ -521,15 +536,19 @@ const styles = StyleSheet.create({
 
   listaGrupos: { gap: 12, marginTop: 4 },
   card: {
-    borderRadius: raio.card,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderTopRightRadius: raio.card,
+    borderBottomRightRadius: raio.card,
     borderWidth: 1,
     borderColor: cores.cardBorda,
     borderLeftWidth: 3,
     borderLeftColor: cores.teal,
     backgroundColor: cores.cardFundo,
     padding: 14,
-    gap: 4,
   },
+  cardConteudo: { flex: 1, gap: 4 },
   cardBloqueado: { opacity: 0.5 },
   cardAtencaoBorda: { borderLeftColor: cores.ambar },
   cardTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
@@ -580,9 +599,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 14,
-    paddingBottom: 28,
     gap: 10,
   },
   rodapeNota: { fontSize: 13, color: cores.slate400, textAlign: "center" },

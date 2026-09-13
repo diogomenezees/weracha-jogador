@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 
 import { adicionarMembro, buscarJogadorPorTelefone, buscarSugestaoScore } from "@/api/jogadores";
@@ -8,6 +9,7 @@ import { formatarTelefoneBR, normalizarTelefone } from "@/contrato/telefone";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
 import { cores, raio } from "@/tema";
+import { useBlurTarget } from "@/ui/BlurTarget";
 import type { MembroGrupo } from "@/contrato/tipos";
 
 type ChamarApi = <T>(
@@ -33,6 +35,7 @@ export function FormNovoJogador({
   onFechar: () => void;
   onAdicionado: (membro: MembroGrupo) => void;
 }) {
+  const blurTarget = useBlurTarget();
   const [telefone, setTelefone] = useState("");
   const [nome, setNome] = useState("");
   const [score, setScore] = useState(50);
@@ -136,7 +139,13 @@ export function FormNovoJogador({
         onFechar();
       }}
     >
-      <View style={styles.fundo}>
+      <BlurView
+        intensity={40}
+        tint="dark"
+        blurMethod="dimezisBlurView"
+        blurTarget={blurTarget}
+        style={styles.fundo}
+      >
         <Pressable
           style={styles.fundoToque}
           onPress={() => {
@@ -232,13 +241,13 @@ export function FormNovoJogador({
             </View>
           </View>
         </KeyboardAvoidingView>
-      </View>
+      </BlurView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  fundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)" },
+  fundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   fundoToque: { flex: 1 },
   folha: {
     backgroundColor: "#12161f",

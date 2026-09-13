@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -25,14 +25,22 @@ import {
 } from "@/api/partidas";
 import { buscarQuadras, sugerirQuadra } from "@/api/quadras";
 import {
+  Ban,
   BarChart3,
+  ChevronDown,
   ChevronRight,
   Clock,
   EllipsisVertical,
+  LogOut,
   MapPin,
   MessageCircle,
+  NotebookPen,
+  Pencil,
   Plus,
+  RefreshCw,
+  RotateCcw,
   Star,
+  Trash2,
   Trophy,
   Users,
 } from "@/ui/Icone";
@@ -71,6 +79,7 @@ export default function TelaGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { estado, chamarApi } = useSessao();
   const meuId = estado.fase === "logado" ? estado.jogador.id : "";
+  const insets = useSafeAreaInsets();
 
   const [dados, setDados] = useState<DadosDaTelaGrupo | undefined>(undefined);
   const [erro, setErro] = useState<string | null>(null);
@@ -78,9 +87,11 @@ export default function TelaGrupo() {
   const [tentativa, setTentativa] = useState(0);
 
   const [aba, setAba] = useState<Aba>(null);
+  const [verTodasPassadas, setVerTodasPassadas] = useState(false);
   const [partidaSel, setPartidaSel] = useState<PartidaResumo | null>(null);
   const [tokenConvite, setTokenConvite] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ titulo?: string; itens: ItemMenu[] } | null>(null);
+  const [verDescricaoGrupo, setVerDescricaoGrupo] = useState(false);
 
   // Edições de texto (nome / descrição do grupo / descrição da partida).
   const [editando, setEditando] = useState<
@@ -182,19 +193,26 @@ export default function TelaGrupo() {
     const itens: ItemMenu[] = [];
     if (souAdmin) {
       itens.push(
-        { rotulo: "Editar nome", onPress: () => iniciarEdicao({ tipo: "nome" }, grupo.nome) },
+        {
+          rotulo: "Editar nome",
+          Icone: Pencil,
+          onPress: () => iniciarEdicao({ tipo: "nome" }, grupo.nome),
+        },
         {
           rotulo: grupo.descricao ? "Editar descrição" : "Adicionar descrição",
+          Icone: NotebookPen,
           onPress: () => iniciarEdicao({ tipo: "descGrupo" }, grupo.descricao ?? ""),
         },
         {
           rotulo: "Gerar link de convite novo",
+          Icone: RefreshCw,
           onPress: () => setConfirmando({ tipo: "novoLink" }),
         }
       );
       if (dados && dados.idsComResultado.length === 0) {
         itens.push({
           rotulo: "Excluir grupo",
+          Icone: Trash2,
           destrutivo: true,
           onPress: () => setConfirmando({ tipo: "excluirGrupo" }),
         });
@@ -202,6 +220,7 @@ export default function TelaGrupo() {
     }
     itens.push({
       rotulo: "Sair do grupo",
+      Icone: LogOut,
       destrutivo: true,
       onPress: () =>
         souDono
@@ -219,6 +238,7 @@ export default function TelaGrupo() {
     const itens: ItemMenu[] = [
       {
         rotulo: p.descricao ? "Editar descrição" : "Adicionar descrição",
+        Icone: NotebookPen,
         onPress: () =>
           iniciarEdicao(
             { tipo: "descPartida", partidaId: p.id, cancelada: p.cancelada },
@@ -229,9 +249,14 @@ export default function TelaGrupo() {
     if (!temResultado) {
       if (p.cancelada) {
         itens.push(
-          { rotulo: "Reativar partida", onPress: () => void handleReativar(p.id) },
+          {
+            rotulo: "Reativar partida",
+            Icone: RotateCcw,
+            onPress: () => void handleReativar(p.id),
+          },
           {
             rotulo: "Excluir partida",
+            Icone: Trash2,
             destrutivo: true,
             onPress: () => setConfirmando({ tipo: "excluirPartida", partidaId: p.id }),
           }
@@ -239,6 +264,7 @@ export default function TelaGrupo() {
       } else {
         itens.push({
           rotulo: "Cancelar partida",
+          Icone: Ban,
           destrutivo: true,
           onPress: () => iniciarEdicao({ tipo: "cancelarPartida", partidaId: p.id }, ""),
         });
@@ -519,43 +545,48 @@ export default function TelaGrupo() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.cabecalho}>
-          <Text style={styles.h1} numberOfLines={2}>
-            {grupo.nome}
-          </Text>
-          <Pressable hitSlop={10} onPress={abrirMenuGrupo}>
-            <EllipsisVertical size={22} color={cores.slate400} />
-          </Pressable>
-        </View>
+        <View style={styles.topoGrupo}>
+          <View style={styles.tituloDescBloco}>
+            <View style={styles.cabecalho}>
+              <View style={styles.tituloLinha}>
+                <Users size={20} color={cores.branco} />
+                <Text style={styles.h1} numberOfLines={2}>
+                  {grupo.nome}
+                </Text>
+              </View>
+              <Pressable hitSlop={10} onPress={abrirMenuGrupo}>
+                <EllipsisVertical size={22} color={cores.slate400} />
+              </Pressable>
+            </View>
 
-        {grupo.descricao ? (
-          <Text style={styles.descricao} numberOfLines={3}>
-            {grupo.descricao}
-          </Text>
-        ) : null}
+            {grupo.descricao ? (
+              <DescricaoGrupo texto={grupo.descricao} onVerMais={() => setVerDescricaoGrupo(true)} />
+            ) : null}
+          </View>
 
-        <View style={styles.pills}>
-          <Pressable
-            style={styles.pill}
-            onPress={() => {
-              setErroQuadra(null);
-              setNovaQuadra(null);
-              setTermoQuadra("");
-              setAba("quadra");
-            }}
-          >
-            <MapPin size={12} color={cores.branco} />
-            <Text style={styles.pillTexto}>
-              {grupo.quadraId ? (dados.quadra?.nome ?? "Quadra") : grupo.esporte}
-            </Text>
-          </Pressable>
-          <Pressable style={styles.pill} onPress={() => setAba("horarios")}>
-            <Clock size={12} color={cores.branco} />
-            <Text style={styles.pillTexto}>Horários</Text>
-          </Pressable>
-          <View style={styles.pill}>
-            <Star size={12} color={cores.branco} />
-            <Text style={styles.pillTexto}>Score {grupo.meuScore}</Text>
+          <View style={styles.pills}>
+            <Pressable
+              style={styles.pill}
+              onPress={() => {
+                setErroQuadra(null);
+                setNovaQuadra(null);
+                setTermoQuadra("");
+                setAba("quadra");
+              }}
+            >
+              <MapPin size={12} color={cores.branco} />
+              <Text style={styles.pillTexto}>
+                {grupo.quadraId ? (dados.quadra?.nome ?? "Quadra") : grupo.esporte}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.pill} onPress={() => setAba("horarios")}>
+              <Clock size={12} color={cores.branco} />
+              <Text style={styles.pillTexto}>Horários</Text>
+            </Pressable>
+            <View style={[styles.pill, styles.pillCinza]}>
+              <Star size={12} color={cores.zinc500} />
+              <Text style={[styles.pillTexto, styles.pillTextoCinza]}>Score {grupo.meuScore}</Text>
+            </View>
           </View>
         </View>
 
@@ -592,8 +623,10 @@ export default function TelaGrupo() {
 
         {proximas.length > 0 && (
           <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Próximas partidas</Text>
-            <Text style={styles.secaoSub}>O check-in abre 30 minutos antes de cada partida.</Text>
+            <View style={styles.secaoCabecalho}>
+              <Text style={styles.secaoTitulo}>Próximas partidas</Text>
+              <Text style={styles.secaoSub}>O check-in abre 30 minutos antes de cada partida.</Text>
+            </View>
             {proximas.map((p) => (
               <CardPartida
                 key={p.id}
@@ -625,8 +658,11 @@ export default function TelaGrupo() {
 
         {passadas.length > 0 && (
           <View style={styles.secao}>
-            <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
-            {passadas.map((p) => (
+            <View style={styles.secaoCabecalho}>
+              <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
+              <Text style={styles.secaoSub}>Confira o histórico das partidas já realizadas.</Text>
+            </View>
+            {(verTodasPassadas ? passadas : passadas.slice(0, 3)).map((p) => (
               <CardPartida
                 key={p.id}
                 partida={p}
@@ -641,6 +677,14 @@ export default function TelaGrupo() {
                 onCheckin={() => {}}
               />
             ))}
+            {!verTodasPassadas && passadas.length > 3 && (
+              <Pressable style={styles.verMaisBotao} onPress={() => setVerTodasPassadas(true)}>
+                <Text style={styles.verMaisTexto}>
+                  Ver mais {passadas.length - 3} {passadas.length - 3 === 1 ? "partida" : "partidas"}
+                </Text>
+                <ChevronDown size={16} color={cores.teal} />
+              </Pressable>
+            )}
           </View>
         )}
 
@@ -649,7 +693,7 @@ export default function TelaGrupo() {
         )}
       </ScrollView>
 
-      <View style={styles.rodape}>
+      <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
         <View style={styles.rodapeLinha}>
           {grupo.tipo === "AVULSO" && souAdmin && (
             <Pressable style={styles.rodapeIcone} onPress={() => abrirAdicionarPartida()}>
@@ -733,7 +777,10 @@ export default function TelaGrupo() {
 
       {/* Modal: horários */}
       <ModalCartao aberto={aba === "horarios"} onFechar={() => setAba(null)}>
-        <Text style={styles.modalEyebrow}>Horários</Text>
+        <View style={styles.modalEyebrowLinha}>
+          <Clock size={16} color={cores.teal} />
+          <Text style={styles.modalEyebrow}>Horários</Text>
+        </View>
         <Text style={styles.modalTitulo}>
           {grupo.tipo === "RECORRENTE" ? "Partida semanal" : "Sem horário fixo"}
         </Text>
@@ -801,6 +848,33 @@ export default function TelaGrupo() {
         onSalvar={() => void salvarEdicao()}
         onFechar={() => setEditando(null)}
       />
+      <ModalCartao aberto={verDescricaoGrupo} onFechar={() => setVerDescricaoGrupo(false)}>
+        <View style={styles.descricaoModalEyebrowLinha}>
+          <NotebookPen size={16} color={cores.teal} />
+          <Text style={styles.descricaoModalEyebrow}>Descrição do grupo</Text>
+        </View>
+        <Text style={styles.descricaoModalTitulo}>{grupo.nome}</Text>
+        <Text style={styles.descricaoModalTexto}>{grupo.descricao}</Text>
+        <View style={styles.descricaoModalAcoes}>
+          {souAdmin && (
+            <Pressable
+              style={styles.descricaoModalBtnSecundario}
+              onPress={() => {
+                setVerDescricaoGrupo(false);
+                iniciarEdicao({ tipo: "descGrupo" }, grupo.descricao ?? "");
+              }}
+            >
+              <Text style={styles.descricaoModalBtnSecundarioTexto}>Editar</Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={styles.descricaoModalBtnPrimario}
+            onPress={() => setVerDescricaoGrupo(false)}
+          >
+            <Text style={styles.descricaoModalBtnPrimarioTexto}>Fechar</Text>
+          </Pressable>
+        </View>
+      </ModalCartao>
       <ModalTexto
         aberto={editando?.tipo === "descPartida"}
         eyebrow="Descrição da partida"
@@ -919,6 +993,33 @@ function Banner({
   );
 }
 
+// Espelha o `DescricaoCurta` do site: mostra a descrição em 1 linha só; se não
+// couber (medida por um Text invisível, sem limite de linhas, sobreposto),
+// troca pelo botão "Ver descrição" em vez de cortar o texto no meio.
+function DescricaoGrupo({ texto, onVerMais }: { texto: string; onVerMais: () => void }) {
+  const [truncada, setTruncada] = useState(false);
+
+  return (
+    <View style={styles.descricaoContainer}>
+      <Text
+        style={[styles.descricao, styles.descricaoMedidor]}
+        onTextLayout={(e) => setTruncada(e.nativeEvent.lines.length > 1)}
+      >
+        {texto}
+      </Text>
+      {truncada ? (
+        <Pressable onPress={onVerMais} hitSlop={6}>
+          <Text style={styles.verDescricao}>Ver descrição</Text>
+        </Pressable>
+      ) : (
+        <Text style={styles.descricao} numberOfLines={1}>
+          {texto}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 function CardPartida({
   partida: p,
   grupo,
@@ -944,14 +1045,33 @@ function CardPartida({
 }) {
   const data = new Date(p.data);
   const concluida = passada && !p.cancelada && temResultado;
-  const corBorda = p.cancelada ? "#dc2626" : concluida ? "#10b981" : cores.teal;
+  const corBorda = p.cancelada ? "#ef4444" : concluida ? "#10b981" : cores.teal;
+  const corFundo = p.cancelada
+    ? "rgba(239, 68, 68, 0.1)"
+    : concluida
+      ? "rgba(16, 185, 129, 0.1)"
+      : cores.cardFundo;
+  const corBordaCartao = p.cancelada
+    ? "rgba(239, 68, 68, 0.2)"
+    : concluida
+      ? "rgba(16, 185, 129, 0.2)"
+      : cores.cardBorda;
 
   return (
     <View style={styles.cardLinha}>
-      <Pressable style={[styles.card, { borderLeftColor: corBorda }]} onPress={onAbrir}>
+      <Pressable
+        style={[styles.card, { borderLeftColor: corBorda, borderColor: corBordaCartao, backgroundColor: corFundo }]}
+        onPress={onAbrir}
+      >
         <View style={styles.cardTopo}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.cardData, p.cancelada && styles.textoCancelado]}>
+            <Text
+              style={[
+                styles.cardData,
+                p.cancelada && styles.textoCancelado,
+                concluida && styles.textoConcluido,
+              ]}
+            >
               {formatarDiaSemanaData(data)}
               {ehHoje(data) && !passada ? " · hoje" : ""}
             </Text>
@@ -1028,18 +1148,16 @@ function DetalhePartida({
 }) {
   const data = new Date(p.data);
   const podeConvidar = souAdmin && !p.cancelada && !encerrada;
+  const corEyebrow = p.cancelada ? cores.erroTexto : encerrada ? cores.slate400 : cores.teal;
 
   return (
     <>
-      <Text
-        style={[
-          styles.modalEyebrow,
-          p.cancelada && { color: cores.erroTexto },
-          encerrada && !p.cancelada && { color: cores.slate400 },
-        ]}
-      >
-        {p.cancelada ? "Partida cancelada" : encerrada ? "Partida encerrada" : "Contagem regressiva"}
-      </Text>
+      <View style={styles.modalEyebrowLinha}>
+        {p.cancelada ? <Ban size={16} color={corEyebrow} /> : <Clock size={16} color={corEyebrow} />}
+        <Text style={[styles.modalEyebrow, { color: corEyebrow }]}>
+          {p.cancelada ? "Partida cancelada" : encerrada ? "Partida encerrada" : "Contagem regressiva"}
+        </Text>
+      </View>
       <Text style={styles.detalheGrande}>
         {p.cancelada || encerrada
           ? `${formatarDiaSemanaData(data)}, ${formatarHora(data)}`
@@ -1146,7 +1264,10 @@ function ModalQuadra({
   if (grupo.quadraId) {
     return (
       <>
-        <Text style={styles.modalEyebrow}>Quadra</Text>
+        <View style={styles.modalEyebrowLinha}>
+          <MapPin size={16} color={cores.teal} />
+          <Text style={styles.modalEyebrow}>Quadra</Text>
+        </View>
         <Text style={styles.modalTitulo}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
         {quadra && quadra.status !== "VALIDADA" && (
           <View style={styles.pendentePill}>
@@ -1160,7 +1281,10 @@ function ModalQuadra({
   if (!souAdmin) {
     return (
       <>
-        <Text style={styles.modalEyebrow}>Quadra</Text>
+        <View style={styles.modalEyebrowLinha}>
+          <MapPin size={16} color={cores.teal} />
+          <Text style={styles.modalEyebrow}>Quadra</Text>
+        </View>
         <Text style={styles.modalTitulo}>Sem quadra vinculada</Text>
         <Text style={styles.modalDesc}>O admin do grupo ainda não cadastrou uma quadra.</Text>
       </>
@@ -1169,7 +1293,10 @@ function ModalQuadra({
   if (nova) {
     return (
       <>
-        <Text style={styles.modalEyebrow}>Quadra</Text>
+        <View style={styles.modalEyebrowLinha}>
+          <MapPin size={16} color={cores.teal} />
+          <Text style={styles.modalEyebrow}>Quadra</Text>
+        </View>
         <Text style={styles.modalTitulo}>Cadastrar quadra</Text>
         <Text style={styles.modalDesc}>
           Fica disponível pra todo mundo com a marca &quot;Pendente&quot; até ser conferida.
@@ -1194,7 +1321,10 @@ function ModalQuadra({
   }
   return (
     <>
-      <Text style={styles.modalEyebrow}>Quadra</Text>
+      <View style={styles.modalEyebrowLinha}>
+        <MapPin size={16} color={cores.teal} />
+        <Text style={styles.modalEyebrow}>Quadra</Text>
+      </View>
       <Text style={styles.modalTitulo}>Vincular quadra</Text>
       <Text style={styles.modalDesc}>Busque uma quadra ou cadastre uma nova pra esse grupo.</Text>
       <ModalInput placeholder="Buscar quadra..." valor={termo} onChange={onTermo} />
@@ -1245,11 +1375,48 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   aviso: { fontSize: 14, color: cores.slate400, textAlign: "center" },
-  scroll: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 190, gap: 16 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 190, gap: 16 },
 
+  topoGrupo: { gap: 8 },
+  tituloDescBloco: { gap: 4 },
   cabecalho: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  tituloLinha: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
   h1: { flex: 1, fontSize: 24, fontWeight: "700", color: cores.branco },
-  descricao: { fontSize: 13, lineHeight: 19, color: cores.slate400 },
+  descricao: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
+  descricaoContainer: { position: "relative" },
+  descricaoMedidor: { position: "absolute", left: 0, right: 0, opacity: 0 },
+  verDescricao: { fontSize: 14, fontWeight: "600", color: cores.teal },
+
+  descricaoModalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  descricaoModalEyebrow: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 1,
+    color: cores.teal,
+    textTransform: "uppercase",
+  },
+  descricaoModalTitulo: { fontSize: 18, fontWeight: "600", color: cores.branco, marginTop: 4 },
+  descricaoModalTexto: { fontSize: 14, lineHeight: 20, color: cores.slate300, marginTop: 8 },
+  descricaoModalAcoes: { flexDirection: "row", gap: 10, marginTop: 14 },
+  descricaoModalBtnSecundario: {
+    flex: 1,
+    height: 48,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  descricaoModalBtnSecundarioTexto: { fontSize: 15, fontWeight: "600", color: cores.branco },
+  descricaoModalBtnPrimario: {
+    flex: 1,
+    height: 48,
+    borderRadius: raio.campo,
+    backgroundColor: cores.orange,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  descricaoModalBtnPrimarioTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
 
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   pill: {
@@ -1262,20 +1429,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   pillTexto: { fontSize: 12, fontWeight: "600", color: cores.branco },
+  pillCinza: { backgroundColor: "rgba(113, 113, 122, 0.15)" },
+  pillTextoCinza: { color: cores.zinc500 },
 
   banner: { borderRadius: raio.campo, borderWidth: 1, padding: 12, gap: 3 },
   bannerTitulo: { fontSize: 13, color: cores.slate300 },
   bannerChamada: { fontSize: 13, fontWeight: "700" },
 
   secao: { gap: 8 },
+  secaoCabecalho: { gap: 4 },
   secaoTitulo: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "700",
     letterSpacing: 1.5,
     color: cores.teal,
     textTransform: "uppercase",
   },
   secaoSub: { fontSize: 13, color: cores.slate400 },
+  verMaisBotao: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 6,
+  },
+  verMaisTexto: { fontSize: 13, fontWeight: "600", color: cores.teal },
   vazio: { fontSize: 14, color: cores.slate400, textAlign: "center", paddingVertical: 24 },
   notaExcluida: {
     fontSize: 12,
@@ -1289,7 +1467,8 @@ const styles = StyleSheet.create({
   cardLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   card: {
     flex: 1,
-    borderRadius: raio.campo,
+    borderTopRightRadius: raio.campo,
+    borderBottomRightRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.cardBorda,
     borderLeftWidth: 3,
@@ -1303,6 +1482,7 @@ const styles = StyleSheet.create({
   cardHora: { fontSize: 13, color: cores.slate400 },
   textoCancelado: { color: cores.erroTexto },
   textoCanceladoFraco: { color: "rgba(252,165,165,0.7)" },
+  textoConcluido: { color: "#6ee7b7" },
   cardDescricao: {
     fontSize: 13,
     color: cores.slate400,
@@ -1322,7 +1502,7 @@ const styles = StyleSheet.create({
   checkinBtnTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
   confirmadoPill: { backgroundColor: "#10b981", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   confirmadoTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
-  canceladaPill: { backgroundColor: "rgba(220,38,38,0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  canceladaPill: { backgroundColor: "rgba(239, 68, 68, 0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   canceladaTexto: { fontSize: 12, fontWeight: "600", color: cores.erroTexto },
   concluidaPill: { backgroundColor: "rgba(16,185,129,0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   concluidaTexto: { fontSize: 12, fontWeight: "600", color: "#6ee7b7" },
@@ -1336,9 +1516,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 26,
     gap: 8,
   },
   rodapeLinha: { flexDirection: "row", gap: 8 },
@@ -1383,6 +1562,7 @@ const styles = StyleSheet.create({
   },
   rodapeBotaoLaranjaTexto: { fontSize: 14, fontWeight: "700", color: cores.dark },
 
+  modalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   modalEyebrow: {
     fontSize: 11,
     fontWeight: "600",

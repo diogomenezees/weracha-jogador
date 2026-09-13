@@ -541,7 +541,7 @@ function montarPresentes(apoio: DadosDeApoioDaPartida): Presente[] {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 150, gap: 16 },
+  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
   bloco: {
     borderRadius: raio.campo,
     borderWidth: 1,

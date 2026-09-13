@@ -569,7 +569,7 @@ export default function TelaCheckin() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 150, gap: 14 },
+  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 14 },
   input: {
     height: 44,
     borderRadius: raio.campo,

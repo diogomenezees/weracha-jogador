@@ -78,7 +78,7 @@ export default function EntrarPorConvite() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  conteudo: { flex: 1, paddingHorizontal: 24, paddingTop: 16, gap: 18 },
+  conteudo: { flex: 1, paddingHorizontal: 16, paddingTop: 16, gap: 18 },
   cabecalho: { gap: 6 },
   sub: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   campo: {

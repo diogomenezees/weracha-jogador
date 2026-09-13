@@ -23,6 +23,9 @@ export const cores = {
   slate500: "#64748b",
   slate600: "#475569",
 
+  // Zinc, só pro InfoPill (Score) do site, que foge da escala slate de propósito.
+  zinc500: "#71717a",
+
   // Âmbar de "precisa de atenção" (site: amber-400 / amber-500)
   ambar: "#fbbf24",
   ambarEscuro: "#f59e0b",
@@ -31,6 +34,12 @@ export const cores = {
   erroTexto: "#fca5a5",
   erroBorda: "rgba(239, 68, 68, 0.3)",
   erroFundo: "rgba(239, 68, 68, 0.1)",
+
+  // Ação destrutiva em menu/dropdown (site: DropdownMenuItem variant="destructive"
+  // e o botão "Sair" do Navbar) — coral, deliberadamente diferente do vermelho
+  // de status "cancelada"/erro acima.
+  destrutivoTexto: "#F0997B",
+  destrutivoIcone: "#D85A30",
 
   // Superfícies translúcidas sobre o fundo escuro (site usa white/[0.0x])
   cardFundo: "rgba(255, 255, 255, 0.04)",
