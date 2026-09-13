@@ -349,15 +349,54 @@ do painel sem grupo) e o item "mapear o `destino`" da seção 3.
   rotas do app têm o mesmo formato, então o caminho serve direto (com fallback pra
   `/grupos/{id}` se vier algo fora do padrão). Antes o app ignorava e caía sempre
   em `/painel` / `/grupos`. Agora:
-  - `src/app/convite/[token].tsx` (logado toca "Entrar no grupo") roteia pro `destino`.
-  - login vindo de convite: `useFluxoAcesso.concluirLogin` guarda o destino em
-    `src/acesso/destinoPosLogin.ts` (estado de módulo, consumido uma vez) e o
-    `RedirectPosLogin` da `TelaAcesso` manda pra lá em vez de `/painel`.
+  - `processarConviteEIrParaDestino` (`src/convites.ts`) processa o convite e já
+    faz o `router.replace` pro destino — passo comum entre `src/app/convite/
+    [token].tsx` (logado toca "Entrar no grupo") e o login vindo de convite
+    (`useFluxoAcesso.concluirLogin`). `TelaAcesso` **não tem `<Redirect>`
+    automático nenhum**: enquanto `estado.fase === "logado"`, ela só mostra um
+    spinner, e é `concluirLogin` quem SEMPRE navega explícito no fim (destino
+    do convite se tinha um pendente; `/painel` no caso comum ou se o convite
+    falhar). Sem essa exclusividade, um redirect automático dispararia assim
+    que `entrar()` muda a sessão pra "logado" (bem antes da chamada de rede do
+    convite terminar) e brigaria com a navegação de verdade.
+  - O convite pendente (`consumirConvitePendente` em
+    `src/acesso/convitePendente.ts`) é lido + limpo, atômico, **uma vez, no
+    mount da tela de login** — não dentro de `concluirLogin` — pra um login
+    abandonado (usuário volta sem terminar) não deixar o convite vazando pro
+    próximo login que completar por essa tela, de conta sem relação nenhuma.
+    (Três versões anteriores mais simples — guardar o destino num módulo pra a
+    tela ler ao montar; só um `router.replace` "por último ganha"; reler o
+    convite pendente dentro do `concluirLogin` em vez de consumir no mount —
+    perderam a corrida da navegação ou deixavam o convite vazar pra um login
+    não relacionado depois; achados e corrigidos no code review de
+    2026-09-13.)
   - `grupos/[id]/enquetes` passou a ler `?enquete=` e abrir a enquete direto.
 - Sem mudança no site. typecheck/lint/jest limpos, não rodou em device.
 
 **Falta validar:** colar link válido/inválido/revogado, entrar logado e via
 login, cair na tela certa pra cada `destino` (grupo / check-in aberto / enquete).
+**Limitações aceitas** (achadas no code review, baixa prioridade):
+- Se a chamada de `processarConvite` demorar (rede ruim) e o usuário sair da
+  tela de carregando pelo botão físico de voltar do Android nesse meio-tempo,
+  o `router.replace` pro destino ainda dispara quando a resposta chegar,
+  tirando o usuário de onde ele tinha ido. (Não tem affordance de navegação
+  nas telas envolvidas enquanto carrega, o que reduz a chance, mas o botão
+  físico de voltar não é bloqueado.)
+- Consumir o convite pendente no mount usa `useState(() => consumirConvitePendente())`
+  (lê + limpa o módulo dentro do inicializador). Não é reentrante: se a tela de
+  login duplicar (ex.: abre um convite, toca "Entrar ou criar conta", abre outro
+  convite sem terminar o primeiro login, toca de novo — duas instâncias de
+  `/login` na pilha) e o usuário completa o login pela instância de cima, a
+  instância de baixo nunca chama o próprio `concluirLogin` (nada nela navega) e
+  o convite que ela capturou nunca é usado (não vaza pra outra conta, só não é
+  aplicado; o usuário pode abrir o link de novo). Pra essa instância órfã não
+  ficar presa no spinner pra sempre se o usuário voltar pra ela, `TelaAcesso`
+  tem uma rede de segurança: depois de 8s sem ninguém ter navegado com a sessão
+  já "logado", cai no `/painel` por conta própria. O mesmo `useState` também
+  rodaria duas vezes se o app algum dia ligar `<StrictMode>` (não liga hoje) —
+  a segunda chamada acharia o módulo já limpo pela primeira. Nenhum dos dois é
+  problema de segurança (não junta a conta errada no grupo errado), só de
+  robustez; documentado em vez de perseguido até o fim.
 
 ### Em andamento: paridade visual/funcional com o site (a partir de 2026-09-11)
 
@@ -487,9 +526,9 @@ inteiro, não um endpoint.
 - **Entrada manual + `destino` (2026-09-10):** além do deep link, tela
   `/entrar-por-convite` pra colar o link (o painel sem grupo aponta pra ela). O
   `destino` da resposta do `POST /convites/{token}` agora é seguido de verdade
-  (`rotaDoConvite` em `src/convites.ts`): grupo / check-in aberto / enquete, tanto
-  no toque de "Entrar no grupo" quanto no login vindo de convite
-  (`src/acesso/destinoPosLogin.ts`). Ver a seção "Feito" acima.
+  (`processarConviteEIrParaDestino` em `src/convites.ts`): grupo / check-in
+  aberto / enquete, tanto no toque de "Entrar no grupo" quanto no login vindo
+  de convite. Ver a seção "Feito" acima.
 
 - [ ] Link de **compartilhar replay** — mesma estrutura, quando as telas de
       replay existirem no app.

@@ -1,10 +1,9 @@
+import { useEffect } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Redirect, type Href } from "expo-router";
+import { router } from "expo-router";
 
-import { consumirDestinoPosLogin } from "@/acesso/destinoPosLogin";
 import { Check } from "@/ui/Icone";
 import { rotuloDoAmbiente, type Ambiente } from "@/config/servidor";
 import { abrirNoNavegador, URL_CONTATO, URL_PRIVACIDADE, URL_TERMOS } from "@/config/links";
@@ -24,14 +23,6 @@ import { useFluxoAcesso } from "@/acesso/useFluxoAcesso";
 
 const AVISO_SPAM_APOS = 1;
 
-// Pós-login: se veio de um convite, `concluirLogin` deixou o destino em
-// destinoPosLogin; senão cai no /painel. Monta só quando a sessão já está logada,
-// então o initializer do useState lê o valor no momento certo e consome uma vez.
-function RedirectPosLogin() {
-  const [href] = useState<Href>(() => consumirDestinoPosLogin() ?? "/painel");
-  return <Redirect href={href} />;
-}
-
 function formatarCooldown(segundos: number): string {
   if (segundos < 60) return `${segundos}s`;
   const min = Math.floor(segundos / 60);
@@ -43,7 +34,36 @@ export function TelaAcesso() {
   const { estado, ambiente, urlBase, entrar, trocarAmbiente, chamarApi } = useSessao();
   const f = useFluxoAcesso({ urlBase, entrar, chamarApi });
 
-  if (estado.fase === "logado") return <RedirectPosLogin />;
+  // Rede de segurança: `concluirLogin` é quem sempre navega explícito quando a
+  // sessão vira "logado" (destino do convite, ou /painel no caso comum) — mas
+  // se esta instância da tela ficar órfã numa pilha com mais de um /login
+  // empilhado (dois convites abertos em sequência, sem terminar o primeiro
+  // login antes de abrir o segundo), o `concluirLogin` *dela* nunca é chamado
+  // e ela ficaria presa no spinner pra sempre. Depois de um tempo generoso sem
+  // ninguém ter navegado, cai no /painel por conta própria.
+  useEffect(() => {
+    if (estado.fase !== "logado") return;
+    const t = setTimeout(() => router.replace("/painel"), 8000);
+    return () => clearTimeout(t);
+  }, [estado.fase]);
+
+  if (estado.fase === "logado") {
+    // Não tem <Redirect> automático de propósito: `entrar()` já deixa a sessão
+    // "logado" antes de `concluirLogin` terminar de decidir pra onde ir (aceite
+    // de termos, convite pendente...), então um redirect automático aqui
+    // dispararia cedo demais e brigaria com a navegação de verdade. É
+    // `concluirLogin` quem sempre chama `router.replace` explícito no fim —
+    // pro destino do convite, ou pro /painel no caso comum — então esta tela só
+    // precisa segurar alguma coisa na tela enquanto isso não acontece (o
+    // `useEffect` acima é só a rede de segurança pra instância órfã).
+    return (
+      <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
+        <View style={styles.centroCarregando}>
+          <ActivityIndicator color={cores.teal} size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   function escolherServidor() {
     const opcoes: Ambiente[] = ["producao", "local"];
@@ -341,6 +361,7 @@ export function TelaAcesso() {
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
+  centroCarregando: { flex: 1, alignItems: "center", justifyContent: "center" },
   flex: { flex: 1 },
   scroll: {
     flexGrow: 1,

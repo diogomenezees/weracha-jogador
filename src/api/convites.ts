@@ -3,7 +3,7 @@ import type { ConvitePublico, ResultadoConvite } from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
-type Alvo = { partidaId?: string | null; enqueteId?: string | null };
+export type Alvo = { partidaId?: string | null; enqueteId?: string | null };
 
 function querystring(alvo: Alvo): string {
   const qs = new URLSearchParams();

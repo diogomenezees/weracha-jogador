@@ -4,14 +4,11 @@ import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
-import { buscarConvite, processarConvite } from "@/api/convites";
+import { buscarConvite } from "@/api/convites";
 import { ErroApi } from "@/api/erros";
-import {
-  guardarConvitePendente,
-  limparConvitePendente,
-} from "@/acesso/convitePendente";
+import { guardarConvitePendente } from "@/acesso/convitePendente";
 import { BotaoPrimario, CaixaErro, Cartao, Eyebrow } from "@/acesso/ui";
-import { rotaDoConvite } from "@/convites";
+import { processarConviteEIrParaDestino } from "@/convites";
 import { useSessao } from "@/sessao/contexto";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { cores, tipografia } from "@/tema";
@@ -68,9 +65,9 @@ export default function ConviteScreen() {
     setEntrando(true);
     setErro(null);
     try {
-      const r = await processarConvite(chamarApi, convite.token, alvo);
-      limparConvitePendente();
-      router.replace(rotaDoConvite(r.destino, r.grupoId));
+      // (Só chega aqui logado; um convite pendente de uma visita anterior já
+      // teria sido consumido no mount do /login. Nada a limpar aqui.)
+      await processarConviteEIrParaDestino(chamarApi, convite.token, alvo);
     } catch (e) {
       setErro(mensagemDoErro(e));
       setEntrando(false);

@@ -80,8 +80,23 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   `(logado)/entrar-por-convite.tsx` (colar link manual) reusam o mesmo fluxo.
   `src/convites.ts`: `tokenDeConvite` extrai o token de uma URL colada;
   `rotaDoConvite` traduz o `destino` da resposta (caminho do site, mesmo formato
-  das rotas do app). Login vindo de convite guarda o destino em
-  `src/acesso/destinoPosLogin.ts` (consumido uma vez pela `TelaAcesso`).
+  das rotas do app) e `processarConviteEIrParaDestino` (processa + navega) é o
+  passo comum entre o botão "Entrar no grupo" e o login vindo de convite.
+  `TelaAcesso` **não tem `<Redirect>` automático**: enquanto `estado.fase ===
+  "logado"`, ela só mostra um spinner, e `useFluxoAcesso.concluirLogin` é o
+  único dono da navegação — SEMPRE chama `router.replace` explícito no fim,
+  pro destino do convite (se tinha um pendente) ou pro `/painel` (caso comum,
+  ou se o convite falhar). Um `<Redirect>` automático dispararia assim que
+  `entrar()` muda a sessão pra "logado", bem antes da chamada de rede do
+  convite terminar, e brigaria com essa navegação. O convite pendente
+  (`consumirConvitePendente()` em `@/acesso/convitePendente`) é lido + limpo,
+  atômico, **uma vez no mount da tela** — não dentro de `concluirLogin` — pra
+  um login abandonado não deixar o convite vazando pro próximo login que
+  completar por essa tela, de conta sem relação nenhuma. `TelaAcesso` também
+  tem uma rede de segurança (`useEffect` com `setTimeout` de 8s): se a sessão
+  ficar "logado" sem nenhuma navegação (uma instância órfã da tela, presa numa
+  pilha com mais de um `/login` empilhado), cai no `/painel` sozinha em vez de
+  travar no spinner pra sempre.
 - **Perfil vem do contexto de sessão.** `useSessao().estado.jogador` é `MeuPerfil`
   (do cache no boot). Tela logada que precisa do perfil fresco chama
   `recarregarPerfil()` (`GET /api/v1/me`) no mount; o contexto atualiza estado +

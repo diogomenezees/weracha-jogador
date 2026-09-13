@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { router } from "expo-router";
 
 import {
   confirmarCodigoTelefone,
@@ -9,10 +10,8 @@ import {
 } from "@/api/auth";
 import { aceitarTermos as aceitarTermosApi } from "@/api/termos";
 import { ErroApi } from "@/api/erros";
-import { processarConvite } from "@/api/convites";
-import { lerConvitePendente, limparConvitePendente } from "@/acesso/convitePendente";
-import { guardarDestinoPosLogin } from "@/acesso/destinoPosLogin";
-import { rotaDoConvite } from "@/convites";
+import { consumirConvitePendente } from "@/acesso/convitePendente";
+import { processarConviteEIrParaDestino } from "@/convites";
 import type { OpcoesRequisicao } from "@/api/cliente";
 import { formatarTelefoneBR, normalizarTelefone } from "@/contrato/telefone";
 import { mensagemDoErro } from "@/mensagens-erro";
@@ -82,6 +81,13 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
   const [mostrarIrParaLogin, setMostrarIrParaLogin] = useState(false);
 
   const [ocupado, setOcupado] = useState(false);
+
+  // Consumido (lido + limpo) uma vez, no mount desta tela, não dentro de
+  // `concluirLogin`: se o usuário abandonar o login sem terminar (volta pra
+  // tela de convite, sai do app), o valor já não existe mais pra "vazar" pro
+  // próximo login que completar por aqui, de uma conta sem relação com o
+  // convite. Ver src/acesso/convitePendente.ts.
+  const [convitePendente] = useState(() => consumirConvitePendente());
 
   const digitos = normalizarTelefone(telefone);
   const buscaId = useRef(0);
@@ -218,22 +224,26 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
           // no próximo boot se isto falhar.
         }
       }
-      // Veio de um link de convite (tela /convite/[token] abriu deslogada e
-      // mandou pra cá): agora que tem Bearer, entra no grupo e guarda o destino
-      // pra TelaAcesso mandar pra lá. Best-effort — sem convite (ou se falhar) o
-      // <Redirect> da tela cai no /painel.
-      const convite = lerConvitePendente();
-      if (convite) {
+      // A TelaAcesso não tem redirect automático (ver lá): esta função é a
+      // ÚNICA dona da navegação pós-login, sempre. `convitePendente` já foi
+      // consumido no mount da tela (não relê o módulo aqui) — veio de um link
+      // de convite (tela /convite/[token] abriu deslogada e mandou pra cá).
+      if (convitePendente) {
         try {
-          const r = await processarConvite(chamarApi, convite.token, convite);
-          guardarDestinoPosLogin(rotaDoConvite(r.destino, r.grupoId));
+          await processarConviteEIrParaDestino(
+            chamarApi,
+            convitePendente.token,
+            convitePendente
+          );
+          return;
         } catch {
-          // Convite pode ter sido revogado no meio; a conta já foi criada/logada.
+          // Convite pode ter sido revogado no meio; a conta já foi
+          // criada/logada mesmo assim — cai no /painel padrão abaixo.
         }
-        limparConvitePendente();
       }
+      router.replace("/painel");
     },
-    [entrar, digitos, chamarApi]
+    [entrar, digitos, chamarApi, convitePendente]
   );
 
   const enviar = useCallback(async () => {

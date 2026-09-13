@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, View } from "react-native";
 
 import { Text } from "@/ui/Texto";
@@ -40,6 +40,16 @@ export function Comemoracao({
   const [texto] = useState(() => new Animated.Value(0)); // 0 → 1 → 0
   const [explosao] = useState(() => new Animated.Value(0)); // 0 → 1
 
+  // `onFim` é uma closure nova a cada render do pai (ex.: o ticker de 1s da
+  // tela de ao vivo). Guardar num ref em vez de listar como dependência: senão
+  // o efeito de baixo reinicia a animação (e o Animated.stop() do cleanup
+  // cancela com finished:false) toda vez que o pai re-renderiza, e a
+  // comemoração nunca termina de rodar pra chamar onFim de verdade.
+  const onFimRef = useRef(onFim);
+  useEffect(() => {
+    onFimRef.current = onFim;
+  }, [onFim]);
+
   useEffect(() => {
     const anim = Animated.parallel([
       Animated.sequence([
@@ -55,10 +65,10 @@ export function Comemoracao({
       }),
     ]);
     anim.start(({ finished }) => {
-      if (finished) onFim();
+      if (finished) onFimRef.current();
     });
     return () => anim.stop();
-  }, [texto, explosao, onFim]);
+  }, [texto, explosao]);
 
   return (
     <View pointerEvents="none" style={styles.raiz}>

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 
+import { Text } from "@/ui/Texto";
 import { tokenDeConvite } from "@/convites";
 import { Navbar } from "@/ui/Navbar";
 import { cores, raio, tipografia } from "@/tema";
