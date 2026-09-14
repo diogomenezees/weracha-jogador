@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { Alert, Animated, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
@@ -27,9 +27,11 @@ import { buscarQuadras, sugerirQuadra } from "@/api/quadras";
 import {
   Ban,
   BarChart3,
+  Calendar,
   ChevronDown,
   ChevronRight,
   Clock,
+  Copy,
   EllipsisVertical,
   LogOut,
   MapPin,
@@ -39,6 +41,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Share2,
   Star,
   Trash2,
   Trophy,
@@ -445,8 +448,10 @@ export default function TelaGrupo() {
 
   async function copiarLink(p: PartidaResumo) {
     if (!tokenConvite) return;
+    // Sem Alert aqui de propósito: Android e iOS já mostram a notificação
+    // nativa de "copiado pra área de transferência" sozinhos, o usuário já
+    // conhece esse aviso — um Alert.alert por cima seria feio e redundante.
     await Clipboard.setStringAsync(linkConvite(p));
-    Alert.alert("Link copiado", "Cole no WhatsApp pra chamar a galera.");
   }
 
   async function chamarGalera() {
@@ -1164,31 +1169,54 @@ function DetalhePartida({
           : formatarContagemRegressiva(data)}
       </Text>
 
-      <View style={styles.detalheLinha}>
-        <Text style={styles.modalTitulo} numberOfLines={1}>
-          {grupo.nome}
-        </Text>
-        {podeConvidar && (
-          <View style={styles.detalheAcoes}>
-            <Pressable style={styles.detalheAcao} onPress={onCopiar} disabled={!temToken}>
-              <Text style={styles.detalheAcaoTexto}>Copiar link</Text>
-            </Pressable>
-            <Pressable style={styles.detalheAcaoLaranja} onPress={onCompartilhar} disabled={!temToken}>
-              <Text style={styles.detalheAcaoLaranjaTexto}>Compartilhar</Text>
-            </Pressable>
+      <View style={styles.divisor} />
+
+      <View style={styles.detalheTituloBloco}>
+        <View style={styles.detalheLinha}>
+          <View style={styles.detalheTituloLinha}>
+            <Users size={16} color={cores.branco} />
+            <Text style={styles.modalTitulo} numberOfLines={1}>
+              {grupo.nome}
+            </Text>
           </View>
-        )}
+          {podeConvidar && (
+            <View style={styles.detalheAcoes}>
+              <BotaoAcaoComFlash onPress={onCopiar} disabled={!temToken} label="Copiar link do convite">
+                <Copy size={15} color={cores.slate300} />
+              </BotaoAcaoComFlash>
+              <BotaoAcaoComFlash onPress={onCompartilhar} disabled={!temToken} label="Compartilhar convite">
+                <Share2 size={15} color={cores.orange} />
+              </BotaoAcaoComFlash>
+            </View>
+          )}
+        </View>
+
+        {grupo.descricao ? <DescricaoGrupoResumo texto={grupo.descricao} /> : null}
+      </View>
+
+      <View style={styles.divisor} />
+
+      <View style={styles.pills}>
+        <View style={styles.pill}>
+          <Text style={styles.pillTexto}>{grupo.esporte}</Text>
+        </View>
       </View>
 
       {!p.cancelada && (
-        <Text style={styles.modalDesc}>
-          {formatarDiaSemanaData(data)} · {formatarHora(data)} · {duracaoDaPartida(grupo, p)} min
-        </Text>
+        <View style={styles.detalheInfoLinha}>
+          <Calendar size={14} color={cores.slate400} />
+          <Text style={styles.modalDesc}>
+            {formatarDiaSemanaData(data)} · {formatarHora(data)} · {duracaoDaPartida(grupo, p)} min
+          </Text>
+        </View>
       )}
-      <Text style={styles.modalDesc}>
-        📍 {quadra?.nome ?? "Quadra não cadastrada"}
-        {quadra?.endereco ? ` · ${quadra.endereco}` : ""}
-      </Text>
+      <View style={styles.detalheInfoLinha}>
+        <MapPin size={14} color={cores.slate400} />
+        <Text style={styles.modalDesc}>
+          {quadra?.nome ?? "Quadra não cadastrada"}
+          {quadra?.endereco ? ` · ${quadra.endereco}` : ""}
+        </Text>
+      </View>
 
       {p.descricao ? (
         <View style={[styles.detalheDescBox, p.cancelada && styles.detalheDescBoxCancel]}>
@@ -1216,6 +1244,9 @@ function DetalhePartida({
               <Text style={[styles.modalBotaoTexto, { color: cores.branco }]}>Ao vivo</Text>
             </Pressable>
           </View>
+          <Pressable onPress={() => onIr("checkin")} hitSlop={6} style={styles.verMeuCheckinLinha}>
+            <Text style={styles.verMeuCheckin}>Ver meu check-in</Text>
+          </Pressable>
         </View>
       ) : emCheckin ? (
         <Pressable style={styles.modalBotao} onPress={() => onIr("checkin")}>
@@ -1231,6 +1262,69 @@ function DetalhePartida({
         </Pressable>
       )}
     </>
+  );
+}
+
+// Feedback de toque dos botões de copiar/compartilhar convite: a borda pisca
+// em teal rapidinho. Pro copiar, é o único aviso — a notificação nativa do
+// próprio celular ("copiado pra área de transferência") já avisa por texto.
+function BotaoAcaoComFlash({
+  onPress,
+  disabled,
+  label,
+  children,
+}: {
+  onPress: () => void;
+  disabled: boolean;
+  label: string;
+  children: ReactNode;
+}) {
+  const [flash] = useState(() => new Animated.Value(0));
+
+  function lidarComPress() {
+    Animated.sequence([
+      Animated.timing(flash, { toValue: 1, duration: 100, useNativeDriver: true }),
+      Animated.timing(flash, { toValue: 0, duration: 350, useNativeDriver: true }),
+    ]).start();
+    onPress();
+  }
+
+  return (
+    <Pressable
+      style={styles.detalheAcao}
+      onPress={lidarComPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Animated.View style={[styles.detalheAcaoBorda, { opacity: flash }]} pointerEvents="none" />
+      {children}
+    </Pressable>
+  );
+}
+
+// Mesma regra do site (DescricaoCurta, variante "mensagem"): mostra a
+// descrição do grupo em uma linha só; se não couber, troca por um aviso
+// estático em vez de truncar no meio da palavra — o modal já tem outro botão
+// pra copiar/compartilhar, não faz sentido empilhar mais uma ação aqui.
+function DescricaoGrupoResumo({ texto }: { texto: string }) {
+  const [truncada, setTruncada] = useState(false);
+  return (
+    <View style={styles.descricaoContainer}>
+      <Text
+        style={[styles.modalDesc, styles.descricaoMedidor]}
+        onTextLayout={(e) => setTruncada(e.nativeEvent.lines.length > 1)}
+      >
+        {texto}
+      </Text>
+      {truncada ? (
+        <Text style={styles.detalheDescGrupoAviso}>Há descrição completa no grupo</Text>
+      ) : (
+        <Text style={styles.modalDesc} numberOfLines={1}>
+          {texto}
+        </Text>
+      )}
+    </View>
   );
 }
 
@@ -1615,12 +1709,37 @@ const styles = StyleSheet.create({
   horarioHora: { fontSize: 14, color: cores.slate400 },
 
   detalheGrande: { fontSize: 24, fontWeight: "600", color: cores.branco, lineHeight: 28 },
-  detalheLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4 },
-  detalheAcoes: { flexDirection: "row", gap: 6 },
-  detalheAcao: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: cores.superficieMedia },
-  detalheAcaoTexto: { fontSize: 12, fontWeight: "600", color: cores.slate300 },
-  detalheAcaoLaranja: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, backgroundColor: cores.laranjaFundo },
-  detalheAcaoLaranjaTexto: { fontSize: 12, fontWeight: "700", color: cores.orange },
+  detalheTituloBloco: { gap: 2, marginTop: 4 },
+  detalheTituloLinha: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
+  detalheLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  detalheAcoes: { flexDirection: "row", gap: 2 },
+  detalheAcao: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  detalheAcaoBorda: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: cores.teal,
+  },
+  divisor: { height: 1, backgroundColor: cores.linhaSutil },
+  detalheInfoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  detalheDescGrupoAviso: { fontSize: 13, color: cores.slate500 },
+  verMeuCheckinLinha: { alignSelf: "center" },
+  verMeuCheckin: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: cores.slate400,
+    textDecorationLine: "underline",
+  },
   detalheDescBox: {
     borderWidth: 1,
     borderColor: cores.avisoBorda,

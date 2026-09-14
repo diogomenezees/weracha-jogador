@@ -196,14 +196,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
-    padding: 24,
+    padding: 16,
   },
   cartao: {
     backgroundColor: "#12161f",
     borderRadius: 20,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
-    padding: 18,
+    padding: 15,
     gap: 10,
   },
   fechar: {

@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
@@ -232,8 +232,9 @@ export function Rodape({
   primario?: ReactNode;
   erro?: string | null;
 }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.rodape}>
+    <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
       {erro ? <Text style={styles.rodapeErro}>{erro}</Text> : null}
       <View style={styles.rodapeLinha}>
         {onVoltar && (
@@ -365,7 +366,6 @@ const styles = StyleSheet.create({
     backgroundColor: cores.dark,
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: 26,
     gap: 8,
   },
   rodapeLinha: { flexDirection: "row", gap: 8 },
