@@ -1,6 +1,7 @@
 import { Redirect, Stack } from "expo-router";
 
 import { useSessao } from "@/sessao/contexto";
+import { cores } from "@/tema";
 
 // Tudo abaixo de `(logado)/` exige sessão. Sem ela, volta pro login.
 export default function LayoutLogado() {
@@ -9,5 +10,10 @@ export default function LayoutLogado() {
   if (estado.fase === "carregando") return null;
   if (estado.fase === "deslogado") return <Redirect href="/login" />;
 
-  return <Stack screenOptions={{ headerShown: false }} initialRouteName="painel" />;
+  return (
+    <Stack
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.dark } }}
+      initialRouteName="painel"
+    />
+  );
 }

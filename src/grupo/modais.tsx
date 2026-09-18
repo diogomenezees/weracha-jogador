@@ -5,7 +5,7 @@ import { Text } from "@/ui/Texto";
 
 import { cores, raio } from "@/tema";
 import { useBlurTarget } from "@/ui/BlurTarget";
-import { X } from "@/ui/Icone";
+import { X, type LucideIcon } from "@/ui/Icone";
 
 // Modais reusados pela tela do grupo. Cartão centralizado sobre um fundo
 // borrado (BlurView), no mesmo espírito do `backdrop-blur` do Dialog do site
@@ -54,6 +54,7 @@ function Base({
 
 export function ModalConfirmar({
   aberto,
+  Icone,
   eyebrow,
   titulo,
   descricao,
@@ -66,6 +67,7 @@ export function ModalConfirmar({
   onFechar,
 }: {
   aberto: boolean;
+  Icone?: LucideIcon;
   eyebrow: string;
   titulo: string;
   descricao: ReactNode;
@@ -77,9 +79,13 @@ export function ModalConfirmar({
   onConfirmar: () => void;
   onFechar: () => void;
 }) {
+  const corEyebrow = destrutivo ? cores.erroTexto : cores.teal;
   return (
     <Base aberto={aberto} onFechar={onFechar}>
-      <Text style={[styles.eyebrow, destrutivo && { color: cores.erroTexto }]}>{eyebrow}</Text>
+      <View style={styles.eyebrowLinha}>
+        {Icone ? <Icone size={16} color={corEyebrow} /> : null}
+        <Text style={[styles.eyebrow, { color: corEyebrow }]}>{eyebrow}</Text>
+      </View>
       <Text style={styles.titulo}>{titulo}</Text>
       {typeof descricao === "string" ? (
         <Text style={styles.descricao}>{descricao}</Text>
@@ -217,6 +223,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  eyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   eyebrow: {
     fontSize: 11,
     fontWeight: "600",

@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   CircleUserRound,
   Goal,
+  LayoutDashboard,
   type LucideIcon,
   LogOut,
   Mail,
@@ -66,6 +67,8 @@ export function Navbar({ voltar }: { voltar?: string }) {
           accessibilityLabel={`Voltar para ${voltar}`}
         >
           <ChevronLeft size={24} color={cores.slate400} />
+          {voltar === "Grupo" && <Users size={18} color={cores.slate400} />}
+          {voltar === "Painel" && <LayoutDashboard size={18} color={cores.slate400} />}
           <Text style={styles.voltarTexto}>{voltar}</Text>
         </Pressable>
       ) : (

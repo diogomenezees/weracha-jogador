@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -17,20 +17,45 @@ import {
 } from "@/api/jogadores";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
+import { ModalConfirmar } from "@/grupo/modais";
 import { FormNovoJogador } from "@/jogadores/FormNovoJogador";
 import { ModalPerfil, ModalPosicao, ModalScore, ModalTransferirDono } from "@/jogadores/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { Crown, Pencil, ShieldCheck, ShieldOff, Trash2 } from "@/ui/Icone";
+import {
+  ArrowDownAZ,
+  Clock,
+  Crown,
+  Eye,
+  EyeOff,
+  MessageCircle,
+  Pencil,
+  Shield,
+  ShieldCheck,
+  ShieldOff,
+  Star,
+  Trash2,
+  UserCog,
+  Users,
+  Wallet,
+} from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { DadosDaTelaJogadoresDoGrupo, JogadorDoGrupo, MembroGrupo } from "@/contrato/tipos";
 
-type Ordenacao = "NOME" | "MENSALISTA" | "SCORE";
+type Ordenacao = "NOME" | "CHEGADA" | "MENSALISTA" | "SCORE";
 
 function normalizar(t: string): string {
   return t.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+}
+
+// jogador.telefone só vem real (não mascarado) pra admin — mesma regra do
+// site (JogadorDoGrupo em weracha-site/lib/services/membros.ts). O wa.me
+// precisa do E.164 sem "+", daí o "55" fixo na frente (espelha
+// weracha-site/app/grupos/[id]/jogadores/page.tsx).
+function linkWhatsapp(telefone: string): string {
+  return `https://wa.me/55${telefone.replace(/\D/g, "")}`;
 }
 
 export default function GerenciarJogadores() {
@@ -59,6 +84,10 @@ export default function GerenciarJogadores() {
   >(null);
   const [salvandoModal, setSalvandoModal] = useState(false);
   const [erroModal, setErroModal] = useState<string | null>(null);
+
+  const [removendoJogador, setRemovendoJogador] = useState<JogadorDoGrupo | null>(null);
+  const [removendoOcupado, setRemovendoOcupado] = useState(false);
+  const [removendoErro, setRemovendoErro] = useState<string | null>(null);
 
   const carregar = useCallback(
     () => buscarElencoDoGrupo(chamarApi, id),
@@ -117,7 +146,11 @@ export default function GerenciarJogadores() {
     const ordenados = [...dados.membros].sort((a, b) => {
       const na = jogadoresPorId.get(a.jogadorId)?.nome ?? "";
       const nb = jogadoresPorId.get(b.jogadorId)?.nome ?? "";
-      if (ordenacao === "MENSALISTA") {
+      if (ordenacao === "CHEGADA") {
+        const ca = new Date(a.criadoEm).getTime();
+        const cb = new Date(b.criadoEm).getTime();
+        if (ca !== cb) return cb - ca;
+      } else if (ordenacao === "MENSALISTA") {
         const ma = ehMensalistaHoje(a);
         const mb = ehMensalistaHoje(b);
         if (ma !== mb) return ma ? -1 : 1;
@@ -153,6 +186,13 @@ export default function GerenciarJogadores() {
           setPosicaoDe({ jogadorId: j.id, nome: j.nome, posicaoId: m.posicaoId }),
       }
     );
+    if (j.id !== dados!.meuId && j.telefone) {
+      itens.push({
+        rotulo: "Chamar no WhatsApp",
+        Icone: MessageCircle,
+        onPress: () => void Linking.openURL(linkWhatsapp(j.telefone)),
+      });
+    }
     if (j.id === dados!.meuId && ehDono) {
       itens.push({
         rotulo: "Mudar de dono",
@@ -194,29 +234,28 @@ export default function GerenciarJogadores() {
   }
 
   function confirmarRemover(j: JogadorDoGrupo) {
-    Alert.alert(
-      "Remover jogador?",
-      `${j.nome} sai do grupo e perde o acesso. Não dá pra desfazer por aqui.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Remover",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await removerJogador(chamarApi, id, j.id);
-              if (j.id === dados!.meuId) {
-                router.replace("/painel");
-                return;
-              }
-              await recarregar();
-            } catch (e) {
-              Alert.alert("Não deu certo", mensagemDoErro(e));
-            }
-          },
-        },
-      ]
-    );
+    setRemovendoErro(null);
+    setRemovendoJogador(j);
+  }
+
+  async function handleRemoverJogador() {
+    if (!removendoJogador) return;
+    setRemovendoOcupado(true);
+    setRemovendoErro(null);
+    try {
+      await removerJogador(chamarApi, id, removendoJogador.id);
+      const euMesmo = removendoJogador.id === dados!.meuId;
+      setRemovendoJogador(null);
+      if (euMesmo) {
+        router.replace("/painel");
+        return;
+      }
+      await recarregar();
+    } catch (e) {
+      setRemovendoErro(mensagemDoErro(e));
+    } finally {
+      setRemovendoOcupado(false);
+    }
   }
 
   function confirmarMensalista(m: MembroGrupo, j: JogadorDoGrupo) {
@@ -315,12 +354,24 @@ export default function GerenciarJogadores() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: 120 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.cabecalho}>
-          <Text style={styles.h1}>{souAdmin ? "Gerenciar jogadores" : "Jogadores do grupo"}</Text>
-          <Text style={styles.sub} numberOfLines={1}>
-            {grupo.nome} · ⭐ Seu score {grupo.meuScore}
-          </Text>
+          <View style={styles.tituloLinha}>
+            <UserCog size={18} color={cores.branco} />
+            <Text style={styles.h1}>{souAdmin ? "Gerenciar jogadores" : "Jogadores do grupo"}</Text>
+          </View>
+          <View style={styles.subLinha}>
+            <Users size={12} color={cores.slate400} />
+            <Text style={styles.subNome} numberOfLines={1}>
+              {grupo.nome}
+            </Text>
+            <Text style={styles.subPonto}>·</Text>
+            <Star size={12} color={cores.slate400} />
+            <Text style={styles.sub}>Seu score {grupo.meuScore}</Text>
+          </View>
         </View>
 
         <TextInput
@@ -332,38 +383,51 @@ export default function GerenciarJogadores() {
         />
 
         <View style={styles.controles}>
-          <View style={styles.ordGrupo}>
-            {(
-              [
-                ["NOME", "A-Z"],
-                ["MENSALISTA", "Mensal"],
-                ["SCORE", "Score"],
-              ] as const
-            ).map(([v, label]) => (
-              <Pressable
-                key={v}
-                style={[styles.ordBtn, ordenacao === v && styles.ordBtnAtivo]}
-                onPress={() => setOrdenacao(v)}
-              >
-                <Text style={[styles.ordTexto, ordenacao === v && styles.ordTextoAtivo]}>
-                  {label}
-                </Text>
-              </Pressable>
-            ))}
+          <Text style={styles.contagem}>Jogadores ({linhas.length})</Text>
+          <View style={styles.controlesDireita}>
+            <View style={styles.ordGrupo}>
+              {(
+                [
+                  ["NOME", ArrowDownAZ, "Ordenar por nome"],
+                  ["CHEGADA", Clock, "Ordenar por chegada (mais novo primeiro)"],
+                  ["MENSALISTA", Wallet, "Ordenar por mensalista/avulso"],
+                  ["SCORE", Star, "Ordenar por score"],
+                ] as const
+              ).map(([v, Icone, rotulo], i) => (
+                <Pressable
+                  key={v}
+                  accessibilityLabel={rotulo}
+                  style={[
+                    styles.ordBtn,
+                    i > 0 && styles.ordBtnDivisor,
+                    ordenacao === v && styles.ordBtnAtivo,
+                  ]}
+                  onPress={() => setOrdenacao(v)}
+                >
+                  <Icone size={16} color={ordenacao === v ? cores.dark : cores.slate400} />
+                </Pressable>
+              ))}
+            </View>
+            {souAdmin && (
+              <>
+                <Text style={styles.scoreRotulo}>Score:</Text>
+                <Pressable
+                  accessibilityLabel={
+                    verScores ? "Ocultar score dos jogadores" : "Mostrar score dos jogadores"
+                  }
+                  style={[styles.verScore, verScores && styles.verScoreAtivo]}
+                  onPress={() => setVerScores((v) => !v)}
+                >
+                  {verScores ? (
+                    <Eye size={16} color={cores.dark} />
+                  ) : (
+                    <EyeOff size={16} color={cores.slate400} />
+                  )}
+                </Pressable>
+              </>
+            )}
           </View>
-          {souAdmin && (
-            <Pressable
-              style={[styles.verScore, verScores && styles.verScoreAtivo]}
-              onPress={() => setVerScores((v) => !v)}
-            >
-              <Text style={[styles.verScoreTexto, verScores && styles.verScoreTextoAtivo]}>
-                {verScores ? "Score visível" : "Score oculto"}
-              </Text>
-            </Pressable>
-          )}
         </View>
-
-        <Text style={styles.contagem}>Jogadores ({linhas.length})</Text>
 
         {linhas.length === 0 && <Text style={styles.sub}>Nenhum jogador encontrado.</Text>}
 
@@ -373,11 +437,27 @@ export default function GerenciarJogadores() {
           const mensalista = ehMensalistaHoje(m);
           const ehDono = j.id === grupo.adminId;
           const eu = j.id === dados.meuId;
-          const detalhes = [
-            j.apelido,
-            m.posicaoId ? posicoesPorId.get(m.posicaoId) : null,
-            podeVerScore ? `Score ${m.score}` : null,
-          ].filter(Boolean);
+          const detalhes: ReactNode[] = [];
+          if (j.apelido) {
+            detalhes.push(<Text style={styles.linhaDetalhesTexto}>{j.apelido}</Text>);
+          }
+          const nomePosicao = m.posicaoId ? posicoesPorId.get(m.posicaoId) : null;
+          if (nomePosicao) {
+            detalhes.push(
+              <View style={styles.linhaDetalhesItem}>
+                <Shield size={11} color={cores.slate400} />
+                <Text style={styles.linhaDetalhesTexto}>{nomePosicao}</Text>
+              </View>
+            );
+          }
+          if (podeVerScore) {
+            detalhes.push(
+              <View style={styles.linhaDetalhesItem}>
+                <Star size={11} color={cores.slate400} />
+                <Text style={styles.linhaDetalhesTexto}>Score {m.score}</Text>
+              </View>
+            );
+          }
           return (
             <View key={m.id} style={[styles.linha, eu && styles.linhaEu]}>
               <Pressable style={styles.linhaEsq} onPress={() => setPerfilId(j.id)}>
@@ -394,9 +474,14 @@ export default function GerenciarJogadores() {
                     )}
                   </View>
                   {detalhes.length > 0 && (
-                    <Text style={styles.linhaDetalhes} numberOfLines={1}>
-                      {detalhes.join(" · ")}
-                    </Text>
+                    <View style={styles.linhaDetalhes}>
+                      {detalhes.map((item, i) => (
+                        <View key={i} style={styles.linhaDetalhesItem}>
+                          {i > 0 && <Text style={styles.linhaDetalhesSeparador}>·</Text>}
+                          {item}
+                        </View>
+                      ))}
+                    </View>
                   )}
                 </View>
               </Pressable>
@@ -420,7 +505,7 @@ export default function GerenciarJogadores() {
           );
         })}
 
-        {podeVerScore && linhas.length > 0 && (
+        {linhas.length > 0 && (
           <Text style={styles.rodapeNota}>O score só aparece pra admin do grupo.</Text>
         )}
       </ScrollView>
@@ -495,6 +580,23 @@ export default function GerenciarJogadores() {
         }}
       />
 
+      <ModalConfirmar
+        aberto={removendoJogador !== null}
+        Icone={Trash2}
+        eyebrow="Ação irreversível"
+        titulo="Remover jogador?"
+        descricao="O jogador sai do grupo: perde acesso e, se for admin, deixa de ser. Essa ação não pode ser desfeita por aqui."
+        confirmarLabel="Sim, remover"
+        destrutivo
+        ocupado={removendoOcupado}
+        erro={removendoErro}
+        onConfirmar={() => void handleRemoverJogador()}
+        onFechar={() => {
+          setRemovendoJogador(null);
+          setRemovendoErro(null);
+        }}
+      />
+
       <FormNovoJogador
         aberto={formAberto}
         chamarApi={chamarApi}
@@ -516,7 +618,11 @@ const styles = StyleSheet.create({
   aviso: { fontSize: 14, color: cores.slate400 },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120, gap: 12 },
   cabecalho: { gap: 4 },
+  tituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   h1: { fontSize: 23, fontWeight: "700", color: cores.branco },
+  subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
+  subNome: { flexShrink: 1, fontSize: 13, color: cores.slate400 },
+  subPonto: { fontSize: 13, color: cores.slate600 },
   sub: { fontSize: 13, color: cores.slate400 },
   busca: {
     height: 44,
@@ -529,6 +635,8 @@ const styles = StyleSheet.create({
     color: cores.branco,
   },
   controles: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  controlesDireita: { flexDirection: "row", alignItems: "center", gap: 8 },
+  scoreRotulo: { fontSize: 13, fontWeight: "500", color: cores.slate300 },
   ordGrupo: {
     flexDirection: "row",
     borderRadius: raio.campo,
@@ -536,20 +644,24 @@ const styles = StyleSheet.create({
     borderColor: cores.avisoBorda,
     overflow: "hidden",
   },
-  ordBtn: { paddingHorizontal: 10, paddingVertical: 7 },
+  ordBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ordBtnDivisor: { borderLeftWidth: 1, borderLeftColor: cores.avisoBorda },
   ordBtnAtivo: { backgroundColor: cores.teal },
-  ordTexto: { fontSize: 12, color: cores.slate300 },
-  ordTextoAtivo: { color: cores.dark, fontWeight: "700" },
   verScore: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.avisoBorda,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
   },
-  verScoreAtivo: { backgroundColor: cores.avisoFundo },
-  verScoreTexto: { fontSize: 12, color: cores.slate400 },
-  verScoreTextoAtivo: { color: cores.teal },
+  verScoreAtivo: { backgroundColor: cores.teal, borderColor: cores.teal },
   contagem: {
     fontSize: 11,
     fontWeight: "700",
@@ -579,7 +691,10 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   badgeTexto: { fontSize: 10, fontWeight: "700", color: cores.teal },
-  linhaDetalhes: { fontSize: 12, color: cores.slate400, marginTop: 2 },
+  linhaDetalhes: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginTop: 2, gap: 4 },
+  linhaDetalhesItem: { flexDirection: "row", alignItems: "center", gap: 3 },
+  linhaDetalhesTexto: { fontSize: 12, color: cores.slate400 },
+  linhaDetalhesSeparador: { fontSize: 12, color: cores.slate400 },
   linhaAcoes: { flexDirection: "row", alignItems: "center", gap: 6 },
   mensalPill: {
     borderRadius: 999,

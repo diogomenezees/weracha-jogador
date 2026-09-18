@@ -9,7 +9,7 @@ import { buscarDadosDoGrupo } from "@/api/grupos";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalEnquete } from "@/enquetes/ModalEnquete";
-import { BarChart3 } from "@/ui/Icone";
+import { BarChart3, Users } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
@@ -98,9 +98,12 @@ export default function EnquetesDoGrupoTela() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
           <TituloTela Icone={BarChart3}>Enquetes</TituloTela>
-          <Text style={styles.sub} numberOfLines={1}>
-            {grupoNome}
-          </Text>
+          <View style={styles.subLinha}>
+            <Users size={12} color={cores.slate400} />
+            <Text style={styles.sub} numberOfLines={1}>
+              {grupoNome}
+            </Text>
+          </View>
         </View>
 
         {ativas.length === 0 && encerradas.length === 0 && (
@@ -198,7 +201,8 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
   cabecalho: { gap: 4 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
-  sub: { fontSize: 14, color: cores.slate400 },
+  subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
+  sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
   box: {
     borderRadius: raio.card,
     borderWidth: 1,

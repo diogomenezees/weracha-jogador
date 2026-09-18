@@ -1,12 +1,18 @@
 import { useState } from "react";
-import { Modal, Platform, Pressable, StyleSheet, View } from "react-native";
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
+import { ModalCartao } from "@/grupo/modais";
+import { Calendar } from "@/ui/Icone";
 import { DIAS_SEMANA } from "@/partidas";
 import { cores, raio } from "@/tema";
 import { useBlurTarget } from "@/ui/BlurTarget";
+
+function capitalizar(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 // Seletores de data / hora / duração / dia da semana, reusados por "Criar
 // grupo" e pelo modal "Adicionar partida" da tela do grupo. O site usa
@@ -58,6 +64,10 @@ export function SeletorData({
         <DateTimePicker
           value={valorData}
           mode="date"
+          // "spinner" no Android é o diálogo clássico (sem o cabeçalho azul do
+          // Material Design), pra combinar com o resto do app em vez de puxar
+          // a cor padrão do sistema.
+          display="spinner"
           onChange={(_, d) => {
             setAberto(false);
             if (d) aplicar(d);
@@ -71,6 +81,7 @@ export function SeletorData({
             mode="date"
             display="inline"
             themeVariant="dark"
+            accentColor={cores.teal}
             onChange={(_, d) => d && aplicar(d)}
           />
         </ModalPicker>
@@ -107,6 +118,7 @@ export function SeletorHora({
           value={valor}
           mode="time"
           is24Hour
+          display="spinner"
           onChange={(_, d) => {
             setAberto(false);
             if (d) aplicar(d);
@@ -136,19 +148,21 @@ export function SeletorDuracao({
   min: number;
   onChange: (min: number) => void;
 }) {
-  const passo = 15;
+  const passo = 5;
+  const minimo = 10;
+  const maximo = 300; // 5 horas
   return (
     <View style={styles.campo}>
       <Text style={styles.label}>Duração</Text>
       <View style={styles.stepper}>
         <Pressable
           style={styles.stepBtn}
-          onPress={() => onChange(Math.max(passo, min - passo))}
+          onPress={() => onChange(Math.max(minimo, min - passo))}
         >
           <Text style={styles.stepBtnTexto}>−</Text>
         </Pressable>
         <Text style={styles.stepValor}>{min} min</Text>
-        <Pressable style={styles.stepBtn} onPress={() => onChange(min + passo)}>
+        <Pressable style={styles.stepBtn} onPress={() => onChange(Math.min(maximo, min + passo))}>
           <Text style={styles.stepBtnTexto}>+</Text>
         </Pressable>
       </View>
@@ -163,23 +177,36 @@ export function SeletorDiaSemana({
   dia: number;
   onChange: (dia: number) => void;
 }) {
+  const [aberto, setAberto] = useState(false);
+
   return (
-    <View style={styles.campo}>
-      <Text style={styles.label}>Dia da semana</Text>
-      <View style={styles.dias}>
-        {DIAS_SEMANA.map((nome, i) => (
-          <Pressable
-            key={nome}
-            style={[styles.diaChip, i === dia && styles.diaChipAtivo]}
-            onPress={() => onChange(i)}
-          >
-            <Text style={[styles.diaTexto, i === dia && styles.diaTextoAtivo]}>
-              {nome.charAt(0).toUpperCase() + nome.slice(1, 3)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-    </View>
+    <>
+      <Campo label="Dia da semana" valor={capitalizar(DIAS_SEMANA[dia] ?? "")} onPress={() => setAberto(true)} />
+      <ModalCartao aberto={aberto} onFechar={() => setAberto(false)}>
+        <View style={styles.modalListaTituloLinha}>
+          <Calendar size={18} color={cores.teal} />
+          <Text style={styles.modalListaTitulo}>Dia da semana</Text>
+        </View>
+        <Text style={styles.modalListaDescricao}>
+          Toda semana, nesse dia, o grupo recebe uma partida nova automaticamente, no
+          horário definido abaixo.
+        </Text>
+        <ScrollView style={{ maxHeight: 280 }}>
+          {DIAS_SEMANA.map((nome, i) => (
+            <Pressable
+              key={nome}
+              style={[styles.opcao, i === dia && styles.opcaoAtiva]}
+              onPress={() => {
+                onChange(i);
+                setAberto(false);
+              }}
+            >
+              <Text style={styles.opcaoTexto}>{capitalizar(nome)}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </ModalCartao>
+    </>
   );
 }
 
@@ -239,20 +266,19 @@ const styles = StyleSheet.create({
   stepBtn: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
   stepBtnTexto: { fontSize: 22, color: cores.teal },
   stepValor: { flex: 1, textAlign: "center", fontSize: 15, color: cores.branco },
-  dias: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
-  diaChip: {
-    minWidth: 44,
-    paddingVertical: 9,
-    paddingHorizontal: 8,
+  modalListaTituloLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
+  modalListaTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
+  modalListaDescricao: { fontSize: 14, lineHeight: 20, color: cores.slate400, marginBottom: 6 },
+  opcao: {
+    paddingVertical: 11,
+    paddingHorizontal: 12,
     borderRadius: raio.campo,
+    marginBottom: 4,
     borderWidth: 1,
-    borderColor: cores.campoBorda,
-    backgroundColor: cores.campoFundo,
-    alignItems: "center",
+    borderColor: "transparent",
   },
-  diaChipAtivo: { backgroundColor: cores.teal, borderColor: cores.teal },
-  diaTexto: { fontSize: 13, color: cores.slate300 },
-  diaTextoAtivo: { color: cores.dark, fontWeight: "700" },
+  opcaoAtiva: { borderColor: cores.teal, backgroundColor: cores.avisoFundo },
+  opcaoTexto: { fontSize: 15, color: cores.branco },
   modalFundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 24 },
   modalCartao: { backgroundColor: cores.dark, borderRadius: raio.card, padding: 16, gap: 12 },
   modalOk: {

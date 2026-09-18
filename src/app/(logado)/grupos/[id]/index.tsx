@@ -28,11 +28,13 @@ import {
   Ban,
   BarChart3,
   Calendar,
+  CalendarPlus,
   ChevronDown,
   ChevronRight,
   Clock,
   Copy,
   EllipsisVertical,
+  type LucideIcon,
   LogOut,
   MapPin,
   MessageCircle,
@@ -599,6 +601,7 @@ export default function TelaGrupo() {
         {souAdmin && !grupo.quadraId && (
           <Banner
             cor="orange"
+            Icone={MapPin}
             titulo="Cadastre o local do jogo pra galera."
             chamada="Cadastrar quadra"
             onPress={() => {
@@ -613,6 +616,7 @@ export default function TelaGrupo() {
         {renovar && souAdmin && (
           <Banner
             cor="teal"
+            Icone={RefreshCw}
             titulo="Nenhuma partida agendada ainda."
             chamada={`Criar as partidas de ${proximoMes}`}
             onPress={() => void handleRenovar()}
@@ -621,6 +625,7 @@ export default function TelaGrupo() {
         {renovar && !souAdmin && (
           <Banner
             cor="red"
+            Icone={Share2}
             titulo="As partidas acabaram, mas o grupo não."
             chamada="Chamar todo mundo pra jogar"
             onPress={() => void chamarGalera()}
@@ -655,6 +660,7 @@ export default function TelaGrupo() {
         {!renovar && proximas.length === 0 && grupo.tipo === "AVULSO" && (
           <Banner
             cor={souAdmin ? "orange" : "red"}
+            Icone={souAdmin ? CalendarPlus : Share2}
             titulo={souAdmin ? "Bora marcar outra partida?" : "As partidas acabaram."}
             chamada={souAdmin ? "Mesmos jogadores, esporte e quadra" : "Chamar todo mundo pra jogar"}
             onPress={souAdmin ? () => abrirAdicionarPartida() : () => void chamarGalera()}
@@ -812,7 +818,10 @@ export default function TelaGrupo() {
 
       {/* Modal: adicionar partida */}
       <ModalCartao aberto={aba === "adicionar"} onFechar={() => setAba(null)}>
-        <Text style={styles.modalEyebrow}>Adicionar partida</Text>
+        <View style={styles.modalEyebrowLinha}>
+          <Calendar size={16} color={cores.teal} />
+          <Text style={styles.modalEyebrow}>Adicionar partida</Text>
+        </View>
         <Text style={styles.modalTitulo}>Marcar mais um jogo</Text>
         <Text style={styles.modalDesc}>Esporte e quadra continuam os mesmos do grupo.</Text>
         <SeletorData iso={novaData} onChange={setNovaData} />
@@ -975,11 +984,13 @@ export default function TelaGrupo() {
 
 function Banner({
   cor,
+  Icone,
   titulo,
   chamada,
   onPress,
 }: {
   cor: "teal" | "orange" | "red";
+  Icone: LucideIcon;
   titulo: string;
   chamada: string;
   onPress: () => void;
@@ -995,8 +1006,11 @@ function Banner({
       style={[styles.banner, { borderColor: paleta.borda, backgroundColor: paleta.fundo }]}
       onPress={onPress}
     >
-      <Text style={styles.bannerTitulo}>{titulo}</Text>
-      <Text style={[styles.bannerChamada, { color: paleta.texto }]}>{chamada}</Text>
+      <Icone size={16} color={paleta.texto} style={styles.bannerIcone} />
+      <View style={styles.bannerTextos}>
+        <Text style={styles.bannerTitulo}>{titulo}</Text>
+        <Text style={[styles.bannerChamada, { color: paleta.texto }]}>{chamada}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -1053,17 +1067,30 @@ function CardPartida({
 }) {
   const data = new Date(p.data);
   const concluida = passada && !p.cancelada && temResultado;
-  const corBorda = p.cancelada ? "#ef4444" : concluida ? "#10b981" : cores.teal;
+  // Partida passada, não cancelada e sem resultado: pendência do admin, não
+  // "em dia" como uma futura — por isso o cinza neutro, nunca o teal.
+  const pendente = !!passada && !p.cancelada && !temResultado;
+  const corBorda = p.cancelada
+    ? "#ef4444"
+    : concluida
+      ? "#10b981"
+      : pendente
+        ? cores.slate500
+        : cores.teal;
   const corFundo = p.cancelada
     ? "rgba(239, 68, 68, 0.1)"
     : concluida
       ? "rgba(16, 185, 129, 0.1)"
-      : cores.cardFundo;
+      : pendente
+        ? "rgba(100, 116, 139, 0.08)"
+        : cores.cardFundo;
   const corBordaCartao = p.cancelada
     ? "rgba(239, 68, 68, 0.2)"
     : concluida
       ? "rgba(16, 185, 129, 0.2)"
-      : cores.cardBorda;
+      : pendente
+        ? "rgba(100, 116, 139, 0.2)"
+        : cores.cardBorda;
 
   return (
     <View style={styles.cardLinha}>
@@ -1078,6 +1105,7 @@ function CardPartida({
                 styles.cardData,
                 p.cancelada && styles.textoCancelado,
                 concluida && styles.textoConcluido,
+                pendente && styles.textoPendente,
               ]}
             >
               {formatarDiaSemanaData(data)}
@@ -1105,6 +1133,10 @@ function CardPartida({
           ) : concluida ? (
             <View style={styles.concluidaPill}>
               <Text style={styles.concluidaTexto}>Concluída</Text>
+            </View>
+          ) : pendente ? (
+            <View style={styles.partidaPendentePill}>
+              <Text style={styles.partidaPendenteTexto}>Encerrada</Text>
             </View>
           ) : (
             <ChevronRight size={18} color={cores.slate500} />
@@ -1252,7 +1284,10 @@ function DetalhePartida({
           </Pressable>
         </View>
       ) : emCheckin ? (
-        <Pressable style={styles.modalBotao} onPress={() => onIr("checkin")}>
+        <Pressable
+          style={[styles.modalBotao, { backgroundColor: "#10b981" }]}
+          onPress={() => onIr("checkin")}
+        >
           <Text style={styles.modalBotaoTexto}>Ir para o Check-in</Text>
         </Pressable>
       ) : temResultado ? (
@@ -1529,7 +1564,16 @@ const styles = StyleSheet.create({
   pillCinza: { backgroundColor: "rgba(113, 113, 122, 0.15)" },
   pillTextoCinza: { color: cores.zinc500 },
 
-  banner: { borderRadius: raio.campo, borderWidth: 1, padding: 12, gap: 3 },
+  banner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    padding: 12,
+  },
+  bannerIcone: { marginTop: 2 },
+  bannerTextos: { flex: 1, gap: 3 },
   bannerTitulo: { fontSize: 13, color: cores.slate300 },
   bannerChamada: { fontSize: 13, fontWeight: "700" },
 
@@ -1580,6 +1624,7 @@ const styles = StyleSheet.create({
   textoCancelado: { color: cores.erroTexto },
   textoCanceladoFraco: { color: "rgba(252,165,165,0.7)" },
   textoConcluido: { color: "#6ee7b7" },
+  textoPendente: { color: cores.slate400 },
   cardDescricao: {
     fontSize: 13,
     color: cores.slate400,
@@ -1603,6 +1648,8 @@ const styles = StyleSheet.create({
   canceladaTexto: { fontSize: 12, fontWeight: "600", color: cores.erroTexto },
   concluidaPill: { backgroundColor: "rgba(16,185,129,0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   concluidaTexto: { fontSize: 12, fontWeight: "600", color: "#6ee7b7" },
+  partidaPendentePill: { backgroundColor: "rgba(100,116,139,0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  partidaPendenteTexto: { fontSize: 12, fontWeight: "600", color: cores.slate300 },
   cardMenu: { padding: 6 },
 
   rodape: {

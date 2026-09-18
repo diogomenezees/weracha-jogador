@@ -57,7 +57,7 @@ export function CampoSenha({
           <Text style={styles.link}>{mostrar ? "Ocultar" : "Mostrar"}</Text>
         </Pressable>
       </View>
-      <Campo secureTextEntry={!mostrar} {...props} />
+      <Campo secureTextEntry={!mostrar} autoCapitalize="none" autoCorrect={false} {...props} />
     </View>
   );
 }

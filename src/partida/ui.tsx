@@ -5,7 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { Check, ChevronLeft, type LucideIcon } from "@/ui/Icone";
+import { ChevronLeft, Eye, EyeOff, Shield, Star, Users, type LucideIcon } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { cores, raio } from "@/tema";
 
@@ -13,12 +13,20 @@ import { cores, raio } from "@/tema";
 // ao vivo, resultado). Visual portado do site: fundo escuro, eyebrow mono teal,
 // cards com borda teal, botão laranja.
 
-// O ciclo da partida é tela de foco: o voltar fica no rodapé (Rodape /
-// AvisoPartida), então o cabeçalho padronizado entra só com a marca + o menu.
-export function TelaPartida({ children }: { children: ReactNode }) {
+// O ciclo da partida é tela de foco: por padrão o voltar fica no rodapé
+// (Rodape / AvisoPartida), com o cabeçalho padronizado só com a marca + o
+// menu. `voltar` é o opt-in pra uma tela do ciclo que já migrou pro padrão
+// das outras telas (voltar no header, nomeando o destino).
+export function TelaPartida({
+  voltar,
+  children,
+}: {
+  voltar?: string;
+  children: ReactNode;
+}) {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
-      <Navbar />
+      <Navbar voltar={voltar} />
       {children}
     </SafeAreaView>
   );
@@ -30,11 +38,13 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 
 export function Cabecalho({
   titulo,
+  Icone,
   grupoNome,
   descricao,
   direita,
 }: {
   titulo: string;
+  Icone?: LucideIcon;
   grupoNome: string;
   descricao?: string | null;
   direita?: ReactNode;
@@ -42,11 +52,17 @@ export function Cabecalho({
   return (
     <View style={styles.cabecalho}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.h1}>{titulo}</Text>
-        <Text style={styles.sub} numberOfLines={1}>
-          👥 {grupoNome}
-          {descricao ? `  ·  ${descricao.replace(/\s*\n\s*/g, " ")}` : ""}
-        </Text>
+        <View style={styles.tituloComIcone}>
+          {Icone ? <Icone size={20} color={cores.branco} /> : null}
+          <Text style={styles.h1}>{titulo}</Text>
+        </View>
+        <View style={styles.subLinha}>
+          <Users size={12} color={cores.slate400} />
+          <Text style={styles.sub} numberOfLines={1}>
+            {grupoNome}
+            {descricao ? `  ·  ${descricao.replace(/\s*\n\s*/g, " ")}` : ""}
+          </Text>
+        </View>
       </View>
       {direita}
     </View>
@@ -109,17 +125,21 @@ export function Stepper({
 }
 
 export function ToggleScore({ ligado, onToggle }: { ligado: boolean; onToggle: () => void }) {
+  // Fragment de propósito, não View: precisa entrar como dois irmãos soltos
+  // na linha de ações (junto do grupo de ordenação), igual ao check-in — um
+  // wrapper View aninhado aqui já fez o texto "Score:" quebrar de linha
+  // (medida de largura do Yoga com um nível a mais de flex row dentro de row).
   return (
-    <Pressable
-      style={[styles.toggleScore, ligado && styles.toggleScoreOn]}
-      onPress={onToggle}
-      hitSlop={6}
-    >
-      {ligado ? <Check size={13} color={cores.dark} /> : null}
-      <Text style={[styles.toggleScoreTexto, ligado && styles.toggleScoreTextoOn]}>
-        Score
-      </Text>
-    </Pressable>
+    <>
+      <Text style={styles.toggleScoreRotulo}>Score:</Text>
+      <Pressable
+        accessibilityLabel={ligado ? "Ocultar score dos jogadores" : "Mostrar score dos jogadores"}
+        style={[styles.toggleScore, ligado && styles.toggleScoreOn]}
+        onPress={onToggle}
+      >
+        {ligado ? <Eye size={16} color={cores.dark} /> : <EyeOff size={16} color={cores.slate400} />}
+      </Pressable>
+    </>
   );
 }
 
@@ -127,19 +147,25 @@ export function SegOrdenacao<T extends string>({
   opcoes,
   valor,
   onChange,
+  expandir,
 }: {
-  opcoes: { chave: T; rotulo: string }[];
+  opcoes: { chave: T; rotulo: string; Icone?: LucideIcon }[];
   valor: T;
   onChange: (v: T) => void;
+  /** Distribui os botões pelos 100% da largura do container, em vez do padrão (largura pelo conteúdo). */
+  expandir?: boolean;
 }) {
   return (
     <View style={styles.seg}>
       {opcoes.map((o) => (
         <Pressable
           key={o.chave}
-          style={[styles.segBtn, valor === o.chave && styles.segBtnOn]}
+          style={[styles.segBtn, expandir && styles.segBtnExpandido, valor === o.chave && styles.segBtnOn]}
           onPress={() => onChange(o.chave)}
         >
+          {o.Icone ? (
+            <o.Icone size={14} color={valor === o.chave ? cores.dark : cores.slate400} />
+          ) : null}
           <Text style={[styles.segTexto, valor === o.chave && styles.segTextoOn]}>{o.rotulo}</Text>
         </Pressable>
       ))}
@@ -195,11 +221,26 @@ export function CardJogadorPartida({
   direita?: ReactNode;
   onAbrirPerfil?: () => void;
 }) {
-  const linha2 = [
-    apelido || null,
-    posicaoNome ? `⛊ ${posicaoNome}` : null,
-    mostrarScore && score != null ? `★ ${score}` : null,
-  ].filter(Boolean);
+  const itensLinha2: ReactNode[] = [];
+  if (apelido) {
+    itensLinha2.push(<Text style={styles.cardLinha2Texto}>{apelido}</Text>);
+  }
+  if (posicaoNome) {
+    itensLinha2.push(
+      <View style={styles.cardLinha2Item}>
+        <Shield size={11} color={cores.slate400} />
+        <Text style={styles.cardLinha2Texto}>{posicaoNome}</Text>
+      </View>
+    );
+  }
+  if (mostrarScore && score != null) {
+    itensLinha2.push(
+      <View style={styles.cardLinha2Item}>
+        <Star size={11} color={cores.slate400} />
+        <Text style={styles.cardLinha2Texto}>Score {score}</Text>
+      </View>
+    );
+  }
   return (
     <View style={[styles.card, souEu && styles.cardEu]}>
       <Pressable style={styles.cardEsq} onPress={onAbrirPerfil} disabled={!onAbrirPerfil}>
@@ -208,10 +249,15 @@ export function CardJogadorPartida({
           <Text style={styles.cardNome} numberOfLines={1}>
             {nome}
           </Text>
-          {linha2.length > 0 && (
-            <Text style={styles.cardLinha2} numberOfLines={1}>
-              {linha2.join("  ·  ")}
-            </Text>
+          {itensLinha2.length > 0 && (
+            <View style={styles.cardLinha2}>
+              {itensLinha2.map((item, i) => (
+                <View key={i} style={styles.cardLinha2Item}>
+                  {i > 0 && <Text style={styles.cardLinha2Separador}>·</Text>}
+                  {item}
+                </View>
+              ))}
+            </View>
           )}
         </View>
       </Pressable>
@@ -286,8 +332,10 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   cabecalho: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingHorizontal: 24, paddingTop: 8 },
+  tituloComIcone: { flexDirection: "row", alignItems: "center", gap: 8 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
-  sub: { marginTop: 2, fontSize: 13, color: cores.slate400 },
+  subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  sub: { flexShrink: 1, fontSize: 13, color: cores.slate400 },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 14 },
   avisoTexto: { fontSize: 14, color: cores.slate400, textAlign: "center", lineHeight: 20 },
   linkVoltar: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 6 },
@@ -307,20 +355,17 @@ const styles = StyleSheet.create({
   stepOff: { opacity: 0.3 },
   stepValor: { minWidth: 34, textAlign: "center", fontSize: 16, fontWeight: "700", color: cores.branco },
 
+  toggleScoreRotulo: { fontSize: 13, fontWeight: "500", color: cores.slate300 },
   toggleScore: {
+    width: 32,
     height: 32,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
-    flexDirection: "row",
-    gap: 4,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.avisoBorda,
   },
   toggleScoreOn: { backgroundColor: cores.teal, borderColor: cores.teal },
-  toggleScoreTexto: { fontSize: 12, fontWeight: "600", color: cores.slate400 },
-  toggleScoreTextoOn: { color: cores.dark },
 
   seg: {
     flexDirection: "row",
@@ -329,7 +374,15 @@ const styles = StyleSheet.create({
     borderColor: cores.campoBorda,
     overflow: "hidden",
   },
-  segBtn: { paddingHorizontal: 10, height: 32, alignItems: "center", justifyContent: "center" },
+  segBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    height: 32,
+  },
+  segBtnExpandido: { flex: 1 },
   segBtnOn: { backgroundColor: cores.teal },
   segTexto: { fontSize: 12, fontWeight: "600", color: cores.slate400 },
   segTextoOn: { color: cores.dark },
@@ -354,7 +407,10 @@ const styles = StyleSheet.create({
   cardEu: { borderColor: cores.teal, borderWidth: 2 },
   cardEsq: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
   cardNome: { fontSize: 15, fontWeight: "600", color: cores.branco },
-  cardLinha2: { marginTop: 1, fontSize: 12, color: cores.slate400 },
+  cardLinha2: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginTop: 1, gap: 4 },
+  cardLinha2Item: { flexDirection: "row", alignItems: "center", gap: 3 },
+  cardLinha2Texto: { fontSize: 12, color: cores.slate400 },
+  cardLinha2Separador: { fontSize: 12, color: cores.slate400 },
 
   rodape: {
     position: "absolute",

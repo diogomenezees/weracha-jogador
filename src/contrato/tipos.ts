@@ -380,6 +380,8 @@ export type MembroGrupo = {
   posicaoId: string | null;
   /** "AAAA-MM-DD" ou null. Mensalista enquanto >= hoje. */
   mensalistaAte: string | null;
+  /** Quando entrou no grupo. ISO 8601. */
+  criadoEm: string;
 };
 
 /** Só os campos que a tela usa (a resposta traz o row inteiro de posicoes_esporte). */

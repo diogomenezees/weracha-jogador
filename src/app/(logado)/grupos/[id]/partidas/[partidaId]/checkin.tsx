@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { AppState, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Text } from "@/ui/Texto";
-import { X } from "@/ui/Icone";
+import {
+  ArrowDownAZ,
+  Clock,
+  Eye,
+  EyeOff,
+  Share2,
+  Star,
+  Trash2,
+  UserCheck,
+  Wallet,
+  X,
+} from "@/ui/Icone";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import {
@@ -16,6 +27,7 @@ import {
 } from "@/api/checkins";
 import { buscarResultadoAtivo } from "@/api/partidas";
 import { definirMensalista } from "@/api/jogadores";
+import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { FormNovoJogador } from "@/jogadores/FormNovoJogador";
 import { ModalPerfil } from "@/jogadores/modais";
@@ -28,12 +40,15 @@ import {
   Eyebrow,
   Rodape,
   BotaoPrimario,
-  SegOrdenacao,
   TelaPartida,
-  ToggleScore,
 } from "@/partida/ui";
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
-import { dentroDaJanelaDeCheckin, JANELA_CHECKIN_ANTES_HORAS } from "@/partidas";
+import {
+  dentroDaJanelaDeCheckin,
+  formatarDiaSemanaData,
+  formatarHora,
+  JANELA_CHECKIN_ANTES_HORAS,
+} from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type {
@@ -45,7 +60,7 @@ import type {
   TipoPagamento,
 } from "@/contrato/tipos";
 
-type Ordenacao = "NOME" | "MENSALISTA" | "SCORE";
+type Ordenacao = "NOME" | "CHEGADA" | "MENSALISTA" | "SCORE";
 
 export default function TelaCheckin() {
   const { id, partidaId } = useLocalSearchParams<{ id: string; partidaId: string }>();
@@ -132,6 +147,10 @@ export default function TelaCheckin() {
     () => new Map((apoio?.checkins ?? []).map((c) => [c.jogadorId, c.scoreNoCheckin ?? 50])),
     [apoio?.checkins]
   );
+  const criadoEmPorJogador = useMemo(
+    () => new Map((apoio?.membros ?? []).map((m) => [m.jogadorId, m.criadoEm])),
+    [apoio?.membros]
+  );
   const pagamentoPorJogador = useMemo(
     () =>
       new Map<string, TipoPagamento>(
@@ -189,14 +208,14 @@ export default function TelaCheckin() {
 
   if (erro) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
       </TelaPartida>
     );
   }
   if (grupo === undefined || partida === undefined) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaCarregando mensagem="Carregando check-in..." />
       </TelaPartida>
     );
@@ -205,21 +224,21 @@ export default function TelaCheckin() {
   const partidaAtual = partida;
   if (!grupoAtual || !partidaAtual) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <AvisoPartida mensagem="Partida não encontrada." destino="/painel" rotuloDestino="Painel" />
       </TelaPartida>
     );
   }
   if (!apoio) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaCarregando mensagem="Carregando check-in..." />
       </TelaPartida>
     );
   }
   if (partidaAtual.cancelada) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <AvisoPartida
           mensagem="Essa partida foi cancelada."
           destino={`/grupos/${id}`}
@@ -235,7 +254,7 @@ export default function TelaCheckin() {
     )
   ) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <AvisoPartida
           mensagem={`O check-in abre ${JANELA_CHECKIN_ANTES_HORAS} horas antes do início da partida.`}
           destino={`/grupos/${id}`}
@@ -249,7 +268,11 @@ export default function TelaCheckin() {
     .map((jid) => jogadorPorId.get(jid))
     .filter((j): j is JogadorEmPartida => !!j)
     .sort((a, b) => {
-      if (ordenacao === "MENSALISTA") {
+      if (ordenacao === "CHEGADA") {
+        const ca = new Date(criadoEmPorJogador.get(a.id) ?? 0).getTime();
+        const cb = new Date(criadoEmPorJogador.get(b.id) ?? 0).getTime();
+        if (ca !== cb) return cb - ca;
+      } else if (ordenacao === "MENSALISTA") {
         const pa = pagamentoPorJogador.get(a.id) ?? "AVULSO";
         const pb = pagamentoPorJogador.get(b.id) ?? "AVULSO";
         if (pa !== pb) return pa === "MENSALISTA" ? -1 : 1;
@@ -281,12 +304,40 @@ export default function TelaCheckin() {
 
   const podeAvancar = confirmados.length >= 2;
 
+  // Compartilha o link direto do check-in, pra quem não está com o celular
+  // que passa de mão em mão dar entrada sozinho (espelha
+  // weracha-site/app/grupos/[id]/partidas/[partidaId]/checkin/page.tsx).
+  async function compartilhar() {
+    if (!grupoAtual || !partidaAtual) return;
+    const data = new Date(partidaAtual.data);
+    const link = `${PRODUCAO_URL}/grupos/${id}/partidas/${partidaId}/checkin`;
+    const texto =
+      `Faz seu check-in pro racha do grupo *${grupoAtual.nome}*!\n` +
+      `📅 ${formatarDiaSemanaData(data)} às ${formatarHora(data)}\n\n` +
+      `Confirma presença direto no link:\n${link}`;
+    try {
+      await Share.share({ message: texto });
+    } catch {
+      // cancelou
+    }
+  }
+
   return (
-    <TelaPartida>
+    <TelaPartida voltar="Grupo">
       <Cabecalho
         titulo="Lista de presença"
+        Icone={UserCheck}
         grupoNome={grupoAtual.nome}
         descricao={partidaAtual.descricao}
+        direita={
+          <Pressable
+            hitSlop={8}
+            accessibilityLabel="Compartilhar link do check-in"
+            onPress={() => void compartilhar()}
+          >
+            <Share2 size={18} color={cores.orange} />
+          </Pressable>
+        }
       />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {souAdmin && (
@@ -348,18 +399,49 @@ export default function TelaCheckin() {
         )}
 
         <View style={styles.tituloLinha}>
-          <Eyebrow>Confirmados ({confirmados.length})</Eyebrow>
+          <Eyebrow>Jogadores ({confirmados.length})</Eyebrow>
           <View style={styles.tituloAcoes}>
-            <SegOrdenacao
-              opcoes={[
-                { chave: "NOME", rotulo: "A-Z" },
-                { chave: "MENSALISTA", rotulo: "Mensal" },
-                { chave: "SCORE", rotulo: "Score" },
-              ]}
-              valor={ordenacao}
-              onChange={setOrdenacao}
-            />
-            {souAdmin && <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} />}
+            <View style={styles.ordGrupo}>
+              {(
+                [
+                  ["NOME", ArrowDownAZ, "Ordenar por nome"],
+                  ["CHEGADA", Clock, "Ordenar por chegada (mais novo primeiro)"],
+                  ["MENSALISTA", Wallet, "Ordenar por mensalista/avulso"],
+                  ["SCORE", Star, "Ordenar por score"],
+                ] as const
+              ).map(([v, Icone, rotulo], i) => (
+                <Pressable
+                  key={v}
+                  accessibilityLabel={rotulo}
+                  style={[
+                    styles.ordBtn,
+                    i > 0 && styles.ordBtnDivisor,
+                    ordenacao === v && styles.ordBtnAtivo,
+                  ]}
+                  onPress={() => setOrdenacao(v)}
+                >
+                  <Icone size={16} color={ordenacao === v ? cores.dark : cores.slate400} />
+                </Pressable>
+              ))}
+            </View>
+            {souAdmin && (
+              <>
+                <Text style={styles.scoreRotulo}>Score:</Text>
+                <Pressable
+                  accessibilityLabel={
+                    verScore ? "Ocultar score dos jogadores" : "Mostrar score dos jogadores"
+                  }
+                  style={[styles.verScore, verScore && styles.verScoreAtivo]}
+                  onPress={() => setVerScore((v) => !v)}
+                >
+                  {verScore ? (
+                    <Eye size={16} color={cores.dark} />
+                  ) : (
+                    <EyeOff size={16} color={cores.slate400} />
+                  )}
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
 
@@ -430,8 +512,6 @@ export default function TelaCheckin() {
       </ScrollView>
 
       <Rodape
-        voltarRotulo="Grupo"
-        onVoltar={() => router.replace(`/grupos/${id}`)}
         primario={
           resultado ? (
             <BotaoPrimario
@@ -469,7 +549,8 @@ export default function TelaCheckin() {
       />
       <ModalConfirmar
         aberto={confirmar?.tipo === "removerOutro"}
-        eyebrow="Remover check-in"
+        Icone={Trash2}
+        eyebrow="Ação irreversível"
         titulo={
           confirmar?.tipo === "removerOutro"
             ? `Remover ${confirmar.jogador.nome} da lista?`
@@ -493,6 +574,7 @@ export default function TelaCheckin() {
       />
       <ModalConfirmar
         aberto={confirmar?.tipo === "pagamento"}
+        Icone={Wallet}
         eyebrow="Confirmar mudança"
         titulo={
           confirmar?.tipo === "pagamento"
@@ -614,8 +696,39 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   aguardandoTexto: { fontSize: 13, lineHeight: 18, color: cores.slate300 },
-  tituloLinha: { gap: 8 },
-  tituloAcoes: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  tituloLinha: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  tituloAcoes: { flexDirection: "row", alignItems: "center", gap: 8 },
+  ordGrupo: {
+    flexDirection: "row",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.avisoBorda,
+    overflow: "hidden",
+  },
+  ordBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ordBtnDivisor: { borderLeftWidth: 1, borderLeftColor: cores.avisoBorda },
+  ordBtnAtivo: { backgroundColor: cores.teal },
+  scoreRotulo: { fontSize: 13, fontWeight: "500", color: cores.slate300 },
+  verScore: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.avisoBorda,
+  },
+  verScoreAtivo: { backgroundColor: cores.teal, borderColor: cores.teal },
   vazio: {
     borderRadius: raio.campo,
     borderWidth: 1,

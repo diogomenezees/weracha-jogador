@@ -256,7 +256,7 @@ export default function TelaResultado() {
           <View style={styles.cabDireita}>
             {encerrada && (
               <Pressable hitSlop={8} onPress={() => void compartilhar()}>
-                <Share2 size={18} color={cores.slate300} />
+                <Share2 size={18} color={cores.orange} />
               </Pressable>
             )}
             {souAdmin && !encerrada && (
@@ -275,7 +275,11 @@ export default function TelaResultado() {
           <View style={{ gap: 14 }}>
             <View style={styles.timesTopo}>
               <Eyebrow>{encerrada ? "Resultado final" : "Vão jogar agora"}</Eyebrow>
-              {souAdmin && <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} />}
+              {souAdmin && (
+                <View style={styles.scoreToggleGrupo}>
+                  <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} />
+                </View>
+              )}
             </View>
             {montado.times.length === 0 && montado.proximos.length === 0 ? (
               <Text style={styles.avisoErro}>Não foi possível formar nem um time completo.</Text>
@@ -603,6 +607,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
   cabDireita: { flexDirection: "row", gap: 12, paddingTop: 4 },
   timesTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  scoreToggleGrupo: { flexDirection: "row", alignItems: "center", gap: 8 },
   avisoErro: {
     borderRadius: raio.campo,
     borderWidth: 1,

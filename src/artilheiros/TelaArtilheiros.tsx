@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
@@ -12,21 +12,20 @@ import {
   zeradosDoPeriodo,
 } from "@/artilheiros/ranking";
 import { cores, raio } from "@/tema";
-import type { DadosArtilheiros } from "@/contrato/tipos";
-
-const MEDALHAS = ["🥇", "🥈", "🥉"];
+import type { DadosArtilheiros, LinhaRanking, PeriodoArtilheiros } from "@/contrato/tipos";
 
 export function TelaArtilheiros({
   dados,
   aoTrocarEsporte,
   esporteCarregando = null,
-  linkCompartilhar,
+  aoMudarContexto,
 }: {
   dados: DadosArtilheiros;
   aoTrocarEsporte?: (esporte: string) => void;
   esporteCarregando?: string | null;
-  /** URL base pro compartilhar (só escopo grupo). Ativa o botão de compartilhar. */
-  linkCompartilhar?: string;
+  /** Reporta o período aberto + ranking dele pro pai montar o compartilhamento
+   * (o botão mora no cabeçalho da tela, não aqui — mesmo desenho do site). */
+  aoMudarContexto?: (ctx: { periodo: PeriodoArtilheiros; ranking: LinhaRanking[] }) => void;
 }) {
   const [periodoChave, setPeriodoChave] = useState(dados.periodoInicial);
   const [zeradosAbertos, setZeradosAbertos] = useState(false);
@@ -63,24 +62,9 @@ export function TelaArtilheiros({
     ]);
   }
 
-  async function compartilhar() {
-    if (!linkCompartilhar || !ehGrupo || top3.length === 0 || !periodo) return;
-    const grupoNome = dados.escopo.tipo === "grupo" ? dados.escopo.grupoNome : "";
-    const linhas = top3
-      .map((j, i) => `${MEDALHAS[i] ?? `${i + 1}º`} ${j.nome}: ${golsLabel(j.gols)}`)
-      .join("\n");
-    const titulo =
-      periodo.chave === CHAVE_GERAL
-        ? `🏆 Artilheiros do grupo ${grupoNome}`
-        : `🏆 Artilheiros de ${mesNaFrase(periodo.rotulo)} no grupo ${grupoNome}`;
-    try {
-      await Share.share({
-        message: `${titulo}\n\n${linhas}\n\nRanking completo:\n${linkCompartilhar}`,
-      });
-    } catch {
-      // cancelou
-    }
-  }
+  useEffect(() => {
+    if (periodo) aoMudarContexto?.({ periodo, ranking });
+  }, [periodo, ranking, aoMudarContexto]);
 
   return (
     <View style={[styles.container, trocando && styles.trocando]}>
@@ -126,12 +110,6 @@ export function TelaArtilheiros({
             })}
           </ScrollView>
         </View>
-      )}
-
-      {linkCompartilhar && ehGrupo && top3.length > 0 && (
-        <Pressable style={styles.compartilhar} onPress={() => void compartilhar()}>
-          <Text style={styles.compartilharTexto}>Compartilhar ranking</Text>
-        </Pressable>
       )}
 
       <Podio top3={top3} />
@@ -258,15 +236,6 @@ const styles = StyleSheet.create({
   ponto: { width: 4, height: 4, borderRadius: 2 },
   pontoAtivo: { backgroundColor: cores.dark },
   pontoInativo: { backgroundColor: cores.teal },
-  compartilhar: {
-    alignSelf: "flex-start",
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.avisoBorda,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  compartilharTexto: { fontSize: 13, fontWeight: "600", color: cores.teal },
   vazio: {
     borderRadius: raio.card,
     borderWidth: 1,

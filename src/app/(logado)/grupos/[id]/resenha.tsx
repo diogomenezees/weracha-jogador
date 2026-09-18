@@ -8,11 +8,12 @@ import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarFeedResenha } from "@/api/resenha";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BlocoCard } from "@/resenha/BlocoCard";
+import { RefreshCw, Users, VideoOff } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
-import { cores } from "@/tema";
+import { cores, raio } from "@/tema";
 import type { BlocoFeedResenha, FeedResenha } from "@/contrato/tipos";
 
 export default function ResenhaDoGrupo() {
@@ -125,17 +126,36 @@ export default function ResenhaDoGrupo() {
         onEndReached={() => void carregarMais()}
         ListHeaderComponent={
           <View style={styles.cabecalho}>
-            <TituloTela>Resenha</TituloTela>
-            <Text style={styles.sub} numberOfLines={1}>
-              {grupoNome}
-            </Text>
+            <View style={styles.tituloLinha}>
+              <TituloTela>Resenha</TituloTela>
+              <Pressable
+                accessibilityLabel="Atualizar"
+                style={styles.atualizarBtn}
+                onPress={() => void atualizar()}
+                disabled={atualizando}
+              >
+                {atualizando ? (
+                  <ActivityIndicator size="small" color={cores.slate500} />
+                ) : (
+                  <RefreshCw size={18} color={cores.slate500} />
+                )}
+              </Pressable>
+            </View>
+            <View style={styles.subLinha}>
+              <Users size={12} color={cores.slate400} />
+              <Text style={styles.sub} numberOfLines={1}>
+                {grupoNome}
+              </Text>
+            </View>
             <Text style={styles.desc}>
-              Os replays comentados de todas as partidas aparecem aqui.
+              Os replays comentados de todas as partidas aparecem aqui. Comente um gol nos
+              replays da partida ou na tela de cada jogador.
             </Text>
           </View>
         }
         ListEmptyComponent={
           <View style={styles.vazio}>
+            <VideoOff size={24} color={cores.slate500} />
             <Text style={styles.vazioTexto}>Ainda não rolou reação nenhuma nesse grupo.</Text>
           </View>
         }
@@ -171,10 +191,19 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   lista: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 16 },
   cabecalho: { gap: 4, marginBottom: 2 },
+  tituloLinha: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
+  atualizarBtn: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.campo,
+  },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
-  sub: { fontSize: 14, color: cores.slate400 },
+  subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
+  sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
   desc: { fontSize: 13, color: cores.slate500, marginTop: 4 },
-  vazio: { paddingVertical: 48, alignItems: "center" },
+  vazio: { paddingVertical: 48, alignItems: "center", gap: 12 },
   vazioTexto: { fontSize: 14, color: cores.slate400, textAlign: "center" },
   mais: { height: 44, alignItems: "center", justifyContent: "center" },
   maisTexto: { fontSize: 13, fontWeight: "600", color: cores.slate400 },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -17,7 +17,7 @@ import {
 import { adicionarCor, buscarCoresDoGrupo, desativarCor } from "@/api/cores";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
-import { ModalConfirmar } from "@/grupo/modais";
+import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
 import { ModalPerfil } from "@/jogadores/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import {
@@ -35,6 +35,7 @@ import {
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import { dentroDaJanelaDeCheckin, sugerirJogadoresPorTime } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
+import { ArrowDownAZ, Clock, Plus, Settings, Shield, Shuffle, Star } from "@/ui/Icone";
 import { cores, raio } from "@/tema";
 import type {
   CorGrupo,
@@ -45,7 +46,7 @@ import type {
   PartidaResumo,
 } from "@/contrato/tipos";
 
-type Ordenacao = "NOME" | "SCORE";
+type Ordenacao = "NOME" | "SCORE" | "CHEGADA";
 
 const SWATCHES = [
   "#ef4444",
@@ -65,6 +66,7 @@ type Presente = {
   score: number;
   posicaoNome: string | null;
   ehGoleiro: boolean;
+  checkinEm: string;
 };
 
 export default function TelaConfigurar() {
@@ -85,7 +87,7 @@ export default function TelaConfigurar() {
   const [golsParaEncerrar, setGolsParaEncerrar] = useState(0);
   const [coresPaleta, setCoresPaleta] = useState<CorGrupo[]>([]);
   const [fixacoes, setFixacoes] = useState<Record<string, number>>({});
-  const [hexManual, setHexManual] = useState("");
+  const [paletaAberta, setPaletaAberta] = useState(false);
   const [verScore, setVerScore] = useState(false);
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("NOME");
 
@@ -155,6 +157,9 @@ export default function TelaConfigurar() {
   const sobra = bloqueado ? 0 : total - timesPossiveis * jogadoresPorTime;
   const comPosicao = presentes.filter((p) => p.posicaoNome).length;
   const goleiros = presentes.filter((p) => p.ehGoleiro).length;
+  const coresDisponiveis = SWATCHES.filter(
+    (hex) => !coresPaleta.some((c) => c.hex.toLowerCase() === hex)
+  );
 
   const contagemFixadosPorTime = useMemo(
     () =>
@@ -169,22 +174,22 @@ export default function TelaConfigurar() {
     () =>
       [...presentes].sort((a, b) => {
         if (ordenacao === "SCORE" && a.score !== b.score) return b.score - a.score;
+        if (ordenacao === "CHEGADA") {
+          const ca = new Date(a.checkinEm).getTime();
+          const cb = new Date(b.checkinEm).getTime();
+          if (ca !== cb) return cb - ca;
+        }
         return a.jogador.nome.localeCompare(b.jogador.nome, "pt-BR");
       }),
     [presentes, ordenacao]
   );
 
   async function handleAdicionarCor(hex: string) {
-    const limpo = hex.trim().toLowerCase();
-    if (!/^#[0-9a-f]{6}$/.test(limpo)) {
-      setErroSorteio("Cor inválida. Use o formato #RRGGBB.");
-      return;
-    }
     try {
-      const cor = await adicionarCor(chamarApi, id, limpo);
+      const cor = await adicionarCor(chamarApi, id, hex);
       setCoresPaleta((prev) => [...prev, cor]);
-      setHexManual("");
       setErroSorteio(null);
+      setPaletaAberta(false);
     } catch (e) {
       setErroSorteio(mensagemDoErro(e));
     }
@@ -278,16 +283,17 @@ export default function TelaConfigurar() {
 
   return (
     <TelaPartida>
-      <Cabecalho titulo="Configurar partida" grupoNome={g.nome} descricao={p.descricao} />
+      <Cabecalho titulo="Configurar partida" Icone={Settings} grupoNome={g.nome} descricao={p.descricao} />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <SegOrdenacao
           opcoes={[
-            { chave: "SCORE", rotulo: "Score" },
-            { chave: "POSICAO", rotulo: "Posição" },
-            { chave: "SORTE", rotulo: "Sorte" },
+            { chave: "SCORE", rotulo: "Score", Icone: Star },
+            { chave: "POSICAO", rotulo: "Posição", Icone: Shield },
+            { chave: "SORTE", rotulo: "Sorte", Icone: Shuffle },
           ]}
           valor={modo}
           onChange={setModo}
+          expandir
         />
 
         <View style={styles.bloco}>
@@ -325,33 +331,15 @@ export default function TelaConfigurar() {
                 onPress={() => setCorParaRemover(cor)}
               />
             ))}
-          </View>
-          <Text style={styles.coresNota}>Toque numa cor cadastrada pra remover. Adicione:</Text>
-          <View style={styles.coresLinha}>
-            {SWATCHES.map((hex) => (
-              <Pressable
-                key={hex}
-                style={[styles.swatchAdd, { backgroundColor: hex }]}
-                onPress={() => void handleAdicionarCor(hex)}
-              />
-            ))}
-          </View>
-          <View style={styles.hexLinha}>
-            <TextInput
-              placeholder="#RRGGBB"
-              placeholderTextColor={cores.slate500}
-              value={hexManual}
-              onChangeText={setHexManual}
-              autoCapitalize="none"
-              style={styles.hexInput}
-            />
             <Pressable
-              style={styles.hexBtn}
-              onPress={() => void handleAdicionarCor(hexManual)}
+              style={styles.swatchAdicionar}
+              onPress={() => setPaletaAberta(true)}
+              accessibilityLabel="Adicionar cor de colete"
             >
-              <Text style={styles.hexBtnTexto}>Adicionar</Text>
+              <Plus size={16} color={cores.teal} />
             </Pressable>
           </View>
+          <Text style={styles.coresNota}>Toque numa cor cadastrada pra remover.</Text>
         </View>
 
         {capacidadeExcedida && (
@@ -363,14 +351,28 @@ export default function TelaConfigurar() {
         <View style={styles.tituloLinha}>
           <Eyebrow>Jogadores ({total})</Eyebrow>
           <View style={styles.tituloAcoes}>
-            <SegOrdenacao
-              opcoes={[
-                { chave: "NOME", rotulo: "A-Z" },
-                { chave: "SCORE", rotulo: "Score" },
-              ]}
-              valor={ordenacao}
-              onChange={setOrdenacao}
-            />
+            <View style={styles.ordGrupo}>
+              {(
+                [
+                  ["NOME", ArrowDownAZ, "Ordenar por nome"],
+                  ["CHEGADA", Clock, "Ordenar por chegada (mais novo primeiro)"],
+                  ["SCORE", Star, "Ordenar por score"],
+                ] as const
+              ).map(([v, Icone, rotulo], i) => (
+                <Pressable
+                  key={v}
+                  accessibilityLabel={rotulo}
+                  style={[
+                    styles.ordBtn,
+                    i > 0 && styles.ordBtnDivisor,
+                    ordenacao === v && styles.ordBtnAtivo,
+                  ]}
+                  onPress={() => setOrdenacao(v)}
+                >
+                  <Icone size={16} color={ordenacao === v ? cores.dark : cores.slate400} />
+                </Pressable>
+              ))}
+            </View>
             <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} />
           </View>
         </View>
@@ -466,6 +468,24 @@ export default function TelaConfigurar() {
         onFechar={() => setMenuFixar(null)}
       />
 
+      <ModalCartao aberto={paletaAberta} onFechar={() => setPaletaAberta(false)}>
+        <Eyebrow>Cores</Eyebrow>
+        <Text style={styles.paletaTitulo}>Adicionar cor de colete</Text>
+        {coresDisponiveis.length > 0 ? (
+          <View style={styles.paletaGrade}>
+            {coresDisponiveis.map((hex) => (
+              <Pressable
+                key={hex}
+                style={[styles.swatch, { backgroundColor: hex }]}
+                onPress={() => void handleAdicionarCor(hex)}
+              />
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.coresNota}>Todas as cores já estão cadastradas.</Text>
+        )}
+      </ModalCartao>
+
       <ModalConfirmar
         aberto={corParaRemover !== null}
         eyebrow="Cores"
@@ -535,6 +555,7 @@ function montarPresentes(apoio: DadosDeApoioDaPartida): Presente[] {
         score: scorePorId.get(jogador.id) ?? 50,
         posicaoNome: posId ? (posNomePorId.get(posId) ?? null) : null,
         ehGoleiro: posId ? (posGoleiroPorId.get(posId) ?? false) : false,
+        checkinEm: c.checkinEm,
       };
     })
     .filter((x): x is Presente => !!x);
@@ -556,38 +577,31 @@ const styles = StyleSheet.create({
   blocoOk: { fontSize: 13, fontWeight: "600", color: "#6ee7b7" },
   coresLinha: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   swatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
-  swatchAdd: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  swatchAdicionar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
-  coresNota: { fontSize: 12, color: cores.slate400 },
-  hexLinha: { flexDirection: "row", gap: 8 },
-  hexInput: {
-    flex: 1,
-    height: 40,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
-    backgroundColor: cores.campoFundo,
-    paddingHorizontal: 10,
-    fontSize: 14,
-    color: cores.branco,
-  },
-  hexBtn: {
-    height: 40,
-    paddingHorizontal: 14,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
+    borderStyle: "dashed",
+    borderColor: cores.teal,
     alignItems: "center",
     justifyContent: "center",
   },
-  hexBtnTexto: { fontSize: 13, fontWeight: "600", color: cores.slate300 },
-  tituloLinha: { gap: 8 },
-  tituloAcoes: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  coresNota: { fontSize: 12, color: cores.slate400 },
+  paletaTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
+  paletaGrade: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
+  tituloLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  tituloAcoes: { flexDirection: "row", alignItems: "center", gap: 8 },
+  ordGrupo: {
+    flexDirection: "row",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.avisoBorda,
+    overflow: "hidden",
+  },
+  ordBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  ordBtnDivisor: { borderLeftWidth: 1, borderLeftColor: cores.avisoBorda },
+  ordBtnAtivo: { backgroundColor: cores.teal },
   avisoPos: {
     borderRadius: raio.campo,
     borderWidth: 1,

@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "reac
 import { Text } from "@/ui/Texto";
 
 import { buscarPerfilJogador } from "@/api/jogadores";
-import { Phone } from "@/ui/Icone";
+import { CalendarDays, Goal, Shield, Star, Users, type LucideIcon } from "@/ui/Icone";
 import { ModalCartao } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { AvatarJogador } from "@/ui/AvatarJogador";
@@ -39,8 +39,14 @@ export function ModalScore({
 
   return (
     <ModalCartao aberto={aberto} onFechar={onFechar}>
-      <Text style={styles.eyebrow}>Score</Text>
-      <Text style={styles.titulo}>Score de {nome}</Text>
+      <View style={styles.eyebrowLinha}>
+        <Star size={16} color={cores.teal} />
+        <Text style={styles.eyebrow}>Editar score</Text>
+      </View>
+      <Text style={styles.titulo}>{nome}</Text>
+      <Text style={styles.descricao}>
+        Score desse jogador só nesse grupo, não afeta os outros grupos dele.
+      </Text>
       <View style={styles.stepper}>
         <Pressable style={styles.stepBtn} onPress={() => setValor((v) => Math.max(0, v - 1))}>
           <Text style={styles.stepBtnTexto}>−</Text>
@@ -93,8 +99,14 @@ export function ModalPosicao({
 }) {
   return (
     <ModalCartao aberto={aberto} onFechar={onFechar}>
-      <Text style={styles.eyebrow}>Posição</Text>
-      <Text style={styles.titulo}>Posição de {nome}</Text>
+      <View style={styles.eyebrowLinha}>
+        <Shield size={16} color={cores.teal} />
+        <Text style={styles.eyebrow}>Editar posição</Text>
+      </View>
+      <Text style={styles.titulo}>{nome}</Text>
+      <Text style={styles.descricao}>
+        Posição desse jogador só nesse grupo. É opcional e pode ser removida a qualquer hora.
+      </Text>
       <ScrollView style={{ maxHeight: 260 }}>
         <Pressable
           style={[styles.opcao, posicaoAtualId === null && styles.opcaoAtiva]}
@@ -159,20 +171,17 @@ export function ModalPerfil({
       ) : (
         <>
           <View style={styles.perfilTopo}>
-            <AvatarJogador id={perfil.id} nome={perfil.nome} fotoUrl={perfil.fotoUrl} tamanho={52} />
+            <AvatarJogador id={perfil.id} nome={perfil.nome} fotoUrl={perfil.fotoUrl} tamanho={64} />
             <View style={{ flex: 1 }}>
               <Text style={styles.titulo}>{perfil.nome}</Text>
               {perfil.apelido ? <Text style={styles.meta}>{perfil.apelido}</Text> : null}
+              <Text style={styles.meta}>{perfil.telefone}</Text>
             </View>
           </View>
-          <View style={styles.metaLinha}>
-            <Phone size={12} color={cores.slate400} />
-            <Text style={styles.meta}>{perfil.telefone}</Text>
-          </View>
           <View style={styles.statsLinha}>
-            <Stat n={perfil.totalGrupos} label="grupos" />
-            <Stat n={perfil.totalPartidas} label="partidas" />
-            <Stat n={perfil.totalGols} label="gols" />
+            <Stat icon={Users} n={perfil.totalGrupos} label="grupos" />
+            <Stat icon={CalendarDays} n={perfil.totalPartidas} label="partidas" />
+            <Stat icon={Goal} n={perfil.totalGols} label="gols" />
           </View>
         </>
       )}
@@ -180,9 +189,10 @@ export function ModalPerfil({
   );
 }
 
-function Stat({ n, label }: { n: number; label: string }) {
+function Stat({ icon: Icon, n, label }: { icon: LucideIcon; n: number; label: string }) {
   return (
     <View style={styles.stat}>
+      <Icon size={16} color={cores.teal} />
       <Text style={styles.statN}>{n}</Text>
       <Text style={styles.statL}>{label}</Text>
     </View>
@@ -256,6 +266,7 @@ export function ModalTransferirDono({
 }
 
 const styles = StyleSheet.create({
+  eyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   eyebrow: {
     fontSize: 11,
     fontWeight: "600",
@@ -264,8 +275,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   titulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
+  descricao: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   meta: { fontSize: 13, color: cores.slate400 },
-  metaLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   erro: { fontSize: 13, color: cores.erroTexto },
   stepper: {
     flexDirection: "row",
@@ -295,6 +306,7 @@ const styles = StyleSheet.create({
   stat: {
     flex: 1,
     alignItems: "center",
+    gap: 4,
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.cardBorda,
