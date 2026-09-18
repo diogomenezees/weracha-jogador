@@ -41,6 +41,7 @@ import {
   dentroDoPrazoDeEdicaoDeGols,
   formatarDiaSemanaData,
   formatarHora,
+  JANELA_CHECKIN_ANTES_HORAS,
   partidaAindaNaoComecou,
   partidaEncerrada,
 } from "@/partidas";
@@ -218,7 +219,7 @@ export default function TelaResultado() {
     return (
       <TelaPartida>
         <AvisoPartida
-          mensagem="Essa tela abre 30 minutos antes da partida."
+          mensagem={`Essa tela abre ${JANELA_CHECKIN_ANTES_HORAS} horas antes da partida.`}
           destino={`/grupos/${id}`}
           rotuloDestino="Grupo"
         />

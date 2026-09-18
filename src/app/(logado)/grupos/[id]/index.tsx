@@ -64,6 +64,7 @@ import {
   formatarDiaSemanaData,
   formatarHora,
   hojeISO,
+  JANELA_CHECKIN_ANTES_HORAS,
   nomeDoMes,
   partidaEncerrada,
 } from "@/partidas";
@@ -630,7 +631,9 @@ export default function TelaGrupo() {
           <View style={styles.secao}>
             <View style={styles.secaoCabecalho}>
               <Text style={styles.secaoTitulo}>Próximas partidas</Text>
-              <Text style={styles.secaoSub}>O check-in abre 30 minutos antes de cada partida.</Text>
+              <Text style={styles.secaoSub}>
+                O check-in abre {JANELA_CHECKIN_ANTES_HORAS} horas antes de cada partida.
+              </Text>
             </View>
             {proximas.map((p) => (
               <CardPartida

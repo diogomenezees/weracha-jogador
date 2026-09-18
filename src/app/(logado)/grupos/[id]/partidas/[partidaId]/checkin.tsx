@@ -33,7 +33,7 @@ import {
   ToggleScore,
 } from "@/partida/ui";
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
-import { dentroDaJanelaDeCheckin, JANELA_CHECKIN_ANTES_MIN } from "@/partidas";
+import { dentroDaJanelaDeCheckin, JANELA_CHECKIN_ANTES_HORAS } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type {
@@ -237,7 +237,7 @@ export default function TelaCheckin() {
     return (
       <TelaPartida>
         <AvisoPartida
-          mensagem={`O check-in abre ${JANELA_CHECKIN_ANTES_MIN} minutos antes do início da partida.`}
+          mensagem={`O check-in abre ${JANELA_CHECKIN_ANTES_HORAS} horas antes do início da partida.`}
           destino={`/grupos/${id}`}
           rotuloDestino="Grupo"
         />

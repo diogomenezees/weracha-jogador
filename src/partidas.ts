@@ -31,7 +31,8 @@ export function hojeISO(): string {
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
-export const JANELA_CHECKIN_ANTES_MIN = 30;
+export const JANELA_CHECKIN_ANTES_MIN = 8 * 60;
+export const JANELA_CHECKIN_ANTES_HORAS = JANELA_CHECKIN_ANTES_MIN / 60;
 const JANELA_CHECKIN_TOLERANCIA_DEPOIS_MIN = 10;
 
 /** Duração da partida: snapshot, ou recalculada do(s) horário(s) do grupo. */
