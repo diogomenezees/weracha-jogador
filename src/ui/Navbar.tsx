@@ -54,7 +54,13 @@ const ITENS: Item[] = [
   { rotulo: "Sorteio rápido", Icone: Shuffle, tipo: "rota", rota: "/sorteio" },
 ];
 
-export function Navbar({ voltar }: { voltar?: string }) {
+export function Navbar({
+  voltar,
+  onVoltar,
+}: {
+  voltar?: string;
+  onVoltar?: () => void;
+}) {
   const [aberto, setAberto] = useState(false);
 
   return (
@@ -63,7 +69,7 @@ export function Navbar({ voltar }: { voltar?: string }) {
         <Pressable
           hitSlop={10}
           style={styles.voltarBotao}
-          onPress={() => router.back()}
+          onPress={onVoltar ?? (() => router.back())}
           accessibilityRole="button"
           accessibilityLabel={`Voltar para ${voltar}`}
         >
@@ -71,6 +77,7 @@ export function Navbar({ voltar }: { voltar?: string }) {
           {voltar === "Grupo" && <Users size={18} color={cores.slate400} />}
           {voltar === "Painel" && <LayoutDashboard size={18} color={cores.slate400} />}
           {voltar === "Check-in" && <UserCheck size={18} color={cores.slate400} />}
+          {voltar === "Times" && <Users size={18} color={cores.slate400} />}
           <Text style={styles.voltarTexto}>{voltar}</Text>
         </Pressable>
       ) : (

@@ -44,7 +44,6 @@ import {
   Cabecalho,
   CardJogadorPartida,
   Eyebrow,
-  Rodape,
   BotaoPrimario,
   Stepper,
   TelaPartida,
@@ -194,6 +193,8 @@ export default function TelaAoVivo() {
       .catch(() => {});
   }, [aba, totMarcados, totGravados, totLances, totLancesGrav, totNuvem, partida, chamarApi, partidaId]);
 
+  const irParaTimes = () => router.replace(`/grupos/${id}/partidas/${partidaId}/resultado`);
+
   function comemorar(titulo: string, sub?: string) {
     // `key` incremental remonta o <Comemoracao> a cada gol/lance.
     setComemoracao((prev) => ({ titulo, sub, key: (prev?.key ?? 0) + 1 }));
@@ -247,14 +248,14 @@ export default function TelaAoVivo() {
 
   if (erro) {
     return (
-      <TelaPartida voltar="Grupo">
+      <TelaPartida voltar="Times" onVoltar={irParaTimes}>
         <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
       </TelaPartida>
     );
   }
   if (grupo === undefined || partida === undefined) {
     return (
-      <TelaPartida voltar="Grupo">
+      <TelaPartida voltar="Times" onVoltar={irParaTimes}>
         <TelaCarregando mensagem="Carregando ao vivo..." />
       </TelaPartida>
     );
@@ -263,14 +264,14 @@ export default function TelaAoVivo() {
   const p = partida;
   if (!g || !p) {
     return (
-      <TelaPartida voltar="Grupo">
+      <TelaPartida voltar="Times" onVoltar={irParaTimes}>
         <AvisoPartida mensagem="Partida não encontrada." destino="/painel" rotuloDestino="Painel" />
       </TelaPartida>
     );
   }
   if (!aoVivo) {
     return (
-      <TelaPartida voltar="Grupo">
+      <TelaPartida voltar="Times" onVoltar={irParaTimes}>
         <TelaCarregando mensagem="Carregando ao vivo..." />
       </TelaPartida>
     );
@@ -316,7 +317,7 @@ export default function TelaAoVivo() {
   ];
 
   return (
-    <TelaPartida voltar="Grupo">
+    <TelaPartida voltar="Times" onVoltar={irParaTimes}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Cabecalho titulo="Ao vivo" Icone={Radio} grupoNome={g.nome} descricao={p.descricao} />
         {config.duracaoRodadaMin > 0 ? (
@@ -380,7 +381,7 @@ export default function TelaAoVivo() {
           </Pressable>
         )}
 
-        <Abas opcoes={abas} valor={abaVisivel} onChange={setAba} />
+        <Abas opcoes={abas} valor={abaVisivel} onChange={setAba} compacto />
 
         {abaVisivel === "ARTILHEIROS" ? (
           <View style={{ gap: 10 }}>
@@ -390,6 +391,7 @@ export default function TelaAoVivo() {
                 Icone={Sparkles}
                 desativado={cooldownLance}
                 onPress={() => void handleLance()}
+                compacto
               />
             )}
             <View style={styles.tituloLinha}>
@@ -502,7 +504,12 @@ export default function TelaAoVivo() {
             {gols === null ? (
               <Text style={styles.vazio}>Carregando gols...</Text>
             ) : modoGols === "CRONOLOGICO" ? (
-              <ListaReplays gols={gols} vazioTexto="Nenhum gol registrado ainda." meuId={meuId} />
+              <ListaReplays
+                gols={gols}
+                vazioTexto="Nenhum gol registrado ainda."
+                meuId={meuId}
+                mostrarStatusGravacao={aoVivo.cameraAtiva}
+              />
             ) : goleadores.length === 0 ? (
               <Text style={styles.vazio}>Nenhum gol registrado ainda.</Text>
             ) : (
@@ -539,18 +546,6 @@ export default function TelaAoVivo() {
           </View>
         )}
       </ScrollView>
-
-      <Rodape
-        primario={
-          <Pressable
-            style={styles.verTimesBtn}
-            onPress={() => router.replace(`/grupos/${id}/partidas/${partidaId}/resultado`)}
-          >
-            <Users size={16} color={cores.orange} />
-            <Text style={styles.verTimesTexto}>Ver os times</Text>
-          </Pressable>
-        }
-      />
 
       {comemoracao && (
         <Comemoracao
@@ -708,22 +703,7 @@ function ModalEditarCronometro({
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
-  // Contorno laranja, sem preenchimento: no site esse botão é discreto de
-  // propósito (o cronômetro/gols é o foco da tela), diferente do laranja
-  // sólido do BotaoPrimario usado nas ações principais das outras telas.
-  verTimesBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.laranjaBorda,
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  verTimesTexto: { fontSize: 15, fontWeight: "600", color: cores.orange },
+  scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24, gap: 16 },
   cron: { borderRadius: raio.card, borderWidth: 1, padding: 16, alignItems: "center", gap: 8 },
   cronParado: { borderColor: cores.cardBorda, backgroundColor: cores.cardFundo },
   cronRodando: { borderColor: "rgba(16,185,129,0.5)", backgroundColor: "rgba(16,185,129,0.1)" },

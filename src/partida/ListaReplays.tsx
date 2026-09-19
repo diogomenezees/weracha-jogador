@@ -38,12 +38,19 @@ export function ListaReplays({
   gols,
   vazioTexto,
   meuId,
+  mostrarStatusGravacao = true,
   comentar,
 }: {
   gols: GolComVideos[];
   vazioTexto: string;
   /** Realça (borda teal) a linha do gol de quem está logado, igual ao site. */
   meuId?: string | null;
+  /**
+   * Ícone de nuvem/celular/sem-replay + legenda. Desliga quando a partida nunca teve
+   * o We Racha Cam avisando que gravou (`cameraAtiva`) — sem isso, "Sem replay" em
+   * todo gol confunde quem nunca usou o Cam (ainda não está na loja).
+   */
+  mostrarStatusGravacao?: boolean;
   comentar?: {
     chamarApi: ChamarApi;
     meuJogadorId: string | null;
@@ -168,7 +175,9 @@ export function ListaReplays({
               </View>
               <View style={styles.direita}>
                 <Text style={styles.hora}>{formatarHora(new Date(g.criadoEm))}</Text>
-                <IconeStatus size={15} color={corIconeStatus} accessibilityLabel={rotuloStatus} />
+                {mostrarStatusGravacao && (
+                  <IconeStatus size={15} color={corIconeStatus} accessibilityLabel={rotuloStatus} />
+                )}
               </View>
             </View>
 
@@ -210,11 +219,13 @@ export function ListaReplays({
         );
       })}
 
-      <View style={styles.legenda}>
-        <LegendaItem Icone={MonitorPlay} texto="Replay na nuvem" />
-        <LegendaItem Icone={Smartphone} texto="Salvo no celular que gravou" />
-        <LegendaItem Icone={VideoOff} texto="Sem replay" />
-      </View>
+      {mostrarStatusGravacao && (
+        <View style={styles.legenda}>
+          <LegendaItem Icone={MonitorPlay} texto="Replay na nuvem" />
+          <LegendaItem Icone={Smartphone} texto="Salvo no celular que gravou" />
+          <LegendaItem Icone={VideoOff} texto="Sem replay" />
+        </View>
+      )}
 
       {comentar && chatDe && (
         <ChatResenha

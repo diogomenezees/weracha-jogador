@@ -19,14 +19,16 @@ import { cores, raio } from "@/tema";
 // das outras telas (voltar no header, nomeando o destino).
 export function TelaPartida({
   voltar,
+  onVoltar,
   children,
 }: {
   voltar?: string;
+  onVoltar?: () => void;
   children: ReactNode;
 }) {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
-      <Navbar voltar={voltar} />
+      <Navbar voltar={voltar} onVoltar={onVoltar} />
       {children}
     </SafeAreaView>
   );
@@ -177,17 +179,19 @@ export function Abas<T extends string>({
   opcoes,
   valor,
   onChange,
+  compacto,
 }: {
   opcoes: { chave: T; rotulo: string }[];
   valor: T;
   onChange: (v: T) => void;
+  compacto?: boolean;
 }) {
   return (
     <View style={styles.abas}>
       {opcoes.map((o) => (
         <Pressable
           key={o.chave}
-          style={[styles.aba, valor === o.chave && styles.abaOn]}
+          style={[styles.aba, compacto && styles.abaCompacta, valor === o.chave && styles.abaOn]}
           onPress={() => onChange(o.chave)}
         >
           <Text style={[styles.abaTexto, valor === o.chave && styles.abaTextoOn]}>{o.rotulo}</Text>
@@ -301,18 +305,25 @@ export function BotaoPrimario({
   desativado,
   cor = "orange",
   Icone,
+  compacto,
 }: {
   titulo: string;
   onPress: () => void;
   desativado?: boolean;
   cor?: "orange" | "red" | "teal";
   Icone?: LucideIcon;
+  compacto?: boolean;
 }) {
   const fundo = cor === "red" ? "#dc2626" : cor === "teal" ? cores.teal : cores.orange;
   const texto = cor === "red" ? cores.branco : cores.dark;
   return (
     <Pressable
-      style={[styles.primario, { backgroundColor: fundo }, desativado && styles.primarioOff]}
+      style={[
+        styles.primario,
+        compacto && styles.primarioCompacto,
+        { backgroundColor: fundo },
+        desativado && styles.primarioOff,
+      ]}
       onPress={onPress}
       disabled={desativado}
     >
@@ -394,6 +405,7 @@ const styles = StyleSheet.create({
 
   abas: { flexDirection: "row", gap: 4, backgroundColor: cores.superficieMedia, borderRadius: 10, padding: 4 },
   aba: { flex: 1, height: 34, borderRadius: 7, alignItems: "center", justifyContent: "center" },
+  abaCompacta: { height: 26 },
   abaOn: { backgroundColor: cores.teal },
   abaTexto: { fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase", color: cores.slate400 },
   abaTextoOn: { color: cores.dark },
@@ -453,6 +465,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  primarioCompacto: { height: 36 },
   primarioOff: { opacity: 0.5 },
   primarioTexto: { fontSize: 15, fontWeight: "700" },
 });
