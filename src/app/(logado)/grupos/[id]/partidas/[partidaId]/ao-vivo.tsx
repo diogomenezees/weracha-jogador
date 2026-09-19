@@ -4,7 +4,19 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { Text } from "@/ui/Texto";
 import { Comemoracao } from "@/partida/Comemoracao";
-import { Pause, Play, RotateCcw, Sparkles, Timer } from "@/ui/Icone";
+import {
+  ArrowDownAZ,
+  ArrowDownUp,
+  Goal,
+  Pause,
+  Play,
+  Radio,
+  RotateCcw,
+  Sparkles,
+  Timer,
+  Users,
+  Video,
+} from "@/ui/Icone";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarApoioDaPartida } from "@/api/checkins";
@@ -34,7 +46,6 @@ import {
   Eyebrow,
   Rodape,
   BotaoPrimario,
-  SegOrdenacao,
   Stepper,
   TelaPartida,
 } from "@/partida/ui";
@@ -57,7 +68,8 @@ type Ordenacao = "NOME" | "GOLS";
 
 export default function TelaAoVivo() {
   const { id, partidaId } = useLocalSearchParams<{ id: string; partidaId: string }>();
-  const { chamarApi } = useSessao();
+  const { chamarApi, estado: sessao } = useSessao();
+  const meuId = sessao.fase === "logado" ? sessao.jogador.id : null;
 
   const [grupo, setGrupo] = useState<Grupo | null | undefined>(undefined);
   const [partida, setPartida] = useState<PartidaResumo | null | undefined>(undefined);
@@ -71,6 +83,7 @@ export default function TelaAoVivo() {
   const [agora, setAgora] = useState(() => new Date());
   const [aba, setAba] = useState<Aba>("ARTILHEIROS");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("NOME");
+  const [modoGols, setModoGols] = useState<"AGRUPADO" | "CRONOLOGICO">("AGRUPADO");
   const [gols, setGols] = useState<GolComVideos[] | null>(null);
   const [lances, setLances] = useState<GolComVideos[] | null>(null);
   const chaveBuscada = useRef<string | null>(null);
@@ -234,14 +247,14 @@ export default function TelaAoVivo() {
 
   if (erro) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
       </TelaPartida>
     );
   }
   if (grupo === undefined || partida === undefined) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaCarregando mensagem="Carregando ao vivo..." />
       </TelaPartida>
     );
@@ -250,14 +263,14 @@ export default function TelaAoVivo() {
   const p = partida;
   if (!g || !p) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <AvisoPartida mensagem="Partida não encontrada." destino="/painel" rotuloDestino="Painel" />
       </TelaPartida>
     );
   }
   if (!aoVivo) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaCarregando mensagem="Carregando ao vivo..." />
       </TelaPartida>
     );
@@ -287,6 +300,15 @@ export default function TelaAoVivo() {
 
   const lancesComVideo = (lances ?? []).filter((l) => l.videos.length > 0);
 
+  const goleadores = presentes
+    .map((j) => ({
+      jogador: j,
+      gols: golsPorJogador[j.id] ?? 0,
+      gravados: golsGravadosPorJogador[j.id] ?? 0,
+    }))
+    .filter((x) => x.gols > 0)
+    .sort((a, b) => b.gols - a.gols || a.jogador.nome.localeCompare(b.jogador.nome, "pt-BR"));
+
   const abas: { chave: Aba; rotulo: string }[] = [
     { chave: "ARTILHEIROS", rotulo: "Artilheiros" },
     { chave: "HISTORICO", rotulo: "Histórico" },
@@ -294,9 +316,9 @@ export default function TelaAoVivo() {
   ];
 
   return (
-    <TelaPartida>
-      <Cabecalho titulo="Ao vivo" grupoNome={g.nome} descricao={p.descricao} />
+    <TelaPartida voltar="Grupo">
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Cabecalho titulo="Ao vivo" Icone={Radio} grupoNome={g.nome} descricao={p.descricao} />
         {config.duracaoRodadaMin > 0 ? (
           <View
             style={[
@@ -372,14 +394,27 @@ export default function TelaAoVivo() {
             )}
             <View style={styles.tituloLinha}>
               <Eyebrow>Lista de artilheiros ({ordenados.length})</Eyebrow>
-              <SegOrdenacao
-                opcoes={[
-                  { chave: "NOME", rotulo: "A-Z" },
-                  { chave: "GOLS", rotulo: "Gols" },
-                ]}
-                valor={ordenacao}
-                onChange={setOrdenacao}
-              />
+              <View style={styles.ordGrupo}>
+                {(
+                  [
+                    ["NOME", ArrowDownAZ, "Ordenar por nome"],
+                    ["GOLS", Goal, "Ordenar por saldo de gols"],
+                  ] as const
+                ).map(([v, Icone, rotulo], i) => (
+                  <Pressable
+                    key={v}
+                    accessibilityLabel={rotulo}
+                    style={[
+                      styles.ordBtn,
+                      i > 0 && styles.ordBtnDivisor,
+                      ordenacao === v && styles.ordBtnAtivo,
+                    ]}
+                    onPress={() => setOrdenacao(v)}
+                  >
+                    <Icone size={16} color={ordenacao === v ? cores.dark : cores.slate400} />
+                  </Pressable>
+                ))}
+              </View>
             </View>
             {ordenados.length === 0 && (
               <Text style={styles.vazio}>Ninguém fez check-in ainda.</Text>
@@ -408,7 +443,7 @@ export default function TelaAoVivo() {
                         </Pressable>
                         <Text style={styles.golN}>{n}</Text>
                         <Pressable
-                          style={styles.golBtn}
+                          style={[styles.golBtn, emCooldown.has(j.id) && styles.golBtnOff]}
                           disabled={emCooldown.has(j.id)}
                           onPress={() => void handleMarcarGol(j)}
                         >
@@ -430,24 +465,90 @@ export default function TelaAoVivo() {
           lances === null ? (
             <Text style={styles.vazio}>Carregando lances...</Text>
           ) : (
-            <ListaReplays gols={lancesComVideo} vazioTexto="Nenhum lance importante gravado ainda." />
+            <ListaReplays
+              gols={lancesComVideo}
+              vazioTexto="Nenhum lance importante gravado ainda."
+              meuId={meuId}
+            />
           )
-        ) : gols === null ? (
-          <Text style={styles.vazio}>Carregando gols...</Text>
         ) : (
-          <ListaReplays gols={gols} vazioTexto="Nenhum gol registrado ainda." />
+          <View style={{ gap: 10 }}>
+            <View style={styles.tituloLinha}>
+              <Eyebrow>
+                {modoGols === "AGRUPADO" ? "Gols por jogador" : "Linha do tempo dos gols"}
+              </Eyebrow>
+              <View style={styles.ordGrupo}>
+                {(
+                  [
+                    ["AGRUPADO", Users, "Ver agrupado por jogador"],
+                    ["CRONOLOGICO", ArrowDownUp, "Ver em ordem cronológica"],
+                  ] as const
+                ).map(([v, Icone, rotulo], i) => (
+                  <Pressable
+                    key={v}
+                    accessibilityLabel={rotulo}
+                    style={[
+                      styles.ordBtn,
+                      i > 0 && styles.ordBtnDivisor,
+                      modoGols === v && styles.ordBtnAtivo,
+                    ]}
+                    onPress={() => setModoGols(v)}
+                  >
+                    <Icone size={16} color={modoGols === v ? cores.dark : cores.slate400} />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            {gols === null ? (
+              <Text style={styles.vazio}>Carregando gols...</Text>
+            ) : modoGols === "CRONOLOGICO" ? (
+              <ListaReplays gols={gols} vazioTexto="Nenhum gol registrado ainda." meuId={meuId} />
+            ) : goleadores.length === 0 ? (
+              <Text style={styles.vazio}>Nenhum gol registrado ainda.</Text>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {goleadores.map(({ jogador, gols: n, gravados }) => (
+                  <CardJogadorPartida
+                    key={jogador.id}
+                    id={jogador.id}
+                    nome={jogador.nome}
+                    apelido={jogador.apelido}
+                    fotoUrl={jogador.fotoUrl}
+                    posicaoNome={posicaoNome.get(jogador.id)}
+                    souEu={jogador.id === meuId}
+                    onAbrirPerfil={() => setPerfilId(jogador.id)}
+                    direita={
+                      <View style={styles.agrupadoDireita}>
+                        <Text style={styles.agrupadoGols}>
+                          {n} gol{n > 1 ? "s" : ""}
+                        </Text>
+                        {gravados > 0 && (
+                          <View style={styles.agrupadoGravLinha}>
+                            <Video size={11} color={cores.slate400} />
+                            <Text style={styles.agrupadoGrav}>
+                              {gravados} gravado{gravados > 1 ? "s" : ""}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    }
+                  />
+                ))}
+              </View>
+            )}
+          </View>
         )}
       </ScrollView>
 
       <Rodape
-        voltarRotulo="Grupo"
-        onVoltar={() => router.replace(`/grupos/${id}`)}
         primario={
-          <BotaoPrimario
-            titulo="Ver os times"
-            cor="teal"
+          <Pressable
+            style={styles.verTimesBtn}
             onPress={() => router.replace(`/grupos/${id}/partidas/${partidaId}/resultado`)}
-          />
+          >
+            <Users size={16} color={cores.orange} />
+            <Text style={styles.verTimesTexto}>Ver os times</Text>
+          </Pressable>
         }
       />
 
@@ -485,6 +586,7 @@ export default function TelaAoVivo() {
 
       <ModalConfirmar
         aberto={confirmarReset}
+        Icone={RotateCcw}
         eyebrow="Resetar cronômetro"
         titulo="Resetar o cronômetro?"
         descricao={
@@ -554,14 +656,25 @@ function ModalEditarCronometro({
 
   return (
     <ModalCartao aberto onFechar={onFechar}>
-      <Eyebrow>Cronômetro</Eyebrow>
+      <View style={styles.modalEyebrowLinha}>
+        <Timer size={16} color={cores.teal} />
+        <Eyebrow>Cronômetro</Eyebrow>
+      </View>
       <Text style={styles.modalTitulo}>Duração da rodada</Text>
+      <Text style={styles.modalDescricao}>
+        Controla quanto tempo cada rodada dura e, se quiser, quantos gols encerram ela antes da
+        hora.
+      </Text>
       <View style={styles.modalLinha}>
-        <Text style={styles.modalLabel}>Minutos por rodada</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.modalLabel}>Minutos por rodada</Text>
+        </View>
         <Stepper valor={duracao} onChange={setDuracao} min={0} max={90} />
       </View>
       <View style={styles.modalLinha}>
-        <Text style={styles.modalLabel}>Gols pra encerrar antes (0 = só tempo)</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.modalLabel}>Gols pra encerrar antes (0 = só tempo)</Text>
+        </View>
         <Stepper valor={golsEncerrar} onChange={setGolsEncerrar} min={0} max={20} />
       </View>
       <Pressable
@@ -576,12 +689,41 @@ function ModalEditarCronometro({
       >
         <Text style={styles.modalBotaoTexto}>Salvar</Text>
       </Pressable>
+      {config.duracaoRodadaMin > 0 && (
+        <Pressable
+          style={styles.modalRemover}
+          onPress={() =>
+            onSalvar({
+              jogadoresPorTime: config.jogadoresPorTime,
+              duracaoRodadaMin: 0,
+              golsParaEncerrarRodada: 0,
+            })
+          }
+        >
+          <Text style={styles.modalRemoverTexto}>Remover cronômetro</Text>
+        </Pressable>
+      )}
     </ModalCartao>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
+  // Contorno laranja, sem preenchimento: no site esse botão é discreto de
+  // propósito (o cronômetro/gols é o foco da tela), diferente do laranja
+  // sólido do BotaoPrimario usado nas ações principais das outras telas.
+  verTimesBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.laranjaBorda,
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  verTimesTexto: { fontSize: 15, fontWeight: "600", color: cores.orange },
   cron: { borderRadius: raio.card, borderWidth: 1, padding: 16, alignItems: "center", gap: 8 },
   cronParado: { borderColor: cores.cardBorda, backgroundColor: cores.cardFundo },
   cronRodando: { borderColor: "rgba(16,185,129,0.5)", backgroundColor: "rgba(16,185,129,0.1)" },
@@ -624,6 +766,16 @@ const styles = StyleSheet.create({
   },
   semCronTexto: { fontSize: 13, color: cores.slate400 },
   tituloLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  ordGrupo: {
+    flexDirection: "row",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.avisoBorda,
+    overflow: "hidden",
+  },
+  ordBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  ordBtnDivisor: { borderLeftWidth: 1, borderLeftColor: cores.avisoBorda },
+  ordBtnAtivo: { backgroundColor: cores.teal },
   vazio: { fontSize: 13, color: cores.slate400 },
   golDireita: { alignItems: "flex-end", gap: 3 },
   golLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -646,10 +798,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  golBtnOff: { opacity: 0.4 },
   golBtnTexto: { fontSize: 13, fontWeight: "800", color: cores.dark },
   golGrav: { fontSize: 11, color: cores.slate400 },
+  agrupadoDireita: { alignItems: "flex-end", gap: 3 },
+  agrupadoGols: { fontSize: 14, fontWeight: "700", color: cores.teal },
+  agrupadoGravLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
+  agrupadoGrav: { fontSize: 11, color: cores.slate400 },
+  modalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
-  modalLinha: { gap: 6 },
+  modalDescricao: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
+  modalLinha: { flexDirection: "row", alignItems: "center", gap: 12 },
   modalLabel: { fontSize: 13, color: cores.slate300 },
   modalBotao: {
     height: 48,
@@ -660,4 +819,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   modalBotaoTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
+  modalRemover: { height: 40, alignItems: "center", justifyContent: "center" },
+  modalRemoverTexto: { fontSize: 13, fontWeight: "600", color: cores.erroTexto },
 });

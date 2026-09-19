@@ -26,6 +26,7 @@ export type ResultadoMontado = {
   comecaComABola: number | null;
   ladoDireito: number | null;
   coresTimes: (string | null)[];
+  modoSorteio: string;
 };
 
 export function montarResultado(
@@ -66,5 +67,6 @@ export function montarResultado(
     comecaComABola: salvo.comecaComABola,
     ladoDireito: salvo.ladoDireito,
     coresTimes: salvo.coresTimes ?? [],
+    modoSorteio: salvo.modoSorteio,
   };
 }

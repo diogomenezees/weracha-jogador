@@ -324,22 +324,22 @@ export default function TelaCheckin() {
 
   return (
     <TelaPartida voltar="Grupo">
-      <Cabecalho
-        titulo="Lista de presença"
-        Icone={UserCheck}
-        grupoNome={grupoAtual.nome}
-        descricao={partidaAtual.descricao}
-        direita={
-          <Pressable
-            hitSlop={8}
-            accessibilityLabel="Compartilhar link do check-in"
-            onPress={() => void compartilhar()}
-          >
-            <Share2 size={18} color={cores.orange} />
-          </Pressable>
-        }
-      />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Cabecalho
+          titulo="Lista de presença"
+          Icone={UserCheck}
+          grupoNome={grupoAtual.nome}
+          descricao={partidaAtual.descricao}
+          direita={
+            <Pressable
+              hitSlop={8}
+              accessibilityLabel="Compartilhar link do check-in"
+              onPress={() => void compartilhar()}
+            >
+              <Share2 size={18} color={cores.orange} />
+            </Pressable>
+          }
+        />
         {souAdmin && (
           <View style={{ gap: 8 }}>
             <TextInput

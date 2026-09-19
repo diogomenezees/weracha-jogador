@@ -24,6 +24,7 @@ import {
   Menu,
   Shuffle,
   Store,
+  UserCheck,
   Users,
   Video,
   X,
@@ -69,6 +70,7 @@ export function Navbar({ voltar }: { voltar?: string }) {
           <ChevronLeft size={24} color={cores.slate400} />
           {voltar === "Grupo" && <Users size={18} color={cores.slate400} />}
           {voltar === "Painel" && <LayoutDashboard size={18} color={cores.slate400} />}
+          {voltar === "Check-in" && <UserCheck size={18} color={cores.slate400} />}
           <Text style={styles.voltarTexto}>{voltar}</Text>
         </Pressable>
       ) : (

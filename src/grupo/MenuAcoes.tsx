@@ -18,6 +18,8 @@ export type ItemMenu = {
   onPress: () => void;
   Icone?: LucideIcon;
   destrutivo?: boolean;
+  /** Cor fixa pro ícone + texto, sobrepondo o padrão/destrutivo (ex.: laranja pra "Compartilhar"). */
+  cor?: string;
 };
 
 export function MenuAcoes({
@@ -74,11 +76,17 @@ export function MenuAcoes({
                 {item.Icone ? (
                   <item.Icone
                     size={18}
-                    color={item.destrutivo ? cores.destrutivoIcone : cores.slate400}
+                    color={item.cor ?? (item.destrutivo ? cores.destrutivoIcone : cores.slate400)}
                   />
                 ) : null}
               </View>
-              <Text style={[styles.itemTexto, item.destrutivo && styles.itemTextoDestrutivo]}>
+              <Text
+                style={[
+                  styles.itemTexto,
+                  item.destrutivo && styles.itemTextoDestrutivo,
+                  item.cor ? { color: item.cor } : null,
+                ]}
+              >
                 {item.rotulo}
               </Text>
             </Pressable>

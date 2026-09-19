@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { router, useLocalSearchParams } from "expo-router";
@@ -21,12 +21,11 @@ import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { ListaReplays } from "@/partida/ListaReplays";
-import { montarResultado, type ResultadoMontado } from "@/partida/montarResultado";
+import { montarResultado, type JogadorNoTime, type ResultadoMontado } from "@/partida/montarResultado";
 import {
   Abas,
   AvisoPartida,
   Cabecalho,
-  CardJogadorPartida,
   Eyebrow,
   Rodape,
   BotaoPrimario,
@@ -35,7 +34,20 @@ import {
   ToggleScore,
 } from "@/partida/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { ArrowLeftRight, Ban, EllipsisVertical, Plus, RotateCcw, Share2, Shuffle } from "@/ui/Icone";
+import {
+  ArrowLeftRight,
+  Ban,
+  Clock,
+  EllipsisVertical,
+  Plus,
+  Radio,
+  RotateCcw,
+  Share2,
+  Shield,
+  Shirt,
+  Shuffle,
+  Star,
+} from "@/ui/Icone";
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import {
   dentroDoPrazoDeEdicaoDeGols,
@@ -181,10 +193,13 @@ export default function TelaResultado() {
   async function compartilhar() {
     if (!grupo || !partida) return;
     const d = new Date(partida.data);
-    const msg =
-      `Saiu o resultado do racha do grupo ${grupo.nome}.\n` +
-      `${formatarDiaSemanaData(d)} às ${formatarHora(d)}.\n` +
-      `Veja os times e os gols no We Racha.`;
+    const msg = encerrada
+      ? `Saiu o resultado do racha do grupo ${grupo.nome}.\n` +
+        `${formatarDiaSemanaData(d)} às ${formatarHora(d)}.\n` +
+        `Veja os times e os gols no We Racha.`
+      : `Saiu a separação dos times do racha do grupo ${grupo.nome}.\n` +
+        `${formatarDiaSemanaData(d)} às ${formatarHora(d)}.\n` +
+        `Veja quem tá no seu time no We Racha.`;
     try {
       await Share.share({ message: msg });
     } catch {
@@ -194,14 +209,14 @@ export default function TelaResultado() {
 
   if (erro) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
       </TelaPartida>
     );
   }
   if (grupo === undefined || partida === undefined) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <TelaCarregando mensagem="Carregando resultado..." />
       </TelaPartida>
     );
@@ -210,14 +225,14 @@ export default function TelaResultado() {
   const p = partida;
   if (!g || !p) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <AvisoPartida mensagem="Partida não encontrada." destino="/painel" rotuloDestino="Painel" />
       </TelaPartida>
     );
   }
   if (partidaAindaNaoComecou(new Date(p.data), duracaoDaPartida(g, p))) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Grupo">
         <AvisoPartida
           mensagem={`Essa tela abre ${JANELA_CHECKIN_ANTES_HORAS} horas antes da partida.`}
           destino={`/grupos/${id}`}
@@ -226,9 +241,19 @@ export default function TelaResultado() {
       </TelaPartida>
     );
   }
-  if (!montado) return <TelaPartida><TelaCarregando mensagem="Carregando resultado..." /></TelaPartida>;
+  if (!montado) {
+    return (
+      <TelaPartida voltar="Grupo">
+        <TelaCarregando mensagem="Carregando resultado..." />
+      </TelaPartida>
+    );
+  }
 
   const timeQueComeca = montado.comecaComABola === 0 ? 1 : montado.comecaComABola === 1 ? 2 : null;
+  // Só há "jogando"/"próximo" de verdade quando dá pra formar os 2 primeiros
+  // times por completo — com só 1 time (ou nenhum), ninguém está "esperando a
+  // vez" ainda. Mesmo critério do site (weracha-site .../resultado/page.tsx).
+  const temPartida = montado.times.length >= 2;
   const lancesComVideo = lances.filter((l) => l.videos.length > 0);
   // As abas Artilheiros/Lances só fazem sentido com a partida encerrada —
   // enquanto o jogo rola, o que importa aqui é ver quem está em quadra (o resto
@@ -246,29 +271,39 @@ export default function TelaResultado() {
       ? "TIMES"
       : aba;
 
-  return (
-    <TelaPartida>
-      <Cabecalho
-        titulo={encerrada ? "Resultado" : "Times"}
-        grupoNome={g.nome}
-        descricao={p.descricao}
-        direita={
-          <View style={styles.cabDireita}>
-            {encerrada && (
-              <Pressable hitSlop={8} onPress={() => void compartilhar()}>
-                <Share2 size={18} color={cores.orange} />
-              </Pressable>
-            )}
-            {souAdmin && !encerrada && (
-              <Pressable hitSlop={8} onPress={() => setMenuMais(true)}>
-                <EllipsisVertical size={20} color={cores.slate300} />
-              </Pressable>
-            )}
-          </View>
-        }
-      />
+  const IconeModoSorteio =
+    montado.modoSorteio === "SORTE" ? Shuffle : montado.modoSorteio === "POSICAO" ? Shield : Star;
+  const rotuloModoSorteio =
+    montado.modoSorteio === "SORTE" ? "Sorte" : montado.modoSorteio === "POSICAO" ? "Posição" : "Score";
 
+  return (
+    <TelaPartida voltar="Grupo">
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Cabecalho
+          titulo={encerrada ? "Resultado" : "Times"}
+          grupoNome={g.nome}
+          descricao={p.descricao}
+          direita={
+            <Pressable hitSlop={8} onPress={() => setMenuMais(true)}>
+              <EllipsisVertical size={20} color={cores.slate300} />
+            </Pressable>
+          }
+        />
+        <View style={styles.bridges}>
+          <View style={styles.esportePill}>
+            <Text style={styles.esportePillTexto}>{g.esporte}</Text>
+          </View>
+          <View style={styles.infoPill}>
+            <Clock size={12} color={cores.zinc500} />
+            <Text style={styles.infoPillTexto}>
+              {formatarDiaSemanaData(new Date(p.data))} · {formatarHora(new Date(p.data))}
+            </Text>
+          </View>
+          <View style={styles.infoPill}>
+            <IconeModoSorteio size={12} color={cores.zinc500} />
+            <Text style={styles.infoPillTexto}>{rotuloModoSorteio}</Text>
+          </View>
+        </View>
         {abas.length > 1 && <Abas opcoes={abas} valor={abaVisivel} onChange={setAba} />}
 
         {abaVisivel === "TIMES" ? (
@@ -286,58 +321,27 @@ export default function TelaResultado() {
             ) : (
               <>
                 {montado.times.map((time, i) => (
-                  <View
+                  <CardTime
                     key={i}
-                    style={[
-                      styles.timeCard,
-                      montado.coresTimes[i]
-                        ? { borderColor: montado.coresTimes[i] as string }
-                        : styles.timeCardCinza,
-                    ]}
-                  >
-                    <View style={styles.timeCabecalho}>
-                      <Text style={styles.timeNome}>
-                        👕 Time {i + 1}
-                        {montado.times.length > 2 && i >= 2 ? "  ·  próximo" : ""}
-                      </Text>
-                      {montado.times.length >= 2 && i < 2 && timeQueComeca != null && (
-                        <Text style={styles.timeBadge}>
-                          {timeQueComeca === i + 1 ? "Começa com a bola" : "Escolhe o lado"}
-                        </Text>
-                      )}
-                    </View>
-                    {time.map((j) => (
-                      <CardJogadorPartida
-                        key={j.jogadorId}
-                        id={j.jogadorId}
-                        nome={j.nome}
-                        apelido={j.apelido}
-                        fotoUrl={j.fotoUrl}
-                        posicaoNome={j.posicaoNome}
-                        score={j.score}
-                        mostrarScore={!!souAdmin && verScore}
-                        souEu={j.jogadorId === meuId}
-                      />
-                    ))}
-                  </View>
+                    numero={i + 1}
+                    jogadores={time}
+                    mostrarScore={!!souAdmin && verScore}
+                    badge={!temPartida ? null : i < 2 ? "jogando" : "proximo"}
+                    comecaComABola={temPartida && i + 1 === timeQueComeca}
+                    escolheLado={temPartida && i < 2 && i + 1 !== timeQueComeca}
+                    corHex={montado.coresTimes[i] ?? null}
+                  />
                 ))}
                 {montado.proximos.length > 0 && (
-                  <View style={[styles.timeCard, styles.timeCardCinza]}>
-                    <Text style={styles.timeNome}>Próximos</Text>
-                    {montado.proximos.map((j) => (
-                      <CardJogadorPartida
-                        key={j.jogadorId}
-                        id={j.jogadorId}
-                        nome={j.nome}
-                        apelido={j.apelido}
-                        fotoUrl={j.fotoUrl}
-                        posicaoNome={j.posicaoNome}
-                        score={j.score}
-                        mostrarScore={!!souAdmin && verScore}
-                        souEu={j.jogadorId === meuId}
-                      />
-                    ))}
-                  </View>
+                  <CardTime
+                    numero={montado.times.length + 1}
+                    jogadores={montado.proximos}
+                    mostrarScore={!!souAdmin && verScore}
+                    badge="proximo"
+                    comecaComABola={false}
+                    escolheLado={false}
+                    corHex={null}
+                  />
                 )}
               </>
             )}
@@ -388,6 +392,7 @@ export default function TelaResultado() {
           <ListaReplays
             gols={lancesComVideo}
             vazioTexto="Nenhum lance importante nessa partida."
+            meuId={meuId}
             comentar={{
               chamarApi,
               meuJogadorId: meuId,
@@ -401,30 +406,39 @@ export default function TelaResultado() {
         )}
       </ScrollView>
 
-      <Rodape
-        voltarRotulo="Grupo"
-        onVoltar={() => router.replace(`/grupos/${id}`)}
-        primario={
-          !encerrada ? (
+      {!encerrada && (
+        <Rodape
+          primario={
             <BotaoPrimario
               titulo="Ao vivo"
               cor="red"
+              Icone={Radio}
               onPress={() => router.replace(`/grupos/${id}/partidas/${partidaId}/ao-vivo`)}
             />
-          ) : undefined
-        }
-      />
+          }
+        />
+      )}
 
       <MenuAcoes
         aberto={menuMais}
-        titulo="Resultado"
+        titulo="Times"
         itens={[
           {
-            rotulo: "Refazer o sorteio",
-            Icone: Shuffle,
-            destrutivo: true,
-            onPress: () => setConfirmarRefazer(true),
+            rotulo: "Compartilhar resultado",
+            Icone: Share2,
+            cor: cores.orange,
+            onPress: () => void compartilhar(),
           },
+          ...(souAdmin && !encerrada
+            ? [
+                {
+                  rotulo: "Refazer o sorteio",
+                  Icone: Shuffle,
+                  destrutivo: true,
+                  onPress: () => setConfirmarRefazer(true),
+                } as ItemMenu,
+              ]
+            : []),
         ]}
         onFechar={() => setMenuMais(false)}
       />
@@ -464,6 +478,7 @@ export default function TelaResultado() {
 
       <ModalConfirmar
         aberto={confirmarRefazer}
+        Icone={Shuffle}
         eyebrow="Refazer sorteio"
         titulo="Refazer o sorteio?"
         descricao="Descarta os times e o placar atuais, junto com os gols e lances registrados nessa partida."
@@ -505,6 +520,145 @@ export default function TelaResultado() {
         />
       )}
     </TelaPartida>
+  );
+}
+
+type BadgeTime = "jogando" | "proximo";
+
+const ESTILO_BADGE_TIME: Record<
+  BadgeTime,
+  { cor: string; fundo: string; borda: string; label: string }
+> = {
+  jogando: {
+    cor: "#6ee7b7",
+    fundo: "rgba(16, 185, 129, 0.1)",
+    borda: "rgba(16, 185, 129, 0.3)",
+    label: "Em quadra",
+  },
+  proximo: {
+    cor: cores.orange,
+    fundo: cores.laranjaFundo,
+    borda: cores.laranjaBorda,
+    label: "Próximo",
+  },
+};
+
+/** Card de um time no resultado: porte de `TimeCard` de
+ * weracha-site/.../resultado/page.tsx. Cor do colete vira fundo bem sutil
+ * (mesma técnica do site: hex + "12" ≈ 7% de opacidade) + borda cheia, em vez
+ * de só borda — sem cor cadastrada, cinza neutro (ver comentário no site
+ * sobre não ter default bonito de propósito). */
+function CardTime({
+  numero,
+  jogadores,
+  mostrarScore,
+  badge,
+  comecaComABola,
+  escolheLado,
+  corHex,
+}: {
+  numero: number;
+  jogadores: JogadorNoTime[];
+  mostrarScore: boolean;
+  badge: BadgeTime | null;
+  comecaComABola: boolean;
+  escolheLado: boolean;
+  corHex: string | null;
+}) {
+  return (
+    <View
+      style={[
+        styles.timeCard,
+        corHex ? { borderColor: corHex, backgroundColor: `${corHex}12` } : styles.timeCardCinza,
+      ]}
+    >
+      <View style={styles.timeCabecalho}>
+        <View style={{ flex: 1 }}>
+          <View style={styles.timeNomeLinha}>
+            <Shirt size={16} color={corHex ?? cores.branco} />
+            <Text style={styles.timeNome}>Time {numero}</Text>
+          </View>
+          {(comecaComABola || escolheLado) && (
+            <Text style={styles.timeSub}>
+              {comecaComABola ? "Começa com a bola" : "Escolhe o lado da quadra"}
+            </Text>
+          )}
+        </View>
+        {badge && (
+          <View
+            style={[
+              styles.timeBadgePill,
+              {
+                backgroundColor: ESTILO_BADGE_TIME[badge].fundo,
+                borderColor: ESTILO_BADGE_TIME[badge].borda,
+              },
+            ]}
+          >
+            <Text style={[styles.timeBadgeTexto, { color: ESTILO_BADGE_TIME[badge].cor }]}>
+              {ESTILO_BADGE_TIME[badge].label}
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={{ gap: 12 }}>
+        {jogadores.map((j) => (
+          <LinhaJogadorTime key={j.jogadorId} jogador={j} mostrarScore={mostrarScore} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** Linha de jogador dentro de `CardTime`: porte de `JogadorLinha` do site.
+ * Sem card/borda própria de propósito — já está dentro do card colorido do
+ * time, uma segunda borda por jogador ficaria poluído (diferente do
+ * CardJogadorPartida usado no check-in/configurar, que fica solto na tela). */
+function LinhaJogadorTime({
+  jogador,
+  mostrarScore,
+}: {
+  jogador: JogadorNoTime;
+  mostrarScore: boolean;
+}) {
+  const itens: ReactNode[] = [];
+  if (jogador.apelido) {
+    itens.push(<Text style={styles.linhaTimeMetaTexto}>{jogador.apelido}</Text>);
+  }
+  if (jogador.posicaoNome) {
+    itens.push(
+      <View style={styles.linhaTimeMetaItem}>
+        <Shield size={11} color={cores.slate400} />
+        <Text style={styles.linhaTimeMetaTexto}>{jogador.posicaoNome}</Text>
+      </View>
+    );
+  }
+  if (mostrarScore) {
+    itens.push(
+      <View style={styles.linhaTimeMetaItem}>
+        <Star size={11} color={cores.slate400} />
+        <Text style={styles.linhaTimeMetaTexto}>Score {jogador.score}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.linhaTime}>
+      <AvatarJogador id={jogador.jogadorId} nome={jogador.nome} fotoUrl={jogador.fotoUrl} tamanho={36} />
+      <View style={{ flex: 1 }}>
+        <Text style={styles.linhaTimeNome} numberOfLines={1}>
+          {jogador.nome}
+        </Text>
+        {itens.length > 0 && (
+          <View style={styles.linhaTimeMeta}>
+            {itens.map((item, i) => (
+              <View key={i} style={styles.linhaTimeMetaItem}>
+                {i > 0 && <Text style={styles.linhaTimeMetaTexto}>·</Text>}
+                {item}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -605,7 +759,24 @@ function ModalMigrarGol({
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
-  cabDireita: { flexDirection: "row", gap: 12, paddingTop: 4 },
+  bridges: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  esportePill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: cores.tealDark,
+  },
+  esportePillTexto: { fontSize: 12, fontWeight: "500", color: cores.branco },
+  infoPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "rgba(113, 113, 122, 0.15)",
+  },
+  infoPillTexto: { fontSize: 12, color: cores.zinc500 },
   timesTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   scoreToggleGrupo: { flexDirection: "row", alignItems: "center", gap: 8 },
   avisoErro: {
@@ -619,14 +790,32 @@ const styles = StyleSheet.create({
   },
   timeCard: {
     borderRadius: raio.card,
-    borderWidth: 2,
+    borderWidth: 1,
     padding: 14,
-    gap: 10,
+    gap: 12,
   },
   timeCardCinza: { borderColor: "rgba(255,255,255,0.12)", backgroundColor: cores.superficieSutil },
-  timeCabecalho: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  timeNome: { fontSize: 14, fontWeight: "800", color: cores.branco, textTransform: "uppercase", letterSpacing: 1 },
-  timeBadge: { fontSize: 10, color: cores.slate400 },
+  timeCabecalho: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  timeNomeLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  timeNome: { fontSize: 13, fontWeight: "800", color: cores.branco, textTransform: "uppercase", letterSpacing: 1 },
+  timeSub: { marginTop: 2, fontSize: 13, fontWeight: "500", color: cores.slate400 },
+  timeBadgePill: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
+  timeBadgeTexto: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  linhaTime: { flexDirection: "row", alignItems: "center", gap: 10 },
+  linhaTimeNome: { fontSize: 14, fontWeight: "600", color: cores.branco },
+  linhaTimeMeta: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginTop: 1, gap: 4 },
+  linhaTimeMetaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
+  linhaTimeMetaTexto: { fontSize: 12, color: cores.slate400 },
   adicionarGol: {
     borderRadius: raio.campo,
     borderWidth: 1,

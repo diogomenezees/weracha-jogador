@@ -35,7 +35,7 @@ import {
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import { dentroDaJanelaDeCheckin, sugerirJogadoresPorTime } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
-import { ArrowDownAZ, Clock, Plus, Settings, Shield, Shuffle, Star } from "@/ui/Icone";
+import { ArrowDownAZ, Clock, Palette, Plus, Settings, Shield, Shuffle, Star, Swords } from "@/ui/Icone";
 import { cores, raio } from "@/tema";
 import type {
   CorGrupo,
@@ -48,17 +48,23 @@ import type {
 
 type Ordenacao = "NOME" | "SCORE" | "CHEGADA";
 
+// Cores principais pra colete: uma família por opção (nenhum par muito
+// parecido), cobrindo os tons de camisa mais comuns numa pelada.
 const SWATCHES = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#14b8a6",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
-  "#ffffff",
-  "#111827",
+  "#ef4444", // vermelho
+  "#f97316", // laranja
+  "#eab308", // amarelo
+  "#22c55e", // verde
+  "#15803d", // verde escuro
+  "#14b8a6", // teal
+  "#3b82f6", // azul
+  "#1e3a8a", // azul marinho
+  "#a855f7", // roxo
+  "#ec4899", // rosa
+  "#78350f", // marrom
+  "#6b7280", // cinza
+  "#ffffff", // branco
+  "#111827", // preto
 ];
 
 type Presente = {
@@ -218,14 +224,14 @@ export default function TelaConfigurar() {
 
   if (erro) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Check-in">
         <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
       </TelaPartida>
     );
   }
   if (semAcesso) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Check-in">
         <AvisoPartida
           mensagem="Só um admin do grupo pode configurar a partida."
           destino={`/grupos/${id}`}
@@ -236,7 +242,7 @@ export default function TelaConfigurar() {
   }
   if (grupo === undefined || partida === undefined || (grupo && partida && !pronto)) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Check-in">
         <TelaCarregando mensagem="Carregando configuração..." />
       </TelaPartida>
     );
@@ -245,14 +251,14 @@ export default function TelaConfigurar() {
   const p = partida;
   if (!g || !p) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Check-in">
         <AvisoPartida mensagem="Partida não encontrada." destino="/painel" rotuloDestino="Painel" />
       </TelaPartida>
     );
   }
   if (p.cancelada) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Check-in">
         <AvisoPartida
           mensagem="Essa partida foi cancelada."
           destino={`/grupos/${id}`}
@@ -263,7 +269,7 @@ export default function TelaConfigurar() {
   }
   if (!dentroDaJanelaDeCheckin(new Date(p.data), duracaoDaPartida(g, p))) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Check-in">
         <AvisoPartida
           mensagem="A configuração só fica disponível durante a janela da partida."
           destino={`/grupos/${id}`}
@@ -275,16 +281,16 @@ export default function TelaConfigurar() {
 
   if (gerando) {
     return (
-      <TelaPartida>
+      <TelaPartida voltar="Check-in">
         <TelaCarregando mensagem="Calculando os times..." />
       </TelaPartida>
     );
   }
 
   return (
-    <TelaPartida>
-      <Cabecalho titulo="Configurar partida" Icone={Settings} grupoNome={g.nome} descricao={p.descricao} />
+    <TelaPartida voltar="Check-in">
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Cabecalho titulo="Configurar partida" Icone={Settings} grupoNome={g.nome} descricao={p.descricao} />
         <SegOrdenacao
           opcoes={[
             { chave: "SCORE", rotulo: "Score", Icone: Star },
@@ -417,7 +423,7 @@ export default function TelaConfigurar() {
                     onPress={() => setMenuFixar({ jogadorId: jogador.id, nome: jogador.nome })}
                   >
                     <Text style={styles.fixChipTexto}>
-                      {fix === undefined ? "Sem preferência ▾" : `Time ${fix + 1} ▾`}
+                      {fix === undefined ? "Livre ▾" : `Time ${fix + 1} ▾`}
                     </Text>
                   </Pressable>
                 }
@@ -428,8 +434,6 @@ export default function TelaConfigurar() {
       </ScrollView>
 
       <Rodape
-        voltarRotulo="Check-in"
-        onVoltar={() => router.replace(`/grupos/${id}/partidas/${partidaId}/checkin`)}
         erro={erroSorteio}
         primario={
           <BotaoPrimario
@@ -469,7 +473,10 @@ export default function TelaConfigurar() {
       />
 
       <ModalCartao aberto={paletaAberta} onFechar={() => setPaletaAberta(false)}>
-        <Eyebrow>Cores</Eyebrow>
+        <View style={styles.paletaEyebrowLinha}>
+          <Palette size={16} color={cores.teal} />
+          <Eyebrow>Cores</Eyebrow>
+        </View>
         <Text style={styles.paletaTitulo}>Adicionar cor de colete</Text>
         {coresDisponiveis.length > 0 ? (
           <View style={styles.paletaGrade}>
@@ -509,6 +516,7 @@ export default function TelaConfigurar() {
 
       <ModalConfirmar
         aberto={confirmarInicio}
+        Icone={Swords}
         eyebrow="Sem volta"
         titulo={
           modo === "POSICAO"
@@ -588,6 +596,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   coresNota: { fontSize: 12, color: cores.slate400 },
+  paletaEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   paletaTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
   paletaGrade: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
   tituloLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },

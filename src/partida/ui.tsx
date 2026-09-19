@@ -331,7 +331,12 @@ const styles = StyleSheet.create({
     color: cores.teal,
     textTransform: "uppercase",
   },
-  cabecalho: { flexDirection: "row", alignItems: "flex-start", gap: 8, paddingHorizontal: 24, paddingTop: 8 },
+  // Sem padding próprio: agora `Cabecalho` entra como primeiro filho do
+  // ScrollView de cada tela (rola junto com o resto), então herda o
+  // paddingHorizontal/paddingTop do `contentContainerStyle` do scroll, igual
+  // toda outra seção da tela — evitar padding duplicado (24 daqui + 16 do
+  // scroll) que desalinharia o título do resto do conteúdo.
+  cabecalho: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   tituloComIcone: { flexDirection: "row", alignItems: "center", gap: 8 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
