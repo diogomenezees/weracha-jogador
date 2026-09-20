@@ -3,9 +3,9 @@ import { Animated, Modal, Pressable, ScrollView, StyleSheet, View } from "react-
 import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, type Href } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 
-import { abrirNoNavegador, URL_CONTATO } from "@/config/links";
+import { abrirNoNavegador } from "@/config/links";
 import { rotuloDoAmbiente } from "@/config/servidor";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -50,7 +50,7 @@ const ITENS: Item[] = [
   { rotulo: "Replays", Icone: Video, tipo: "rota", rota: "/replays", beta: true },
   { rotulo: "Enquetes", Icone: BarChart3, tipo: "rota", rota: "/enquetes" },
   { rotulo: "Parcerias", Icone: Store, tipo: "rota", rota: "/parcerias" },
-  { rotulo: "Contato", Icone: Mail, tipo: "externo", url: URL_CONTATO },
+  { rotulo: "Contato", Icone: Mail, tipo: "rota", rota: "/contato" },
   { rotulo: "Sorteio rápido", Icone: Shuffle, tipo: "rota", rota: "/sorteio" },
 ];
 
@@ -62,6 +62,35 @@ export function Navbar({
   onVoltar?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
+  const { id, partidaId } = useLocalSearchParams<{ id?: string; partidaId?: string }>();
+
+  // O "‹ destino" do cabeçalho vai PRA O DESTINO QUE O TEXTO NOMEIA, não pra tela de
+  // onde a pessoa veio (isso é o voltar do celular, que segue o histórico). Ex.: em
+  // Replays > "Ir para o grupo" > Grupo, o "Painel" do cabeçalho leva ao painel, não
+  // de volta pros Replays. `dismissTo` volta até a tela nomeada se ela já estiver na
+  // pilha (sem empilhar cópia) e só abre uma nova se não estiver. Rótulo sem destino
+  // conhecido cai no `router.back()`.
+  function destinoDoVoltar(): Href | null {
+    switch (voltar) {
+      case "Painel":
+        return "/painel";
+      case "Grupo":
+        return id ? `/grupos/${id}` : null;
+      case "Check-in":
+        return id && partidaId ? `/grupos/${id}/partidas/${partidaId}/checkin` : null;
+      case "Enquetes":
+        return id ? `/grupos/${id}/enquetes` : null;
+      default:
+        return null;
+    }
+  }
+
+  function aoVoltar() {
+    if (onVoltar) return onVoltar();
+    const destino = destinoDoVoltar();
+    if (destino) router.dismissTo(destino);
+    else router.back();
+  }
 
   return (
     <View style={styles.barra}>
@@ -69,7 +98,7 @@ export function Navbar({
         <Pressable
           hitSlop={10}
           style={styles.voltarBotao}
-          onPress={onVoltar ?? (() => router.back())}
+          onPress={aoVoltar}
           accessibilityRole="button"
           accessibilityLabel={`Voltar para ${voltar}`}
         >

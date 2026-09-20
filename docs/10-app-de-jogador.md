@@ -292,20 +292,59 @@ upload de foto (o `PUT` do blob no R2 via `fetch` do RN é o ponto de risco: se 
 
 `src/app/(logado)/replays.tsx` (rota `/replays`, item "Replays" do menu, com
 badge Beta). Porta de `weracha-site/app/replays/page.tsx`, **sem** o pager estilo
-Stories do site — lista vertical simples (`src/replays/ListaMeusReplays.tsx`),
+Stories do site — lista vertical simples (cards do `BlocoCard`),
 mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]). typecheck/
 lint/jest limpos, não rodou em device.
 
-- `GET /api/v1/replays` (`src/api/replays.ts`, tipo `MeuReplay` copiado pro
-  contrato) + `buscarComentariosEmLote` (já existia) pros comentários.
-- Card: grupo/esporte/data, chips de câmera quando tem mais de uma, "▶ Assistir"
-  abre o vídeo no player do sistema (`Linking.openURL`, sem `expo-video`),
-  atalhos "Grupo ›" / "Resultado ›", e "💬 Comentar" abre o `ChatResenha` (o
-  mesmo modal de polling da resenha). `grupoRemovido` esconde atalhos + resenha.
+- `GET /api/v1/replays?pagina=<n>` (`src/api/replays.ts`, tipos `MeuReplay` e
+  `PaginaMeusReplays` copiados pro contrato). **Paginado** (2026-09-19): 5 por página,
+  `FlatList` com `onEndReached` + botão "Carregar mais (X de Y)", e o pull-to-refresh volta
+  pra página 0. Cada replay já traz `totalComentarios` + `comentariosPreview`, então a tela
+  não chama mais `buscarComentariosEmLote` (que segue usado no resultado).
+- Card (atualizado 2026-09-19): a tela usa o **mesmo `BlocoCard` da resenha**
+  (`src/resenha/BlocoCard.tsx`, layout copiado do feed; `ListaMeusReplays` foi
+  removida), com a prop `meus`: cabeçalho ganha o nome do grupo, o menu ⋮
+  (`MenuAcoes`) ganha "Ir para o grupo" e o botão diz "Comentar" quando ainda não
+  há comentário. Vídeo continua abrindo no player do sistema (`Linking.openURL`,
+  sem `expo-video`). `grupoRemovido` esconde atalhos + resenha. Antes era um card
+  próprio com "▶ Assistir" e atalhos "Grupo ›" / "Resultado ›".
 - `podeComentar` = tem data de nascimento (o servidor faz o gate 18+ de verdade).
   `podeModerar: false` — `/replays` não é escopado a grupo, então não há sinal de
   admin; um master no app só apaga o próprio comentário (janela de 5min).
 - **Sem mudança no site** (a rota já existia da fatia 5a).
+
+### Feito: aba Artilheiros do resultado no paridade com o site (2026-09-19)
+
+A aba "Artilheiros" da tela de resultado de partida encerrada
+(`(logado)/grupos/[id]/partidas/[partidaId]/resultado.tsx`) ganhou o
+`src/partida/PainelGols.tsx`, porte de `weracha-site/components/painel-gols.tsx`:
+aviso âmbar "É possível ajustar gols até 24h depois do fim da partida" com "Adicionar
+gol" e fechar (só admin dentro do prazo), botão agrupado/linha do tempo, toggle de
+Score, cards agrupados com "N gols"/"N gravados", linhas da linha do tempo com
+"Registrado/Corrigido por", "Movido de…", "Cancelado por", hora (e dia quando difere da
+partida), ícone de replay (nuvem/celular/sem) + legenda, e menu ⋮ por linha (cancelar,
+migrar, reativar). Tocar num jogador ou numa linha abre os replays dele **inline**
+(`ListaReplays` + botão "Artilheiros" pra voltar; vídeo segue abrindo no player do
+sistema). `cameraAtiva` e `golsGravadosPorJogador` vêm de `GET .../ao-vivo`.
+Diferença que sobra: cancelar gol no app não pede confirmação (o site pede).
+
+A aba **Lances** e os replays inline usam o `src/partida/CardsReplay.tsx`, porte do
+`GolCard` do site: cabeçalho ("Lance importante" + grupo, ou "Gol marcado" + jogador) com
+hora completa, vídeo, "Registrado por", "Movido de…", "Baixar vídeo" (hoje abre no player
+do sistema), chips de câmera, avisos de "salvo no celular" / "corrigido pelo admin" / "ainda
+não chegou", e a resenha embaixo (`src/resenha/RespostaReplay.tsx`: preview dos 2 últimos
+comentários + "Comentar"/"Responder"). Lista vertical em vez do pager de Stories do site. O
+`ListaReplays` segue só na tela Ao vivo.
+
+### Feito: tela de Contato nativa, logada (2026-09-19)
+
+`(logado)/contato.tsx` (rota `/contato`, item "Contato" do menu e "Indicar parceria" da
+tela de Parcerias, que passa `?motivo=Parceria`). Título + mensagem + chips de motivo, tela de
+agradecimento no fim. `POST /api/v1/contato` (`src/api/contato.ts`) **sem Turnstile**: o site
+passou a dispensar o captcha em chamada com Bearer e a limitar a 5 mensagens/hora por conta
+(`CONTATO_LIMITE_EXCEDIDO`, novo código no contrato). **Falta a versão deslogada** (o link do
+login ainda abre `weracha.app/contato` no navegador): precisa de captcha via WebView com uma
+página pública do site e de uma rota de contato isenta de CSRF.
 
 ### Feito: tela de Parcerias (2026-09-10)
 

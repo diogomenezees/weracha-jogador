@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "expo-image";
+import { router } from "expo-router";
+
+import { abrirNoNavegador } from "@/config/links";
 
 import { buscarParceiros } from "@/api/parceiros";
-import { abrirNoNavegador, URL_CONTATO } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalCartao } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
@@ -17,6 +19,8 @@ import { TituloTela } from "@/ui/TituloTela";
 import type { Parceiro } from "@/contrato/tipos";
 
 export default function Parcerias() {
+  // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
+  const insets = useSafeAreaInsets();
   const { chamarApi } = useSessao();
   const [parceiros, setParceiros] = useState<Parceiro[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -62,7 +66,7 @@ export default function Parcerias() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Painel" />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
           <TituloTela Icone={Store}>Parcerias</TituloTela>
           <Text style={styles.sub}>
@@ -96,7 +100,7 @@ export default function Parcerias() {
 
         <View style={styles.indicar}>
           <Text style={styles.indicarTexto}>Tem um negócio pra indicar?</Text>
-          <Pressable hitSlop={6} onPress={() => abrirNoNavegador(`${URL_CONTATO}?motivo=Parceria`)}>
+          <Pressable hitSlop={6} onPress={() => router.push({ pathname: "/contato", params: { motivo: "Parceria" } })}>
             <Text style={styles.indicarLink}>Indicar parceria</Text>
           </Pressable>
         </View>

@@ -45,6 +45,13 @@ const POR_CODIGO: Record<string, string> = {
   CODIGO_LIMITE_DIARIO: "Você já pediu muitos códigos hoje. Tente de novo mais tarde.",
   SMS_DESABILITADO: "O envio de SMS está pausado no momento. Tente de novo mais tarde.",
 
+  // Contato / ouvidoria
+  CONTATO_TITULO_OBRIGATORIO: "Escreva um título pro contato.",
+  CONTATO_TITULO_MUITO_LONGO: "O título é longo demais. Encurte um pouco.",
+  CONTATO_DESCRICAO_OBRIGATORIA: "Escreva a mensagem.",
+  CONTATO_DESCRICAO_MUITO_LONGA: "A mensagem é longa demais. Encurte um pouco.",
+  CONTATO_LIMITE_EXCEDIDO: "Você já enviou várias mensagens agora há pouco. Tente de novo mais tarde.",
+
   CSRF_ORIGEM_INVALIDA: "Não deu pra concluir agora. Tente de novo.",
 
   // Perfil

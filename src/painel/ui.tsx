@@ -165,6 +165,7 @@ const styles = StyleSheet.create({
   },
   botaoLaranja: {
     height: 52,
+    paddingHorizontal: 28,
     flexDirection: "row",
     gap: 8,
     borderRadius: raio.card,

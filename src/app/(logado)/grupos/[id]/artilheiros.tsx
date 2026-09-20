@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
 import { buscarArtilheiros } from "@/api/artilheiros";
@@ -39,6 +39,8 @@ function montarMensagemArtilheiros(
 }
 
 export default function ArtilheirosDoGrupo() {
+  // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { chamarApi } = useSessao();
   const [dados, setDados] = useState<DadosArtilheiros | undefined>(undefined);
@@ -107,7 +109,7 @@ export default function ArtilheirosDoGrupo() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
           <View style={styles.tituloLinha}>
             <TituloTela Icone={Goal}>Artilheiros</TituloTela>

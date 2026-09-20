@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -10,6 +10,7 @@ import { CaixaErro } from "@/acesso/ui";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
 import { Navbar } from "@/ui/Navbar";
+import { ScrollTeclado } from "@/ui/ScrollTeclado";
 import { X } from "@/ui/Icone";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -105,7 +106,7 @@ export default function NovaEnquete() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Enquetes" />
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollTeclado contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View>
           <Text style={styles.h1}>Criar enquete</Text>
           {grupoNome ? <Text style={styles.sub}>{grupoNome}</Text> : null}
@@ -192,7 +193,7 @@ export default function NovaEnquete() {
         </View>
 
         {erro ? <CaixaErro>{erro}</CaixaErro> : null}
-      </ScrollView>
+      </ScrollTeclado>
 
       <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
         <BotaoLaranja titulo="Criar enquete" onPress={() => void salvar()} carregando={salvando} />

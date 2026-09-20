@@ -6,6 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarApoioDaPartida } from "@/api/checkins";
 import {
+  buscarEstadoAoVivo,
   buscarGols,
   buscarLances,
   buscarResultadoAtivo,
@@ -20,7 +21,8 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
-import { ListaReplays } from "@/partida/ListaReplays";
+import { CardsReplay } from "@/partida/CardsReplay";
+import { PainelGols } from "@/partida/PainelGols";
 import { montarResultado, type JogadorNoTime, type ResultadoMontado } from "@/partida/montarResultado";
 import {
   Abas,
@@ -35,6 +37,7 @@ import {
 } from "@/partida/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import {
+  ArrowLeft,
   ArrowLeftRight,
   Ban,
   Clock,
@@ -47,6 +50,8 @@ import {
   Shirt,
   Shuffle,
   Star,
+  TriangleAlert,
+  X,
 } from "@/ui/Icone";
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import {
@@ -56,6 +61,7 @@ import {
   JANELA_CHECKIN_ANTES_HORAS,
   partidaAindaNaoComecou,
   partidaEncerrada,
+  PRAZO_EDICAO_GOLS_HORAS,
 } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -81,6 +87,12 @@ export default function TelaResultado() {
   const [gols, setGols] = useState<GolComVideos[]>([]);
   const [lances, setLances] = useState<GolComVideos[]>([]);
   const [comentarios, setComentarios] = useState<Record<string, ComentarioResenha[]>>({});
+  // Do estado "ao vivo" da partida: se o We Racha Cam avisou que gravou (liga os ícones
+  // de replay por gol) e quantos replays cada jogador tem. Null = não deu pra buscar.
+  const [aoVivoDaPartida, setAoVivoDaPartida] = useState<{
+    cameraAtiva: boolean;
+    golsGravadosPorJogador: Record<string, number>;
+  } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
 
@@ -92,15 +104,32 @@ export default function TelaResultado() {
   const [adicionarGol, setAdicionarGol] = useState(false);
   const [migrar, setMigrar] = useState<GolComVideos | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  // Só em memória de propósito (igual ao site): some ao sair da tela.
+  const [avisoGolsFechado, setAvisoGolsFechado] = useState(false);
+  // Replays abertos INLINE no lugar da lista de artilheiros: os de um jogador (toque no
+  // agrupado) ou só o de um gol (toque na linha do tempo).
+  const [replayInline, setReplayInline] = useState<{
+    jogadorId: string;
+    golId?: string;
+  } | null>(null);
 
   const carregar = useCallback(async () => {
-    const [dados, resultado, gs, ls, apoio] = await Promise.all([
+    const [dados, resultado, gs, ls, apoio, aoVivo] = await Promise.all([
       buscarDadosDoGrupo(chamarApi, id),
       buscarResultadoAtivo(chamarApi, partidaId),
       buscarGols(chamarApi, partidaId, { incluirCancelados: true }),
       buscarLances(chamarApi, partidaId),
       buscarApoioDaPartida(chamarApi, partidaId),
+      buscarEstadoAoVivo(chamarApi, partidaId).catch(() => null),
     ]);
+    setAoVivoDaPartida(
+      aoVivo
+        ? {
+            cameraAtiva: aoVivo.cameraAtiva,
+            golsGravadosPorJogador: aoVivo.golsGravadosPorJogador,
+          }
+        : null
+    );
     const g = dados.grupo ?? null;
     const p = g ? buscarPartida(g, partidaId) ?? null : null;
     setGrupo(g);
@@ -261,6 +290,33 @@ export default function TelaResultado() {
   const temAbaArtilheiros = encerrada && (golsAtivos.length > 0 || podeEditarGols);
   const temAbaLances = encerrada && lancesComVideo.length > 0;
 
+  // Quem entra no painel de artilheiros (elenco da partida, com o que o card do jogador
+  // mostra) e quantos replays cada um tem (do servidor; sem ele, conta pelos próprios gols).
+  const jogadoresDoPainel = [...montado.times.flat(), ...montado.proximos];
+  const golsGravadosPorJogador: Record<string, number> =
+    aoVivoDaPartida?.golsGravadosPorJogador ??
+    golsAtivos.reduce<Record<string, number>>((m, x) => {
+      if (x.jogador && x.videos.length > 0) m[x.jogador.id] = (m[x.jogador.id] ?? 0) + 1;
+      return m;
+    }, {});
+  // Replays do jogador abertos no lugar do painel. Pela linha do tempo (`golId`), só o
+  // gol tocado.
+  const jogadorDoReplay = replayInline
+    ? (golsAtivos.find((x) => x.jogador?.id === replayInline.jogadorId)?.jogador ?? {
+        id: replayInline.jogadorId,
+        nome: jogadoresDoPainel.find((j) => j.jogadorId === replayInline.jogadorId)?.nome ?? "Jogador",
+        fotoUrl: jogadoresDoPainel.find((j) => j.jogadorId === replayInline.jogadorId)?.fotoUrl ?? null,
+      })
+    : null;
+  const golsDoReplayInline = replayInline
+    ? golsAtivos.filter(
+        (x) =>
+          x.jogador?.id === replayInline.jogadorId &&
+          x.videos.length > 0 &&
+          (!replayInline.golId || x.golId === replayInline.golId)
+      )
+    : [];
+
   const abas: { chave: Aba; rotulo: string }[] = [
     { chave: "TIMES", rotulo: encerrada ? "Resultado" : "Times" },
     ...(temAbaArtilheiros ? [{ chave: "ARTILHEIROS" as Aba, rotulo: "Artilheiros" }] : []),
@@ -348,61 +404,115 @@ export default function TelaResultado() {
           </View>
         ) : abaVisivel === "ARTILHEIROS" ? (
           <View style={{ gap: 10 }}>
-            {podeEditarGols && (
-              <Pressable style={styles.adicionarGol} onPress={() => setAdicionarGol(true)}>
-                <Plus size={14} color={cores.ambar} />
-                <Text style={styles.adicionarGolTexto}>Adicionar gol</Text>
-              </Pressable>
+            {souAdmin && podeEditarGols && !avisoGolsFechado && (
+              <View style={styles.avisoGols}>
+                <TriangleAlert size={16} color={cores.ambar} style={{ marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.avisoGolsTexto}>
+                    É possível ajustar gols até {PRAZO_EDICAO_GOLS_HORAS}h depois do fim da partida.
+                  </Text>
+                  <Pressable style={styles.avisoGolsAcao} onPress={() => setAdicionarGol(true)}>
+                    <Plus size={14} color={cores.ambar} />
+                    <Text style={styles.avisoGolsAcaoTexto}>Adicionar gol</Text>
+                  </Pressable>
+                </View>
+                <Pressable
+                  hitSlop={8}
+                  accessibilityLabel="Fechar aviso"
+                  onPress={() => setAvisoGolsFechado(true)}
+                >
+                  <X size={16} color={cores.ambar} />
+                </Pressable>
+              </View>
             )}
             {erroAcao && <Text style={styles.erroAcao}>{erroAcao}</Text>}
-            <Eyebrow>Linha do tempo</Eyebrow>
-            {gols.length === 0 ? (
-              <Text style={styles.vazio}>Nenhum gol registrado.</Text>
-            ) : (
-              gols.map((gol) => (
-                <Pressable
-                  key={gol.golId}
-                  style={[styles.golLinha, gol.cancelado && styles.golCancelado]}
-                  disabled={!podeEditarGols}
-                  onPress={() => podeEditarGols && setMenuGol(gol)}
-                >
-                  <AvatarJogador
-                    id={gol.jogador?.id}
-                    nome={gol.jogador?.nome ?? "?"}
-                    fotoUrl={gol.jogador?.fotoUrl}
-                    tamanho={32}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.golNome}>
-                      {gol.jogador?.nome ?? "Ex-jogador"}
-                      {gol.cancelado ? "  (cancelado)" : ""}
-                      {gol.origem === "CORRECAO" ? "  ·  editado" : ""}
-                    </Text>
-                    <Text style={styles.golHora}>
-                      {formatarHora(new Date(gol.criadoEm))}
-                      {gol.migracao ? `  ·  de ${gol.migracao.deNome}` : ""}
-                    </Text>
-                  </View>
-                  {podeEditarGols && <EllipsisVertical size={16} color={cores.slate400} />}
+
+            {/* O painel fica montado (só escondido) enquanto os replays estão abertos,
+                pra não perder o modo agrupado/linha do tempo ao voltar. */}
+            <View style={replayInline ? styles.escondido : undefined}>
+              <PainelGols
+                gols={gols}
+                golsPorJogador={golsPorJogador}
+                golsGravadosPorJogador={golsGravadosPorJogador}
+                jogadores={jogadoresDoPainel}
+                meuId={meuId}
+                dataPartida={new Date(p.data)}
+                mostrarScore={!!souAdmin && verScore}
+                mostrarStatusGravacao={aoVivoDaPartida?.cameraAtiva ?? golsAtivos.some((x) => x.videos.length > 0)}
+                slotDireita={
+                  souAdmin ? <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} /> : undefined
+                }
+                podeEditarGols={podeEditarGols}
+                onMenuGol={setMenuGol}
+                onAbrirReplayJogador={(jogadorId) => setReplayInline({ jogadorId })}
+                onAbrirReplayGol={(golId) => {
+                  const g = gols.find((x) => x.golId === golId);
+                  if (g?.jogador) setReplayInline({ jogadorId: g.jogador.id, golId });
+                }}
+              />
+            </View>
+
+            {replayInline && (
+              <View style={{ gap: 10 }}>
+                <Pressable style={styles.replayVoltar} onPress={() => setReplayInline(null)}>
+                  <ArrowLeft size={16} color={cores.branco} />
+                  <Text style={styles.replayVoltarTexto}>Artilheiros</Text>
                 </Pressable>
-              ))
+                {jogadorDoReplay && (
+                  <View style={styles.replayJogador}>
+                    <AvatarJogador
+                      id={jogadorDoReplay.id}
+                      nome={jogadorDoReplay.nome}
+                      fotoUrl={jogadorDoReplay.fotoUrl}
+                      tamanho={48}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.replayJogadorNome} numberOfLines={1}>
+                        {jogadorDoReplay.nome}
+                      </Text>
+                      <Text style={styles.replayJogadorSub}>
+                        {replayInline.golId
+                          ? "Replay desse gol"
+                          : `${golsDoReplayInline.length} replay${golsDoReplayInline.length === 1 ? "" : "s"} nessa partida`}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                <CardsReplay
+                  gols={golsDoReplayInline}
+                  grupoNome={g.nome}
+                  vazioTexto="Nenhum replay desse jogador nessa partida."
+                  comentar={{
+                    chamarApi,
+                    meuJogadorId: meuId,
+                    podeComentar,
+                    podeModerar: !!souAdmin,
+                    porPedido: comentarios,
+                    onComentarios: (pid, lista) =>
+                      setComentarios((prev) => ({ ...prev, [pid]: lista })),
+                  }}
+                />
+              </View>
             )}
           </View>
         ) : (
-          <ListaReplays
-            gols={lancesComVideo}
-            vazioTexto="Nenhum lance importante nessa partida."
-            meuId={meuId}
-            comentar={{
-              chamarApi,
-              meuJogadorId: meuId,
-              podeComentar,
-              podeModerar: !!souAdmin,
-              porPedido: comentarios,
-              onComentarios: (pid, lista) =>
-                setComentarios((prev) => ({ ...prev, [pid]: lista })),
-            }}
-          />
+          <View style={{ gap: 10 }}>
+            <Eyebrow>Lances importantes</Eyebrow>
+            <CardsReplay
+              gols={lancesComVideo}
+              grupoNome={g.nome}
+              vazioTexto="Nenhum lance importante registrado nessa partida."
+              comentar={{
+                chamarApi,
+                meuJogadorId: meuId,
+                podeComentar,
+                podeModerar: !!souAdmin,
+                porPedido: comentarios,
+                onComentarios: (pid, lista) =>
+                  setComentarios((prev) => ({ ...prev, [pid]: lista })),
+              }}
+            />
+          </View>
         )}
       </ScrollView>
 
@@ -816,35 +926,36 @@ const styles = StyleSheet.create({
   linhaTimeMeta: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginTop: 1, gap: 4 },
   linhaTimeMetaItem: { flexDirection: "row", alignItems: "center", gap: 3 },
   linhaTimeMetaTexto: { fontSize: 12, color: cores.slate400 },
-  adicionarGol: {
+  avisoGols: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
     borderRadius: raio.campo,
     borderWidth: 1,
-    borderStyle: "dashed",
     borderColor: cores.ambarBorda,
     backgroundColor: cores.ambarFundo,
-    padding: 10,
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  adicionarGolTexto: { fontSize: 13, fontWeight: "700", color: cores.ambar },
-  erroAcao: { fontSize: 13, color: cores.erroTexto },
-  vazio: { fontSize: 13, color: cores.slate400 },
-  golLinha: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.cardBorda,
-    backgroundColor: cores.cardFundo,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  golCancelado: { opacity: 0.5 },
-  golNome: { fontSize: 14, fontWeight: "600", color: cores.branco },
-  golHora: { fontSize: 12, color: cores.slate500 },
+  avisoGolsTexto: { fontSize: 14, lineHeight: 20, color: cores.ambar },
+  avisoGolsAcao: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+  avisoGolsAcaoTexto: { fontSize: 12, fontWeight: "700", color: cores.ambar },
+  escondido: { display: "none" },
+  replayVoltar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    height: 44,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.cardBorda,
+  },
+  replayJogador: { flexDirection: "row", alignItems: "center", gap: 12 },
+  replayJogadorNome: { fontSize: 18, fontWeight: "700", color: cores.branco },
+  replayJogadorSub: { fontSize: 12, color: cores.slate400 },
+  replayVoltarTexto: { fontSize: 15, color: cores.branco },
+  erroAcao: { fontSize: 13, color: cores.erroTexto },
   opcao: {
     paddingVertical: 11,
     paddingHorizontal: 12,

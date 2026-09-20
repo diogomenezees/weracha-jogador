@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
+import { ModalEscolha } from "@/grupo/pickers";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { Trophy } from "@/ui/Icone";
 import { Podio } from "@/artilheiros/Podio";
 import {
   CHAVE_GERAL,
@@ -29,6 +31,7 @@ export function TelaArtilheiros({
 }) {
   const [periodoChave, setPeriodoChave] = useState(dados.periodoInicial);
   const [zeradosAbertos, setZeradosAbertos] = useState(false);
+  const [esporteAberto, setEsporteAberto] = useState(false);
 
   const periodo =
     dados.periodos.find((p) => p.chave === periodoChave) ?? dados.periodos[0] ?? null;
@@ -51,15 +54,7 @@ export function TelaArtilheiros({
 
   function escolherEsporte() {
     if (!esporteScope || !aoTrocarEsporte) return;
-    Alert.alert("Esporte", undefined, [
-      ...esporteScope.esportesDisponiveis.map((esp) => ({
-        text: esp + (esp === esporteScope.esporteSelecionado ? " ✓" : ""),
-        onPress: () => {
-          if (esp !== esporteScope.esporteSelecionado) aoTrocarEsporte(esp);
-        },
-      })),
-      { text: "Fechar", style: "cancel" as const },
-    ]);
+    setEsporteAberto(true);
   }
 
   useEffect(() => {
@@ -77,6 +72,21 @@ export function TelaArtilheiros({
             </Text>
             <Text style={styles.chipSelSeta}>{trocando ? "…" : "▾"}</Text>
           </Pressable>
+          <ModalEscolha
+            aberto={esporteAberto}
+            onFechar={() => setEsporteAberto(false)}
+            Icone={Trophy}
+            titulo="Esporte"
+            descricao="Escolha o esporte pra ver o ranking de artilheiros dele."
+            opcoes={esporteScope.esportesDisponiveis}
+            selecionado={esporteScope.esportesDisponiveis.indexOf(
+              esporteScope.esporteSelecionado ?? ""
+            )}
+            onEscolher={(i) => {
+              const esp = esporteScope.esportesDisponiveis[i];
+              if (esp !== esporteScope.esporteSelecionado) aoTrocarEsporte?.(esp);
+            }}
+          />
         </View>
       )}
 

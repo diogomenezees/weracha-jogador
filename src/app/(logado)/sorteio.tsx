@@ -1,18 +1,22 @@
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { sortearTimes, type JogadorSorteado } from "@/sorteio";
 import { cores, raio } from "@/tema";
+import { ArrowRight, Shuffle, Star } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
+import { ScrollTeclado } from "@/ui/ScrollTeclado";
 import { TituloTela } from "@/ui/TituloTela";
 
 const MIN_TIMES = 2;
 const MAX_TIMES = 8;
 
 export default function Sorteio() {
+  // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
+  const insets = useSafeAreaInsets();
   const [nomesTexto, setNomesTexto] = useState("");
   const [numTimes, setNumTimes] = useState(2);
   const [sortearCapitao, setSortearCapitao] = useState(false);
@@ -36,13 +40,13 @@ export default function Sorteio() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Painel" />
-      <ScrollView
-        contentContainerStyle={styles.scroll}
+      <ScrollTeclado
+        contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.cabecalho}>
-          <TituloTela>Organizar pessoas</TituloTela>
+          <TituloTela Icone={Shuffle}>Organizar pessoas</TituloTela>
           <Text style={styles.sub}>
             Sorteio rápido e local. Nada aqui é salvo na sua conta.
           </Text>
@@ -112,6 +116,8 @@ export default function Sorteio() {
               </View>
             </View>
 
+            <CartaoCriarGrupo />
+
             {erro && <Text style={styles.erro}>{erro}</Text>}
 
             <Pressable style={styles.botaoLaranja} onPress={gerar}>
@@ -136,16 +142,38 @@ export default function Sorteio() {
                 <Text style={styles.botaoLaranjaTexto}>Sortear de novo</Text>
               </Pressable>
             </View>
+            <CartaoCriarGrupo />
           </View>
         )}
 
-        <Pressable style={styles.cta} onPress={() => router.push("/criar-grupo")}>
-          <Text style={styles.ctaTexto}>
-            Quer times equilibrados por score, presença e histórico? Crie um grupo.
-          </Text>
-        </Pressable>
-      </ScrollView>
+      </ScrollTeclado>
     </SafeAreaView>
+  );
+}
+
+// Convite pra criar um grupo. O botão é só contorno (sem fundo) de propósito: nessa tela a
+// ação principal é sortear, e um botão cheio aqui brigaria com "Gerar times".
+function CartaoCriarGrupo() {
+  return (
+    <View style={styles.cta}>
+      <View style={styles.ctaTopo}>
+        <View style={styles.ctaIcone}>
+          <Star size={20} color={cores.teal} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.ctaEyebrow}>Vai além do sorteio</Text>
+          <Text style={styles.ctaTitulo}>Times equilibrados de verdade</Text>
+        </View>
+      </View>
+      <Text style={styles.ctaTexto}>
+        Crie um grupo e o app monta os times pelo score, pela presença e pelo histórico de cada
+        jogador. Sem mais time capengando.
+      </Text>
+      <Pressable style={styles.ctaBotao} onPress={() => router.push("/criar-grupo")}>
+        <Text style={styles.ctaBotaoTexto}>Criar meu grupo</Text>
+        <ArrowRight size={18} color={cores.teal} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -165,8 +193,8 @@ function Time({
         <Text style={[styles.timeRotulo, { color: c }]}>Time {numero}</Text>
         <Text style={[styles.timeRotulo, { color: c }]}>· {jogadores.length}</Text>
       </View>
-      {jogadores.map((j) => (
-        <View key={j.nome} style={styles.jogadorLinha}>
+      {jogadores.map((j, i) => (
+        <View key={`${i}-${j.nome}`} style={styles.jogadorLinha}>
           {j.capitao ? (
             <Text style={[styles.capitao, { color: c }]}>★</Text>
           ) : (
@@ -204,7 +232,7 @@ const styles = StyleSheet.create({
   stepper: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
+    alignSelf: "stretch",
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.campoBorda,
@@ -214,7 +242,7 @@ const styles = StyleSheet.create({
   stepBtn: { width: 52, height: 48, alignItems: "center", justifyContent: "center" },
   stepBtnTexto: { fontSize: 22, color: cores.teal },
   stepOff: { opacity: 0.3 },
-  stepValor: { minWidth: 44, textAlign: "center", fontSize: 17, fontWeight: "700", color: cores.branco },
+  stepValor: { flex: 1, minWidth: 44, textAlign: "center", fontSize: 17, fontWeight: "700", color: cores.branco },
   segmentos: { flexDirection: "row", gap: 8 },
   seg: {
     flex: 1,
@@ -291,11 +319,40 @@ const styles = StyleSheet.create({
   jogadorNome: { flex: 1, fontSize: 14, color: cores.branco },
   acoes: { flexDirection: "row", gap: 10 },
   cta: {
+    gap: 12,
+    borderRadius: raio.card,
+    borderWidth: 1,
+    borderColor: cores.avisoBorda,
+    backgroundColor: cores.avisoFundo,
+    padding: 16,
+  },
+  ctaTopo: { flexDirection: "row", alignItems: "center", gap: 12 },
+  ctaIcone: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(31, 179, 163, 0.15)",
+  },
+  ctaEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    color: cores.teal,
+    textTransform: "uppercase",
+  },
+  ctaTitulo: { fontSize: 17, fontWeight: "700", color: cores.branco, marginTop: 2 },
+  ctaTexto: { fontSize: 14, lineHeight: 20, color: cores.slate300 },
+  ctaBotao: {
+    height: 46,
     borderRadius: raio.campo,
     borderWidth: 1,
-    borderColor: cores.cardBorda,
-    backgroundColor: cores.cardFundo,
-    padding: 12,
+    borderColor: cores.teal,
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  ctaTexto: { fontSize: 13, lineHeight: 19, color: cores.teal },
+  ctaBotaoTexto: { fontSize: 15, fontWeight: "700", color: cores.teal },
 });

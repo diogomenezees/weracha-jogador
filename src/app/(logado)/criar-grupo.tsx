@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -10,6 +10,7 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { hojeISO, partidaEncerrada } from "@/partidas";
 import { BotaoLaranja } from "@/painel/ui";
 import { Navbar } from "@/ui/Navbar";
+import { ScrollTeclado } from "@/ui/ScrollTeclado";
 import { SeletorData, SeletorDiaSemana, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -116,7 +117,7 @@ export default function CriarGrupo() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Painel" />
 
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollTeclado contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <Text style={styles.h1}>Criar grupo</Text>
 
         <View style={styles.campo}>
@@ -235,7 +236,7 @@ export default function CriarGrupo() {
         <Text style={styles.nota}>Depois de salvar, vincule a quadra dentro do grupo.</Text>
 
         {erro && <CaixaErro>{erro}</CaixaErro>}
-      </ScrollView>
+      </ScrollTeclado>
 
       <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
         <BotaoLaranja titulo="Salvar" onPress={() => void salvar()} carregando={salvando} />

@@ -41,6 +41,10 @@ export {
   LandPlot,
   Handshake,
   Inbox,
+  Building2,
+  Wrench,
+  CircleCheck,
+  CircleQuestionMark,
   // ações
   Plus,
   Minus,

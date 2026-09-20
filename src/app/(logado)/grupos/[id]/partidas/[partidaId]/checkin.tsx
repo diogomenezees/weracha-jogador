@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { AppState, Pressable, Share, StyleSheet, TextInput, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Text } from "@/ui/Texto";
@@ -51,6 +51,7 @@ import {
 } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import { ScrollTeclado } from "@/ui/ScrollTeclado";
 import type {
   DadosDeApoioDaPartida,
   Grupo,
@@ -324,7 +325,7 @@ export default function TelaCheckin() {
 
   return (
     <TelaPartida voltar="Grupo">
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollTeclado contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Cabecalho
           titulo="Lista de presença"
           Icone={UserCheck}
@@ -509,7 +510,7 @@ export default function TelaCheckin() {
             })}
           </View>
         )}
-      </ScrollView>
+      </ScrollTeclado>
 
       <Rodape
         primario={

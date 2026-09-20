@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -26,6 +26,7 @@ import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { ChevronRight, Lock } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
+import { ScrollTeclado } from "@/ui/ScrollTeclado";
 import type { Grupo, PosicaoEsporte } from "@/contrato/tipos";
 
 export default function Perfil() {
@@ -213,7 +214,7 @@ export default function Perfil() {
       {carregando ? (
         <TelaCarregando mensagem="Carregando perfil..." />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollTeclado contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Text style={styles.h1}>Seu perfil</Text>
 
           {exclusaoPendente && (
@@ -359,7 +360,7 @@ export default function Perfil() {
               })}
             </View>
           )}
-        </ScrollView>
+        </ScrollTeclado>
       )}
 
       <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
@@ -401,7 +402,7 @@ export default function Perfil() {
       {scoreDe && (
         <ModalScore
           aberto
-          nome="você"
+          nome={jogador.nome}
           scoreAtual={scoreDe.meuScore}
           salvando={salvandoGrupo}
           erro={erroGrupo}
@@ -415,7 +416,7 @@ export default function Perfil() {
       {posicaoDe && (
         <ModalPosicao
           aberto
-          nome="você"
+          nome={jogador.nome}
           posicaoAtualId={posicaoDe.meuPosicaoId}
           posicoes={posicoesPorEsporte[posicaoDe.esporte] ?? []}
           salvando={salvandoGrupo}

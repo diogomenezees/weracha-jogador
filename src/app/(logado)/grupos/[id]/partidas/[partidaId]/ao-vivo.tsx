@@ -511,7 +511,9 @@ export default function TelaAoVivo() {
                 mostrarStatusGravacao={aoVivo.cameraAtiva}
               />
             ) : goleadores.length === 0 ? (
-              <Text style={styles.vazio}>Nenhum gol registrado ainda.</Text>
+              <View style={styles.vazioCaixa}>
+                <Text style={styles.vazio}>Nenhum gol registrado ainda.</Text>
+              </View>
             ) : (
               <View style={{ gap: 10 }}>
                 {goleadores.map(({ jogador, gols: n, gravados }) => (
@@ -757,6 +759,14 @@ const styles = StyleSheet.create({
   ordBtnDivisor: { borderLeftWidth: 1, borderLeftColor: cores.avisoBorda },
   ordBtnAtivo: { backgroundColor: cores.teal },
   vazio: { fontSize: 13, color: cores.slate400 },
+  // Mesma caixa do estado vazio de ListaReplays (modo cronológico) e do site.
+  vazioCaixa: {
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.cardBorda,
+    backgroundColor: cores.cardFundo,
+    padding: 14,
+  },
   golDireita: { alignItems: "flex-end", gap: 3 },
   golLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
   golMenos: {

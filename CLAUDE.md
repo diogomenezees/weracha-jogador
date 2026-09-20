@@ -62,7 +62,11 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   `weracha-site/components/navbar.tsx`) — marca à esquerda ou `<Navbar voltar="Grupo" />`
   pra nomear o destino do voltar, e o botão ☰ à direita que abre a gaveta com as
   telas principais. Toda tela logada renderiza `<Navbar />` no topo (o ciclo da
-  partida herda via `TelaPartida`; `onboarding` é a exceção). Todas as telas do
+  partida herda via `TelaPartida`; `onboarding` é a exceção). O "‹ destino" **vai
+  pro destino que o texto nomeia** (`router.dismissTo`: "Painel" → `/painel`,
+  "Grupo" → `/grupos/[id]`, "Check-in", "Enquetes"; ids vêm dos params da rota), não
+  pra tela de onde veio — isso é o voltar do celular (histórico). Rótulo sem destino
+  conhecido cai em `router.back()`; `onVoltar` sobrescreve. Todas as telas do
   menu já existem; `(logado)/em-breve.tsx` (item `tipo: "em-breve"` da `Navbar`)
   fica de prontidão pra uma tela nova, sem rota apontando pra ele hoje.
 - **Tela do grupo** (`(logado)/grupos/[id]/index.tsx`) espelha
@@ -74,6 +78,10 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   `src/{artilheiros,resenha,enquetes,jogadores}/`. Avatar em
   `src/ui/AvatarJogador.tsx`. Janela de check-in e formatação de partida em
   `src/partidas.ts` (sem fuso SP explícito: o cliente é local).
+- **Tela com `TextInput` no meio da rolagem usa `ScrollTeclado`** (`src/ui/ScrollTeclado.tsx`)
+  no lugar de `ScrollView`: encolhe a área quando o teclado abre e rola até o campo que
+  ganhou foco (senão o teclado cobre o campo). Modais (`Modal`) já se ajustam sozinhos no
+  Android e a tela de acesso tem o próprio `KeyboardAvoidingView`.
 - Chat da resenha faz polling só enquanto `AppState.currentState === "active"`.
 - Vídeo de replay abre no player do sistema (`Linking.openURL`), sem `expo-video`.
 - **Convite**: `src/app/convite/[token].tsx` (deep link) e

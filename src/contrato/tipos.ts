@@ -307,11 +307,13 @@ export type FeedResenha = {
   podeComentar: PodeComentar;
 };
 
-// GET /api/v1/replays — gols do próprio jogador (qualquer grupo/partida) que já
-// têm vídeo, do mais recente pro mais antigo. Cópia de `MeuReplay` em
-// weracha-site/lib/services/aoVivo.ts. `videos` aqui é sempre NUVEM (o filtro do
-// serviço só traz gol com vídeo). `grupoRemovido`: o jogador saiu do grupo — o
-// replay continua visível, sem os atalhos pro grupo/resultado nem a resenha.
+// GET /api/v1/replays?pagina=<n> — gols do próprio jogador (qualquer grupo/partida) que
+// já têm vídeo, do mais recente pro mais antigo, 5 por página. Cópia de `MeuReplay` e
+// `PaginaMeusReplays` em weracha-site/lib/services/aoVivo.ts. `videos` aqui é sempre
+// NUVEM (o filtro do serviço só traz gol com vídeo). `grupoRemovido`: o jogador saiu do
+// grupo — o replay continua visível, sem os atalhos pro grupo/resultado nem a resenha.
+// `totalComentarios` + `comentariosPreview` (últimos 2) já vêm no replay, no formato do
+// bloco do feed da resenha.
 export type MeuReplay = {
   golId: string;
   criadoEm: string;
@@ -324,6 +326,14 @@ export type MeuReplay = {
   marcadoPor: { nome: string };
   videos: { idCamera: string; link: string }[];
   grupoRemovido: boolean;
+  totalComentarios: number;
+  comentariosPreview: ComentarioResenha[];
+};
+
+export type PaginaMeusReplays = {
+  replays: MeuReplay[];
+  temMais: boolean;
+  total: number;
 };
 
 // ── Enquetes (16-api-v1.md §6) ─────────────────────────────────────────────

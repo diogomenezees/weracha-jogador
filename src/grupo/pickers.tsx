@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { BlurView } from "expo-blur";
 import { Text } from "@/ui/Texto";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { ModalCartao } from "@/grupo/modais";
-import { Calendar } from "@/ui/Icone";
+import { Calendar, Clock, type LucideIcon } from "@/ui/Icone";
 import { DIAS_SEMANA } from "@/partidas";
 import { cores, raio } from "@/tema";
 import { useBlurTarget } from "@/ui/BlurTarget";
@@ -68,10 +68,11 @@ export function SeletorData({
           // Material Design), pra combinar com o resto do app em vez de puxar
           // a cor padrão do sistema.
           display="spinner"
-          onChange={(_, d) => {
+          onValueChange={(_, d) => {
             setAberto(false);
-            if (d) aplicar(d);
+            aplicar(d);
           }}
+          onDismiss={() => setAberto(false)}
         />
       )}
       {Platform.OS === "ios" && (
@@ -82,7 +83,7 @@ export function SeletorData({
             display="inline"
             themeVariant="dark"
             accentColor={cores.teal}
-            onChange={(_, d) => d && aplicar(d)}
+            onValueChange={(_, d) => aplicar(d)}
           />
         </ModalPicker>
       )}
@@ -101,43 +102,118 @@ export function SeletorHora({
   label?: string;
 }) {
   const [aberto, setAberto] = useState(false);
-  const [h, m] = hhmm.split(":").map(Number);
-  const valor = new Date(2000, 0, 1, h || 0, m || 0);
-
-  function aplicar(d: Date) {
-    onChange(
-      `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
-    );
-  }
 
   return (
     <>
       <Campo label={label} valor={hhmm} onPress={() => setAberto(true)} />
-      {aberto && Platform.OS === "android" && (
-        <DateTimePicker
-          value={valor}
-          mode="time"
-          is24Hour
-          display="spinner"
-          onChange={(_, d) => {
+      {/* Monta só aberto: cada abertura começa da hora atual do campo. */}
+      {aberto && (
+        <ModalHora
+          titulo={label}
+          hhmm={hhmm}
+          onFechar={() => setAberto(false)}
+          onConfirmar={(novo) => {
+            onChange(novo);
             setAberto(false);
-            if (d) aplicar(d);
           }}
         />
       )}
-      {Platform.OS === "ios" && (
-        <ModalPicker aberto={aberto} onFechar={() => setAberto(false)}>
-          <DateTimePicker
-            value={valor}
-            mode="time"
-            is24Hour
-            display="spinner"
-            themeVariant="dark"
-            onChange={(_, d) => d && aplicar(d)}
-          />
-        </ModalPicker>
-      )}
     </>
+  );
+}
+
+const ALTURA_ITEM_HORA = 44;
+const HORAS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTOS = Array.from({ length: 60 }, (_, i) => i);
+
+const doisDigitos = (n: number) => String(n).padStart(2, "0");
+
+// Seletor de hora próprio (duas colunas, hora e minuto), no lugar do diálogo nativo do
+// Android: o nativo vem cinza, com botões pretos, e não dá pra pintar com o tema do app.
+function ModalHora({
+  titulo,
+  hhmm,
+  onFechar,
+  onConfirmar,
+}: {
+  titulo: string;
+  hhmm: string;
+  onFechar: () => void;
+  onConfirmar: (hhmm: string) => void;
+}) {
+  const [h0, m0] = hhmm.split(":").map(Number);
+  const [hora, setHora] = useState(Number.isFinite(h0) ? h0 : 0);
+  const [minuto, setMinuto] = useState(Number.isFinite(m0) ? m0 : 0);
+
+  return (
+    <ModalCartao aberto onFechar={onFechar}>
+      <View style={styles.modalListaTituloLinha}>
+        <Clock size={18} color={cores.teal} />
+        <Text style={styles.modalListaTitulo}>{titulo}</Text>
+      </View>
+      <Text style={styles.horaGrande}>
+        {doisDigitos(hora)}:{doisDigitos(minuto)}
+      </Text>
+      <View style={styles.horaColunas}>
+        <ColunaHora rotulo="Hora" valores={HORAS} selecionado={hora} onEscolher={setHora} />
+        <ColunaHora rotulo="Minuto" valores={MINUTOS} selecionado={minuto} onEscolher={setMinuto} />
+      </View>
+      <View style={styles.horaAcoes}>
+        <Pressable style={styles.horaCancelar} onPress={onFechar}>
+          <Text style={styles.horaCancelarTexto}>Cancelar</Text>
+        </Pressable>
+        <Pressable
+          style={styles.horaConfirmar}
+          onPress={() => onConfirmar(`${doisDigitos(hora)}:${doisDigitos(minuto)}`)}
+        >
+          <Text style={styles.horaConfirmarTexto}>Confirmar</Text>
+        </Pressable>
+      </View>
+    </ModalCartao>
+  );
+}
+
+function ColunaHora({
+  rotulo,
+  valores,
+  selecionado,
+  onEscolher,
+}: {
+  rotulo: string;
+  valores: number[];
+  selecionado: number;
+  onEscolher: (v: number) => void;
+}) {
+  const scrollRef = useRef<ScrollView>(null);
+  return (
+    <View style={{ flex: 1, gap: 6 }}>
+      <Text style={styles.horaRotulo}>{rotulo}</Text>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.horaLista}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+        // Abre já com o valor atual no meio da lista.
+        onLayout={() =>
+          scrollRef.current?.scrollTo({
+            y: Math.max(0, (selecionado - 2) * ALTURA_ITEM_HORA),
+            animated: false,
+          })
+        }
+      >
+        {valores.map((v) => (
+          <Pressable
+            key={v}
+            style={[styles.horaItem, v === selecionado && styles.opcaoAtiva]}
+            onPress={() => onEscolher(v)}
+          >
+            <Text style={[styles.horaItemTexto, v === selecionado && styles.horaItemTextoAtivo]}>
+              {doisDigitos(v)}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -182,31 +258,65 @@ export function SeletorDiaSemana({
   return (
     <>
       <Campo label="Dia da semana" valor={capitalizar(DIAS_SEMANA[dia] ?? "")} onPress={() => setAberto(true)} />
-      <ModalCartao aberto={aberto} onFechar={() => setAberto(false)}>
-        <View style={styles.modalListaTituloLinha}>
-          <Calendar size={18} color={cores.teal} />
-          <Text style={styles.modalListaTitulo}>Dia da semana</Text>
-        </View>
-        <Text style={styles.modalListaDescricao}>
-          Toda semana, nesse dia, o grupo recebe uma partida nova automaticamente, no
-          horário definido abaixo.
-        </Text>
-        <ScrollView style={{ maxHeight: 280 }}>
-          {DIAS_SEMANA.map((nome, i) => (
-            <Pressable
-              key={nome}
-              style={[styles.opcao, i === dia && styles.opcaoAtiva]}
-              onPress={() => {
-                onChange(i);
-                setAberto(false);
-              }}
-            >
-              <Text style={styles.opcaoTexto}>{capitalizar(nome)}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </ModalCartao>
+      <ModalEscolha
+        aberto={aberto}
+        onFechar={() => setAberto(false)}
+        Icone={Calendar}
+        titulo="Dia da semana"
+        descricao="Toda semana, nesse dia, o grupo recebe uma partida nova automaticamente, no horário definido abaixo."
+        opcoes={DIAS_SEMANA.map((nome) => capitalizar(nome))}
+        selecionado={dia}
+        onEscolher={onChange}
+      />
     </>
+  );
+}
+
+// Lista de opções num modal (título com ícone, descrição opcional e a opção atual
+// destacada em teal). Usado pelo dia da semana e pela escolha de esporte dos
+// artilheiros, no lugar do Alert.alert nativo (caixa branca, corta em 3 botões).
+export function ModalEscolha({
+  aberto,
+  onFechar,
+  Icone,
+  titulo,
+  descricao,
+  opcoes,
+  selecionado,
+  onEscolher,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  Icone: LucideIcon;
+  titulo: string;
+  descricao?: string;
+  /** Rótulos, na ordem; `onEscolher` recebe o índice da opção tocada. */
+  opcoes: string[];
+  selecionado: number;
+  onEscolher: (indice: number) => void;
+}) {
+  return (
+    <ModalCartao aberto={aberto} onFechar={onFechar}>
+      <View style={styles.modalListaTituloLinha}>
+        <Icone size={18} color={cores.teal} />
+        <Text style={styles.modalListaTitulo}>{titulo}</Text>
+      </View>
+      {descricao ? <Text style={styles.modalListaDescricao}>{descricao}</Text> : null}
+      <ScrollView style={{ maxHeight: 280 }}>
+        {opcoes.map((rotulo, i) => (
+          <Pressable
+            key={`${i}-${rotulo}`}
+            style={[styles.opcao, i === selecionado && styles.opcaoAtiva]}
+            onPress={() => {
+              onEscolher(i);
+              onFechar();
+            }}
+          >
+            <Text style={styles.opcaoTexto}>{rotulo}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </ModalCartao>
   );
 }
 
@@ -279,6 +389,53 @@ const styles = StyleSheet.create({
   },
   opcaoAtiva: { borderColor: cores.teal, backgroundColor: cores.avisoFundo },
   opcaoTexto: { fontSize: 15, color: cores.branco },
+  horaGrande: {
+    fontSize: 40,
+    fontWeight: "700",
+    color: cores.teal,
+    textAlign: "center",
+    letterSpacing: 2,
+  },
+  horaColunas: { flexDirection: "row", gap: 12 },
+  horaRotulo: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    color: cores.slate400,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  horaLista: { height: ALTURA_ITEM_HORA * 5 },
+  horaItem: {
+    height: ALTURA_ITEM_HORA,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  horaItemTexto: { fontSize: 20, color: cores.slate400 },
+  horaItemTextoAtivo: { color: cores.branco, fontWeight: "700" },
+  horaAcoes: { flexDirection: "row", gap: 10 },
+  horaCancelar: {
+    flex: 1,
+    height: 46,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.campoBorda,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  horaCancelarTexto: { fontSize: 15, color: cores.slate300 },
+  horaConfirmar: {
+    flex: 1,
+    height: 46,
+    borderRadius: raio.campo,
+    backgroundColor: cores.orange,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  horaConfirmarTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
   modalFundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 24 },
   modalCartao: { backgroundColor: cores.dark, borderRadius: raio.card, padding: 16, gap: 12 },
   modalOk: {

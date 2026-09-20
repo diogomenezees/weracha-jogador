@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { buscarMinhasEnquetes } from "@/api/enquetes";
 import { PRODUCAO_URL } from "@/config/links";
@@ -16,6 +16,8 @@ import { cores, raio } from "@/tema";
 import type { EnqueteComGrupo, EnquetesDoJogador } from "@/contrato/tipos";
 
 export default function EnquetesGlobal() {
+  // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
+  const insets = useSafeAreaInsets();
   const { estado, chamarApi } = useSessao();
   const meuId = estado.fase === "logado" ? estado.jogador.id : null;
 
@@ -74,7 +76,7 @@ export default function EnquetesGlobal() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
           <TituloTela Icone={BarChart3}>Enquetes</TituloTela>
           <Text style={styles.sub}>Votações de todos os seus grupos.</Text>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { buscarArtilheiros } from "@/api/artilheiros";
 import { buscarStatusExclusao } from "@/api/conta";
@@ -16,6 +16,8 @@ import { cores, raio } from "@/tema";
 import type { DadosArtilheiros } from "@/contrato/tipos";
 
 export default function ArtilheirosGlobal() {
+  // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
+  const insets = useSafeAreaInsets();
   const { chamarApi } = useSessao();
   const [dados, setDados] = useState<DadosArtilheiros | undefined>(undefined);
   const [contaPendente, setContaPendente] = useState(false);
@@ -83,7 +85,7 @@ export default function ArtilheirosGlobal() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
           <TituloTela Icone={Goal}>Artilheiros</TituloTela>
           <Text style={styles.sub}>Ranking de gols nos grupos que você faz parte.</Text>

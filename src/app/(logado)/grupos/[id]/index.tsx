@@ -1,9 +1,9 @@
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Animated, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import { buscarStatusExclusao } from "@/api/conta";
 import {
@@ -155,6 +155,27 @@ export default function TelaGrupo() {
       vivo = false;
     };
   }, [carregar, tentativa]);
+
+  // Voltar de outra tela (resultado, configurar, check-in...) com `router.back()`
+  // devolve esta tela JÁ MONTADA, com os dados de antes: o que mudou lá (sorteio
+  // refeito, resultado salvo, check-in) não aparecia até sair pro painel e entrar de
+  // novo. Então, a cada vez que a tela volta ao foco, recarrega em silêncio (sem
+  // spinner: segue mostrando o que já tem e troca quando a resposta chega; se falhar,
+  // mantém o que estava). O primeiro foco é pulado porque o effect acima já busca.
+  const carregarRef = useRef(carregar);
+  useEffect(() => {
+    carregarRef.current = carregar;
+  });
+  const primeiroFoco = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (primeiroFoco.current) {
+        primeiroFoco.current = false;
+        return;
+      }
+      void carregarRef.current().catch(() => {});
+    }, [])
+  );
 
   const grupo = dados?.grupo;
   const souAdmin = grupo?.meuPapel === "ADMIN";
@@ -1142,7 +1163,9 @@ function CardPartida({
             <ChevronRight size={18} color={cores.slate500} />
           )}
         </View>
-        {p.descricao ? (
+        {/* Partida anterior não mostra a descrição no card (só na tela de resultado),
+            igual ao site. */}
+        {p.descricao && !passada ? (
           <Text style={[styles.cardDescricao, p.cancelada && styles.textoCanceladoFraco]} numberOfLines={2}>
             {p.descricao}
           </Text>

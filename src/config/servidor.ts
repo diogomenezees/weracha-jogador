@@ -35,10 +35,14 @@ function ipDaMaquinaDeDev(): string | null {
 export function urlBaseDoAmbiente(ambiente: Ambiente): string {
   if (ambiente === "producao") return PRODUCAO;
 
-  // Celular físico: fala com o site na máquina de dev pelo IP da Wi-Fi.
   if (Device.isDevice) {
+    // Celular físico: fala com o site na máquina de dev pelo IP da Wi-Fi.
     const ip = ipDaMaquinaDeDev();
     if (ip) return `http://${ip}:3000`;
+    // Sem IP no hostUri (Metro via `adb reverse tcp:8081`, hostUri = 127.0.0.1):
+    // o celular está no USB, então o `adb reverse tcp:3000` faz o localhost dele
+    // chegar no site. NÃO cair no 10.0.2.2, que só existe no emulador.
+    return LOCAL_LOCALHOST;
   }
   // Emulador Android: 10.0.2.2 encaminha pro localhost do host.
   if (Platform.OS === "android") return LOCAL_EMULADOR_ANDROID;

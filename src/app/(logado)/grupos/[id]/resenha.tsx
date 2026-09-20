@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
@@ -18,6 +18,8 @@ import type { BlocoFeedResenha, FeedResenha } from "@/contrato/tipos";
 
 export default function ResenhaDoGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  // Sem folga embaixo, a barra de botões do Android fica em cima do último card.
+  const insets = useSafeAreaInsets();
   const { chamarApi } = useSessao();
 
   const [feed, setFeed] = useState<FeedResenha | undefined>(undefined);
@@ -117,7 +119,7 @@ export default function ResenhaDoGrupo() {
       <FlatList
         data={blocos}
         keyExtractor={(b) => b.pedidoReplayId}
-        contentContainerStyle={styles.lista}
+        contentContainerStyle={[styles.lista, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={atualizando} onRefresh={atualizar} tintColor={cores.teal} />
