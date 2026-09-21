@@ -45,8 +45,9 @@ __tests__/             jest
 
 ## Estado
 
-Scaffold + tela de login funcionando (fatia 1). Backlog e decisões:
-`../weracha-site/docs/pendente/10-app-de-jogador.md`.
+O que já está feito, tela por tela: [`docs/00-estado-do-app.md`](docs/00-estado-do-app.md).
+Backlog, checklist de validação em device e decisões em aberto:
+[`docs/10-app-de-jogador.md`](docs/10-app-de-jogador.md).
 
 > O template do Expo trouxe algumas libs que ainda não são usadas (`@expo/ui`,
 > `expo-symbols`, `expo-glass-effect`, `expo-web-browser`, `expo-image`). Dá pra

@@ -14,7 +14,7 @@ import {
 
 // Trava tokenDeConvite/rotaDoConvite contra os casos que motivaram a reescrita
 // (trailing punctuation de apps de mensagem, prosa que não é um token). Ver
-// weracha-jogador/CLAUDE.md e docs/10-app-de-jogador.md.
+// weracha-jogador/CLAUDE.md e docs/00-estado-do-app.md.
 describe("tokenDeConvite", () => {
   it("extrai o token de uma URL completa", () => {
     expect(tokenDeConvite("https://weracha.app/convite/AbC123xYz9")).toBe(

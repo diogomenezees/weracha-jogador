@@ -9,8 +9,8 @@ projeto do workspace, cada um com seu próprio git, sem monorepo:
   Roda num celular fixo no tripé. Público e ciclo de vida diferentes deste app.
 - **app** (este) — instalado por todo mundo do grupo. Só fala com o site por HTTP.
 
-Ver `../CLAUDE.md` (workspace) e `../weracha-site/docs/pendente/10-app-de-jogador.md`
-(decisões e backlog do app).
+Ver `../CLAUDE.md` (workspace), `docs/00-estado-do-app.md` (o que o app já entrega) e
+`docs/10-app-de-jogador.md` (backlog, checklist de validação em device e decisões em aberto).
 
 ## Como o app fala com o site
 
