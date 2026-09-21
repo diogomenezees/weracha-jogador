@@ -360,7 +360,6 @@ export default function TelaCheckin() {
                       apelido={j.apelido}
                       fotoUrl={j.fotoUrl}
                       posicaoNome={posicaoNomePorJogador.get(j.id)}
-                      direita={<Text style={styles.maisTexto}>＋</Text>}
                     />
                   </Pressable>
                 ))}
@@ -396,7 +395,7 @@ export default function TelaCheckin() {
             </View>
           ) : null
         ) : (
-          <BotaoPrimario titulo="Eu vou jogar" onPress={() => void handleMeuCheckin()} />
+          <BotaoPrimario titulo="Eu vou jogar" compacto onPress={() => void handleMeuCheckin()} />
         )}
 
         <View style={styles.tituloLinha}>
@@ -663,7 +662,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: cores.branco,
   },
-  maisTexto: { fontSize: 22, color: cores.teal, paddingHorizontal: 6 },
   semResultado: {
     borderRadius: raio.campo,
     borderWidth: 1,

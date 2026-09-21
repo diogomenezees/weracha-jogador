@@ -194,7 +194,20 @@ export function Abas<T extends string>({
           style={[styles.aba, compacto && styles.abaCompacta, valor === o.chave && styles.abaOn]}
           onPress={() => onChange(o.chave)}
         >
-          <Text style={[styles.abaTexto, valor === o.chave && styles.abaTextoOn]}>{o.rotulo}</Text>
+          <Text
+            style={[
+              styles.abaTexto,
+              opcoes.length > 3 && styles.abaTextoApertada,
+              valor === o.chave && styles.abaTextoOn,
+            ]}
+            numberOfLines={1}
+            // Com 4 abas o rótulo mais longo ("Artilheiros") pode não caber em telas estreitas:
+            // encolhe um pouco em vez de cortar.
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {o.rotulo}
+          </Text>
         </Pressable>
       ))}
     </View>
@@ -407,7 +420,17 @@ const styles = StyleSheet.create({
   aba: { flex: 1, height: 34, borderRadius: 7, alignItems: "center", justifyContent: "center" },
   abaCompacta: { height: 26 },
   abaOn: { backgroundColor: cores.teal },
-  abaTexto: { fontSize: 12, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase", color: cores.slate400 },
+  // `textAlign: center` porque com `adjustsFontSizeToFit` o texto encolhido fica encostado à
+  // esquerda da caixa (que mantém a largura original), descentralizando os rótulos longos.
+  abaTexto: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    textAlign: "center",
+    color: cores.slate400,
+  },
+  abaTextoApertada: { letterSpacing: 0.3 },
   abaTextoOn: { color: cores.dark },
 
   card: {

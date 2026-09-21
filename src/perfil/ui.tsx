@@ -62,7 +62,7 @@ export function CampoTexto({
 }
 
 // Data de nascimento é opcional. Sem data: "Não informada" + link pra informar.
-// Com data: o SeletorData (dialog nativo de data) + link pra remover.
+// Com data: o SeletorData (calendário do app) + link pra remover.
 export function CampoDataNascimento({
   iso,
   onChange,
@@ -97,7 +97,7 @@ export function CampoDataNascimento({
           <Text style={styles.link}>Remover</Text>
         </Pressable>
       </View>
-      <SeletorData iso={iso} onChange={onChange} label="" />
+      <SeletorData iso={iso} onChange={onChange} label="" titulo="Data de nascimento" maxIso={hojeISO()} />
       {erro ? <Text style={styles.erro}>{erro}</Text> : null}
     </View>
   );

@@ -128,7 +128,9 @@ export function ChatResenha({
   const aviso = avisoComposer(podeComentar);
 
   return (
-    <Modal visible={aberto} transparent animationType="slide" onRequestClose={onFechar}>
+    // "fade" como o MenuAcoes: com "slide" o BlurView do fundo sobe junto com a
+    // folha e parece uma imagem embaçada subindo.
+    <Modal visible={aberto} transparent animationType="fade" onRequestClose={onFechar}>
       <BlurView
         intensity={40}
         tint="dark"

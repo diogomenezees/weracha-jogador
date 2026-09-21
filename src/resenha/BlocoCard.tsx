@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { router } from "expo-router";
 
@@ -14,11 +14,12 @@ import {
   EllipsisVertical,
   Goal,
   MessageCircle,
-  Play,
   Sparkles,
   Trophy,
   Users,
 } from "@/ui/Icone";
+import { baixarReplay, mensagemDownload, nomeArquivoReplay } from "@/replay/baixarReplay";
+import { PlayerReplay } from "@/replay/PlayerReplay";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
 import type { BlocoFeedResenha, ComentarioResenha, PodeComentar } from "@/contrato/tipos";
@@ -59,6 +60,8 @@ export function BlocoCard({
   const dataPartida = new Date(bloco.partidaData);
 
   const [cam, setCam] = useState(0);
+  // Trocar de câmera depois de já ter dado play continua tocando.
+  const [jaTocou, setJaTocou] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
   const [chatAberto, setChatAberto] = useState(false);
   const [comentarios, setComentarios] = useState<ComentarioResenha[]>(bloco.comentariosPreview);
@@ -103,7 +106,15 @@ export function BlocoCard({
       rotulo: "Baixar vídeo",
       Icone: Download,
       cor: cores.orange,
-      onPress: () => void Linking.openURL(video.link),
+      // O menu fecha ao tocar, então o retorno vem num alerta (o botão do card mostra
+      // "Baixando..." inline, aqui não tem onde).
+      onPress: () =>
+        void baixarReplay(video.link, nomeArquivoReplay(bloco.tipo, bloco.pedidoReplayId)).then(
+          (r) => {
+            const { titulo, texto } = mensagemDownload(r);
+            Alert.alert(titulo, texto);
+          }
+        ),
     });
   }
 
@@ -159,23 +170,23 @@ export function BlocoCard({
         </Pressable>
       </View>
 
-      <Pressable
-        style={[styles.video, grupoRemovido && styles.videoSemResenha]}
-        onPress={() => video && Linking.openURL(video.link)}
-        disabled={!video}
-      >
-        {video ? (
-          <>
-            <Play size={22} color={cores.branco} fill={cores.branco} />
-            <Text style={styles.videoLegenda}>
-              Toque pra ver o replay
-              {bloco.videos.length > 1 ? ` · câmera ${video.idCamera}` : ""}
-            </Text>
-          </>
-        ) : (
+      {video ? (
+        <View style={[styles.videoWrap, grupoRemovido && styles.videoSemResenha]}>
+          <PlayerReplay
+            key={video.link}
+            link={video.link}
+            legenda={`Toque pra ver o replay${
+              bloco.videos.length > 1 ? ` · câmera ${video.idCamera}` : ""
+            }`}
+            autoIniciar={jaTocou}
+            aoIniciar={() => setJaTocou(true)}
+          />
+        </View>
+      ) : (
+        <View style={[styles.video, grupoRemovido && styles.videoSemResenha]}>
           <Text style={styles.videoLegenda}>Replay ainda não chegou</Text>
-        )}
-      </Pressable>
+        </View>
+      )}
 
       {!grupoRemovido && (
         <View style={styles.resenha}>
@@ -276,6 +287,7 @@ const styles = StyleSheet.create({
     color: cores.slate400,
     textTransform: "uppercase",
   },
+  videoWrap: { marginHorizontal: 14 },
   video: {
     marginHorizontal: 14,
     height: 150,

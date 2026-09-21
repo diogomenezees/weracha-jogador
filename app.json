@@ -62,6 +62,16 @@
         {
           "photosPermission": "O We Racha usa suas fotos pra você escolher a foto de perfil."
         }
+      ],
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "O We Racha salva os replays que você baixa na sua galeria.",
+          "granularPermissions": [
+            "video"
+          ]
+        }
       ]
     ],
     "experiments": {

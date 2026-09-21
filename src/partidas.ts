@@ -132,6 +132,16 @@ export function formatarDiaSemanaData(data: Date): string {
   return `${semana.charAt(0).toUpperCase()}${semana.slice(1)}, ${dia}/${mes}`;
 }
 
+// Formato reduzido pros badges de horário, ex.: "21/09 seg 12:00". Espelha
+// `formatarPartidaResumo` do site (lib/partidas.ts), que usa 2 espaços porque o
+// HTML colapsa; no RN o espaço duplo apareceria, então aqui é 1 só.
+export function formatarPartidaResumo(data: Date): string {
+  const dia = String(data.getDate()).padStart(2, "0");
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const semana = DIAS_SEMANA[data.getDay()].slice(0, 3);
+  return `${dia}/${mes} ${semana} ${formatarHora(data)}`;
+}
+
 export function formatarHora(data: Date): string {
   const hora = String(data.getHours()).padStart(2, "0");
   const min = String(data.getMinutes()).padStart(2, "0");

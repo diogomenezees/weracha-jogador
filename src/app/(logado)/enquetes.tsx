@@ -180,7 +180,8 @@ const styles = StyleSheet.create({
   },
   lista: { gap: 10 },
   card: {
-    borderRadius: raio.campo,
+    borderTopRightRadius: raio.campo,
+    borderBottomRightRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.cardBorda,
     borderLeftWidth: 3,

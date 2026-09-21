@@ -247,8 +247,9 @@ export function marcarLance(chamarApi: ChamarApi, partidaId: string) {
 
 // ── Correções pós-jogo (tela de Resultado, dentro do prazo de edição) ──────
 
-// PUT /api/v1/partidas/{partidaId}/gols/{jogadorId} — acerta a contagem de
-// gols do jogador (insere/remove pra bater). Não gera pedido de replay.
+// PUT /api/v1/partidas/{partidaId}/gols/{jogadorId} — define o TOTAL de gols do
+// jogador. Só aumenta: total menor que o atual dá 422 (GOL_REDUCAO_NAO_PERMITIDA),
+// pra tirar gol é o cancelamento. Não gera pedido de replay.
 export function corrigirGols(
   chamarApi: ChamarApi,
   partidaId: string,

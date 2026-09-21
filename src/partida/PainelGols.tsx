@@ -41,10 +41,11 @@ function mesmoDia(a: Date, b: Date): boolean {
   );
 }
 
-// Aba "Artilheiros" da tela de resultado: porte de `PainelGols` do site
+// Abas "Artilheiros" e "Histórico" da tela de resultado: porte de `PainelGols` do site
 // (weracha-site/components/painel-gols.tsx). A mesma informação (quem fez, quantos,
-// quando) em dois formatos, alternados por um botão à direita: agrupado por jogador
-// (padrão) e linha do tempo. Tocar num jogador (agrupado) ou numa linha (linha do
+// quando) em dois formatos: agrupado por jogador (Artilheiros) e linha do tempo
+// (Histórico). A tela trava um formato por aba com `modoFixo`; sem ele, um botão à
+// direita alterna entre os dois. Tocar num jogador (agrupado) ou numa linha (linha do
 // tempo) chama `onAbrirReplayJogador` / `onAbrirReplayGol`; quem cuida de mostrar os
 // replays é a tela (inline, no lugar desta lista). O menu ⋮ da linha (cancelar,
 // migrar, reativar) é da tela também: aqui só avisa qual gol foi tocado.
@@ -56,6 +57,8 @@ export function PainelGols({
   meuId,
   dataPartida,
   mostrarScore = false,
+  modoInicial = "AGRUPADO",
+  modoFixo,
   mostrarStatusGravacao = true,
   slotDireita,
   podeEditarGols = false,
@@ -71,6 +74,10 @@ export function PainelGols({
   meuId: string | null;
   dataPartida: Date;
   mostrarScore?: boolean;
+  /** Formato em que abre quando o botão de alternar está visível (sem `modoFixo`). */
+  modoInicial?: Modo;
+  /** Trava o painel num só formato e esconde o botão de alternar (ignora `modoInicial`). */
+  modoFixo?: Modo;
   /**
    * Ícone de nuvem/celular/sem-replay por gol + legenda no modo linha do tempo. Desliga
    * quando a partida nunca teve o We Racha Cam avisando que gravou (`cameraAtiva`).
@@ -85,7 +92,8 @@ export function PainelGols({
   onAbrirReplayJogador: (jogadorId: string) => void;
   onAbrirReplayGol: (golId: string) => void;
 }) {
-  const [modo, setModo] = useState<Modo>("AGRUPADO");
+  const [modoLivre, setModo] = useState<Modo>(modoInicial);
+  const modo = modoFixo ?? modoLivre;
 
   const scorePorJogador = new Map(jogadores.map((j) => [j.jogadorId, j.score]));
 
@@ -105,23 +113,25 @@ export function PainelGols({
           <Eyebrow>{modo === "AGRUPADO" ? "Gols por jogador" : "Linha do tempo dos gols"}</Eyebrow>
         </View>
         <View style={styles.topoDireita}>
-          <View style={styles.ordGrupo}>
-            {(
-              [
-                ["AGRUPADO", Users, "Ver agrupado por jogador"],
-                ["CRONOLOGICO", ArrowDownUp, "Ver em ordem cronológica"],
-              ] as const
-            ).map(([v, Icone, rotulo], i) => (
-              <Pressable
-                key={v}
-                accessibilityLabel={rotulo}
-                style={[styles.ordBtn, i > 0 && styles.ordBtnDivisor, modo === v && styles.ordBtnAtivo]}
-                onPress={() => setModo(v)}
-              >
-                <Icone size={16} color={modo === v ? cores.dark : cores.slate400} />
-              </Pressable>
-            ))}
-          </View>
+          {!modoFixo && (
+            <View style={styles.ordGrupo}>
+              {(
+                [
+                  ["AGRUPADO", Users, "Ver agrupado por jogador"],
+                  ["CRONOLOGICO", ArrowDownUp, "Ver em ordem cronológica"],
+                ] as const
+              ).map(([v, Icone, rotulo], i) => (
+                <Pressable
+                  key={v}
+                  accessibilityLabel={rotulo}
+                  style={[styles.ordBtn, i > 0 && styles.ordBtnDivisor, modo === v && styles.ordBtnAtivo]}
+                  onPress={() => setModo(v)}
+                >
+                  <Icone size={16} color={modo === v ? cores.dark : cores.slate400} />
+                </Pressable>
+              ))}
+            </View>
+          )}
           {slotDireita}
         </View>
       </View>
@@ -167,12 +177,13 @@ export function PainelGols({
           {gols.map((g) => {
             const cancelado = !!g.cancelado;
             const souGol = g.jogador?.id === meuId;
-            // Gol cancelado nunca abre replay (sai de todas as telas de vídeo). Vídeo
-            // NUVEM tem player; só LOCAL = o Cam gravou mas só salvou no celular (o card
-            // abre e mostra "salvo no celular").
-            const temVideoNuvem = g.videos.some((v) => v.origem === "NUVEM") && !cancelado;
-            const soLocal =
-              !temVideoNuvem && g.videos.some((v) => v.origem === "LOCAL") && !cancelado;
+            // Gol cancelado também abre o replay: o vídeo serve de prova de que o gol não
+            // era daquele jogador (ou foi marcado errado), e o card traz a sinalização de
+            // cancelado. Só a contagem (ranking, placar) ignora o gol. Vídeo NUVEM tem
+            // player; só LOCAL = o Cam gravou mas só salvou no celular (o card abre e
+            // mostra "salvo no celular").
+            const temVideoNuvem = g.videos.some((v) => v.origem === "NUVEM");
+            const soLocal = !temVideoNuvem && g.videos.some((v) => v.origem === "LOCAL");
             const temVideo = temVideoNuvem || soLocal;
             const scoreJogador = g.jogador ? scorePorJogador.get(g.jogador.id) : undefined;
             const nome = g.jogador?.nome ?? "Ex-jogador";
@@ -229,7 +240,7 @@ export function PainelGols({
                   )}
                   {g.marcadoPor && (
                     <Text style={styles.registradoPor} numberOfLines={1}>
-                      {g.origem === "CORRECAO" ? "Corrigido por " : "Registrado por "}
+                      {g.origem === "CORRECAO" ? "Adicionado por " : "Registrado por "}
                       {g.marcadoPor.nome}
                     </Text>
                   )}
@@ -251,9 +262,9 @@ export function PainelGols({
                   <Text style={[styles.hora, cancelado && styles.horaCancelada]}>
                     {formatarHora(criadoEm)}
                   </Text>
-                  {cancelado ? (
-                    <Ban size={16} color={cores.erroTexto} accessibilityLabel="Gol cancelado" />
-                  ) : !mostrarStatusGravacao ? null : temVideoNuvem ? (
+                  {/* Gol cancelado não leva ícone próprio aqui: a linha já fica vermelha e diz
+                      "Cancelado por". Sem replay, some o "Sem replay" também. */}
+                  {!mostrarStatusGravacao ? null : temVideoNuvem ? (
                     <MonitorPlay size={16} color={cores.teal} accessibilityLabel="Replay na nuvem" />
                   ) : soLocal ? (
                     <Smartphone
@@ -261,7 +272,7 @@ export function PainelGols({
                       color={cores.teal}
                       accessibilityLabel="Replay salvo no celular"
                     />
-                  ) : (
+                  ) : cancelado ? null : (
                     <VideoOff size={16} color={cores.slate500} accessibilityLabel="Sem replay" />
                   )}
                 </View>

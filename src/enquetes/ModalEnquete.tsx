@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, TextInput,
 import { Text } from "@/ui/Texto";
 
 import { buscarVotantes, editarPergunta, votar } from "@/api/enquetes";
-import { Check, Clock, Pencil, Share2, X } from "@/ui/Icone";
+import { BarChart3, Check, Clock, Pencil, Share2, X } from "@/ui/Icone";
 import { ModalCartao } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
@@ -135,9 +135,12 @@ export function ModalEnquete({
 
   return (
     <ModalCartao aberto={aberto} onFechar={fechar}>
-      <Text style={[styles.eyebrow, !enquete.ativa && { color: cores.slate400 }]}>
-        {enquete.ativa ? "Enquete ativa" : "Enquete encerrada"}
-      </Text>
+      <View style={styles.eyebrowLinha}>
+        <BarChart3 size={16} color={enquete.ativa ? cores.teal : cores.slate400} />
+        <Text style={[styles.eyebrow, !enquete.ativa && { color: cores.slate400 }]}>
+          {enquete.ativa ? "Enquete ativa" : "Enquete encerrada"}
+        </Text>
+      </View>
 
       {editando ? (
         <View style={styles.editLinha}>
@@ -271,6 +274,7 @@ export function ModalEnquete({
 }
 
 const styles = StyleSheet.create({
+  eyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   eyebrow: {
     fontSize: 11,
     fontWeight: "600",

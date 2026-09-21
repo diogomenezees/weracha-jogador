@@ -133,7 +133,7 @@ export function FormNovoJogador({
     <Modal
       visible={aberto}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={() => {
         resetar();
         onFechar();

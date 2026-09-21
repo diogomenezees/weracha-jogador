@@ -1,23 +1,20 @@
 import { useRef, useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { ModalCartao } from "@/grupo/modais";
-import { Calendar, Clock, type LucideIcon } from "@/ui/Icone";
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Clock, type LucideIcon } from "@/ui/Icone";
 import { DIAS_SEMANA } from "@/partidas";
 import { cores, raio } from "@/tema";
-import { useBlurTarget } from "@/ui/BlurTarget";
 
 function capitalizar(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 // Seletores de data / hora / duração / dia da semana, reusados por "Criar
-// grupo" e pelo modal "Adicionar partida" da tela do grupo. O site usa
-// <input type=date/time> + <select>; no RN a data e a hora vão por
-// DateTimePicker (dialog no Android, spinner num Modal no iOS).
+// grupo", pelo modal "Adicionar partida" da tela do grupo e pelo perfil. O site
+// usa <input type=date/time> + <select>; no RN todos são modais próprios com o
+// tema do app (o diálogo nativo do sistema vem cinza e não dá pra pintar).
 
 function Campo({ label, valor, onPress }: { label: string; valor: string; onPress: () => void }) {
   return (
@@ -35,59 +32,268 @@ function partesData(iso: string): [number, number, number] {
   return [a, m, d];
 }
 
-/** `iso` = "AAAA-MM-DD". */
+/**
+ * `iso` = "AAAA-MM-DD". `titulo` = cabeçalho do modal (padrão: o `label`, ou "Data").
+ * `minIso` / `maxIso` = primeira e última data escolhíveis: as de fora ficam apagadas
+ * no calendário.
+ */
 export function SeletorData({
   iso,
   onChange,
   label = "Data",
+  titulo,
+  minIso,
+  maxIso,
 }: {
   iso: string;
   onChange: (iso: string) => void;
   label?: string;
+  titulo?: string;
+  minIso?: string;
+  maxIso?: string;
 }) {
   const [aberto, setAberto] = useState(false);
   const [ano, mes, dia] = partesData(iso);
-  const valorData = new Date(ano, mes - 1, dia);
 
-  function aplicar(d: Date) {
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    onChange(`${d.getFullYear()}-${mm}-${dd}`);
-  }
-
-  const rotulo = `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${ano}`;
+  const rotulo = `${doisDigitos(dia)}/${doisDigitos(mes)}/${ano}`;
 
   return (
     <>
       <Campo label={label} valor={rotulo} onPress={() => setAberto(true)} />
-      {aberto && Platform.OS === "android" && (
-        <DateTimePicker
-          value={valorData}
-          mode="date"
-          // "spinner" no Android é o diálogo clássico (sem o cabeçalho azul do
-          // Material Design), pra combinar com o resto do app em vez de puxar
-          // a cor padrão do sistema.
-          display="spinner"
-          onValueChange={(_, d) => {
+      {/* Monta só aberto: cada abertura começa da data atual do campo. */}
+      {aberto && (
+        <ModalData
+          titulo={titulo ?? (label || "Data")}
+          iso={iso}
+          minIso={minIso}
+          maxIso={maxIso}
+          onFechar={() => setAberto(false)}
+          onConfirmar={(novo) => {
+            onChange(novo);
             setAberto(false);
-            aplicar(d);
           }}
-          onDismiss={() => setAberto(false)}
         />
       )}
-      {Platform.OS === "ios" && (
-        <ModalPicker aberto={aberto} onFechar={() => setAberto(false)}>
-          <DateTimePicker
-            value={valorData}
-            mode="date"
-            display="inline"
-            themeVariant="dark"
-            accentColor={cores.teal}
-            onValueChange={(_, d) => aplicar(d)}
-          />
-        </ModalPicker>
-      )}
     </>
+  );
+}
+
+const MESES = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+const INICIAIS_SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
+const ALTURA_DIA = 40;
+const ALTURA_ANO = 44;
+const GAP_ANO = 8;
+const COLUNAS_ANO = 4;
+
+// Mesmo desenho do ModalHora e do ModalDiaSemana: valor em destaque no topo, seleção
+// ao toque e Cancelar/Confirmar. Tocar em "Mês Ano" troca pra grade de anos (a data de
+// nascimento do perfil fica a décadas de distância, mês a mês seria inviável).
+function ModalData({
+  titulo,
+  iso,
+  minIso,
+  maxIso,
+  onFechar,
+  onConfirmar,
+}: {
+  titulo: string;
+  iso: string;
+  minIso?: string;
+  maxIso?: string;
+  onFechar: () => void;
+  onConfirmar: (iso: string) => void;
+}) {
+  // "AAAA-MM-DD" compara certo como texto. Se o campo ficou com uma data fora do
+  // limite (ex.: tela aberta de um dia pro outro), o modal abre na data válida mais próxima.
+  const inicial = minIso && iso < minIso ? minIso : maxIso && iso > maxIso ? maxIso : iso;
+  const [a0, m0, d0] = partesData(inicial);
+  const [sel, setSel] = useState({ ano: a0, mes: m0, dia: d0 });
+  const [visao, setVisao] = useState({ ano: a0, mes: m0 });
+  const [escolhendoAno, setEscolhendoAno] = useState(false);
+
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const ehHoje = (d: number) =>
+    visao.ano === anoAtual && visao.mes === hoje.getMonth() + 1 && d === hoje.getDate();
+  const ehSelecionado = (d: number) =>
+    visao.ano === sel.ano && visao.mes === sel.mes && d === sel.dia;
+  const isoDe = (ano: number, mes: number, dia: number) => `${ano}-${doisDigitos(mes)}-${doisDigitos(dia)}`;
+  const foraDoLimite = (d: number) => {
+    const atual = isoDe(visao.ano, visao.mes, d);
+    return (!!minIso && atual < minIso) || (!!maxIso && atual > maxIso);
+  };
+  const [minAno, minMes] = minIso ? partesData(minIso) : [-Infinity, 0];
+  const [maxAno, maxMes] = maxIso ? partesData(maxIso) : [Infinity, 0];
+  const noMesMinimo = visao.ano * 12 + visao.mes <= minAno * 12 + minMes;
+  const noMesMaximo = visao.ano * 12 + visao.mes >= maxAno * 12 + maxMes;
+
+  // Semana começa no domingo (igual DIAS_SEMANA). Sempre 6 linhas: o modal não pula
+  // de altura ao trocar de mês.
+  const primeiroDiaSemana = new Date(visao.ano, visao.mes - 1, 1).getDay();
+  const diasNoMes = new Date(visao.ano, visao.mes, 0).getDate();
+  const celulas: (number | null)[] = Array.from({ length: 42 }, (_, i) => {
+    const d = i - primeiroDiaSemana + 1;
+    return d >= 1 && d <= diasNoMes ? d : null;
+  });
+  const semanas = Array.from({ length: 6 }, (_, i) => celulas.slice(i * 7, i * 7 + 7));
+
+  function mudarMes(delta: number) {
+    setVisao(({ ano, mes }) => {
+      const novo = new Date(ano, mes - 1 + delta, 1);
+      return { ano: novo.getFullYear(), mes: novo.getMonth() + 1 };
+    });
+  }
+
+  const anos = Array.from({ length: 106 }, (_, i) => anoAtual - 100 + i).filter((a) => a >= minAno && a <= maxAno);
+  const scrollAnosRef = useRef<ScrollView>(null);
+  const semanaSel = new Date(sel.ano, sel.mes - 1, sel.dia).getDay();
+
+  return (
+    <ModalCartao aberto onFechar={onFechar}>
+      <View style={styles.modalListaTituloLinha}>
+        <Calendar size={18} color={cores.teal} />
+        <Text style={styles.modalListaTitulo}>{titulo}</Text>
+      </View>
+      <View style={styles.dataDestaque}>
+        <Text style={styles.dataGrande}>
+          {doisDigitos(sel.dia)}/{doisDigitos(sel.mes)}/{sel.ano}
+        </Text>
+        <Text style={styles.dataSemana}>{capitalizar(DIAS_SEMANA[semanaSel] ?? "")}</Text>
+      </View>
+
+      <View style={styles.dataCabecalho}>
+        {escolhendoAno ? (
+          <View style={styles.dataSeta} />
+        ) : (
+          <Pressable
+            style={[styles.dataSeta, noMesMinimo && styles.dataSetaDesligada]}
+            hitSlop={6}
+            disabled={noMesMinimo}
+            onPress={() => mudarMes(-1)}
+          >
+            <ChevronLeft size={18} color={cores.slate300} />
+          </Pressable>
+        )}
+        <Pressable style={styles.dataTitulo} onPress={() => setEscolhendoAno((v) => !v)}>
+          <Text style={styles.dataTituloTexto}>
+            {escolhendoAno ? "Escolha o ano" : `${MESES[visao.mes - 1]} ${visao.ano}`}
+          </Text>
+          <ChevronDown
+            size={14}
+            color={cores.teal}
+            style={escolhendoAno ? { transform: [{ rotate: "180deg" }] } : undefined}
+          />
+        </Pressable>
+        {escolhendoAno ? (
+          <View style={styles.dataSeta} />
+        ) : (
+          <Pressable
+            style={[styles.dataSeta, noMesMaximo && styles.dataSetaDesligada]}
+            hitSlop={6}
+            disabled={noMesMaximo}
+            onPress={() => mudarMes(1)}
+          >
+            <ChevronRight size={18} color={cores.slate300} />
+          </Pressable>
+        )}
+      </View>
+
+      {escolhendoAno ? (
+        <ScrollView
+          ref={scrollAnosRef}
+          style={styles.anosLista}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          // Abre com o ano em vista no meio da lista.
+          onLayout={() =>
+            scrollAnosRef.current?.scrollTo({
+              y: Math.max(
+                0,
+                (Math.floor(Math.max(0, anos.indexOf(visao.ano)) / COLUNAS_ANO) - 2) * (ALTURA_ANO + GAP_ANO)
+              ),
+              animated: false,
+            })
+          }
+        >
+          <View style={styles.anosGrade}>
+            {anos.map((a) => (
+              <Pressable
+                key={a}
+                style={[styles.anoChip, a === visao.ano && styles.diaChipAtivo]}
+                onPress={() => {
+                  setVisao((v) => ({ ...v, ano: a }));
+                  setEscolhendoAno(false);
+                }}
+              >
+                <Text style={[styles.anoChipTexto, a === visao.ano && styles.diaChipTextoAtivo]}>{a}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      ) : (
+        <View style={styles.diasBloco}>
+          <View style={styles.diasLinha}>
+            {INICIAIS_SEMANA.map((l, i) => (
+              <Text key={i} style={styles.diaInicial}>
+                {l}
+              </Text>
+            ))}
+          </View>
+          {semanas.map((semana, i) => (
+            <View key={i} style={styles.diasLinha}>
+              {semana.map((d, j) =>
+                d === null ? (
+                  <View key={j} style={styles.diaCelula} />
+                ) : (
+                  <Pressable
+                    key={j}
+                    style={[styles.diaCelula, styles.diaBotao, ehSelecionado(d) && styles.diaChipAtivo]}
+                    disabled={foraDoLimite(d)}
+                    onPress={() => setSel({ ano: visao.ano, mes: visao.mes, dia: d })}
+                  >
+                    <Text
+                      style={[
+                        styles.diaNumero,
+                        ehHoje(d) && styles.diaNumeroHoje,
+                        ehSelecionado(d) && styles.diaChipTextoAtivo,
+                        foraDoLimite(d) && styles.diaNumeroBloqueado,
+                      ]}
+                    >
+                      {d}
+                    </Text>
+                  </Pressable>
+                )
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
+      <View style={styles.horaAcoes}>
+        <Pressable style={styles.horaCancelar} onPress={onFechar}>
+          <Text style={styles.horaCancelarTexto}>Cancelar</Text>
+        </Pressable>
+        <Pressable
+          style={styles.horaConfirmar}
+          onPress={() => onConfirmar(isoDe(sel.ano, sel.mes, sel.dia))}
+        >
+          <Text style={styles.horaConfirmarTexto}>Confirmar</Text>
+        </Pressable>
+      </View>
+    </ModalCartao>
   );
 }
 
@@ -258,17 +464,66 @@ export function SeletorDiaSemana({
   return (
     <>
       <Campo label="Dia da semana" valor={capitalizar(DIAS_SEMANA[dia] ?? "")} onPress={() => setAberto(true)} />
-      <ModalEscolha
-        aberto={aberto}
-        onFechar={() => setAberto(false)}
-        Icone={Calendar}
-        titulo="Dia da semana"
-        descricao="Toda semana, nesse dia, o grupo recebe uma partida nova automaticamente, no horário definido abaixo."
-        opcoes={DIAS_SEMANA.map((nome) => capitalizar(nome))}
-        selecionado={dia}
-        onEscolher={onChange}
-      />
+      {/* Monta só aberto: cada abertura começa do dia atual do campo. */}
+      {aberto && (
+        <ModalDiaSemana
+          dia={dia}
+          onFechar={() => setAberto(false)}
+          onConfirmar={(novo) => {
+            onChange(novo);
+            setAberto(false);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+// Mesmo desenho do ModalHora: valor escolhido em destaque no topo, grade de dias pra
+// tocar e Cancelar/Confirmar. Nada muda no campo até confirmar.
+function ModalDiaSemana({
+  dia,
+  onFechar,
+  onConfirmar,
+}: {
+  dia: number;
+  onFechar: () => void;
+  onConfirmar: (dia: number) => void;
+}) {
+  const [escolhido, setEscolhido] = useState(dia);
+
+  return (
+    <ModalCartao aberto onFechar={onFechar}>
+      <View style={styles.modalListaTituloLinha}>
+        <Calendar size={18} color={cores.teal} />
+        <Text style={styles.modalListaTitulo}>Dia da semana</Text>
+      </View>
+      <Text style={styles.modalListaDescricao}>
+        Toda semana, nesse dia, o grupo recebe uma partida nova automaticamente, no horário definido abaixo.
+      </Text>
+      <Text style={styles.diaGrande}>{capitalizar(DIAS_SEMANA[escolhido] ?? "")}</Text>
+      <View style={styles.diaGrade}>
+        {DIAS_SEMANA.map((nome, i) => (
+          <Pressable
+            key={nome}
+            style={[styles.diaChip, i === escolhido && styles.diaChipAtivo]}
+            onPress={() => setEscolhido(i)}
+          >
+            <Text style={[styles.diaChipTexto, i === escolhido && styles.diaChipTextoAtivo]}>
+              {nome.slice(0, 3)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={styles.horaAcoes}>
+        <Pressable style={styles.horaCancelar} onPress={onFechar}>
+          <Text style={styles.horaCancelarTexto}>Cancelar</Text>
+        </Pressable>
+        <Pressable style={styles.horaConfirmar} onPress={() => onConfirmar(escolhido)}>
+          <Text style={styles.horaConfirmarTexto}>Confirmar</Text>
+        </Pressable>
+      </View>
+    </ModalCartao>
   );
 }
 
@@ -320,37 +575,6 @@ export function ModalEscolha({
   );
 }
 
-function ModalPicker({
-  aberto,
-  onFechar,
-  children,
-}: {
-  aberto: boolean;
-  onFechar: () => void;
-  children: React.ReactNode;
-}) {
-  const blurTarget = useBlurTarget();
-  return (
-    <Modal visible={aberto} transparent animationType="fade" onRequestClose={onFechar}>
-      <BlurView
-        intensity={40}
-        tint="dark"
-        blurMethod="dimezisBlurView"
-        blurTarget={blurTarget}
-        style={styles.modalFundo}
-      >
-        <Pressable style={StyleSheet.absoluteFill} onPress={onFechar} />
-        <Pressable style={styles.modalCartao} onPress={(e) => e.stopPropagation()}>
-          {children}
-          <Pressable style={styles.modalOk} onPress={onFechar}>
-            <Text style={styles.modalOkTexto}>Pronto</Text>
-          </Pressable>
-        </Pressable>
-      </BlurView>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   campo: { gap: 6 },
   label: { fontSize: 13, fontWeight: "600", color: cores.slate300 },
@@ -396,6 +620,33 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 2,
   },
+  diaGrande: {
+    fontSize: 34,
+    fontWeight: "700",
+    color: cores.teal,
+    textAlign: "center",
+  },
+  // 4 + 3: a última linha fica centralizada.
+  diaGrade: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8 },
+  diaChip: {
+    flexBasis: "23%",
+    height: 52,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: cores.superficieSutil,
+  },
+  diaChipAtivo: { borderColor: cores.teal, backgroundColor: cores.avisoFundo },
+  diaChipTexto: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.8,
+    color: cores.slate400,
+    textTransform: "uppercase",
+  },
+  diaChipTextoAtivo: { color: cores.branco, fontWeight: "700" },
   horaColunas: { flexDirection: "row", gap: 12 },
   horaRotulo: {
     fontSize: 11,
@@ -436,14 +687,55 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   horaConfirmarTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
-  modalFundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)", justifyContent: "center", padding: 24 },
-  modalCartao: { backgroundColor: cores.dark, borderRadius: raio.card, padding: 16, gap: 12 },
-  modalOk: {
-    height: 44,
-    borderRadius: raio.campo,
-    backgroundColor: cores.orange,
+  dataDestaque: { alignItems: "center", gap: 2 },
+  dataGrande: { fontSize: 32, fontWeight: "700", color: cores.teal, letterSpacing: 1 },
+  dataSemana: { fontSize: 13, color: cores.slate400 },
+  dataCabecalho: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  dataSeta: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.06)",
     alignItems: "center",
     justifyContent: "center",
   },
-  modalOkTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
+  dataSetaDesligada: { opacity: 0.3 },
+  dataTitulo: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 10 },
+  dataTituloTexto: { fontSize: 15, fontWeight: "700", color: cores.branco },
+  diasBloco: { gap: 4 },
+  diasLinha: { flexDirection: "row", gap: 4 },
+  diaInicial: {
+    flex: 1,
+    height: 20,
+    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: cores.slate500,
+  },
+  diaCelula: { flex: 1, height: ALTURA_DIA },
+  diaBotao: {
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  diaNumero: { fontSize: 15, color: cores.slate300 },
+  diaNumeroHoje: { color: cores.teal, fontWeight: "700" },
+  diaNumeroBloqueado: { color: cores.slate500, opacity: 0.4 },
+  // Mesma altura do bloco de dias (iniciais + 6 semanas), pra o modal não pular ao alternar.
+  anosLista: { height: 20 + 6 * ALTURA_DIA + 6 * 4 },
+  anosGrade: { flexDirection: "row", flexWrap: "wrap", gap: GAP_ANO },
+  anoChip: {
+    flexBasis: "23%",
+    height: ALTURA_ANO,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: cores.superficieSutil,
+  },
+  anoChipTexto: { fontSize: 15, color: cores.slate400 },
 });

@@ -1,5 +1,17 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Animated, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import {
+  Alert,
+  Animated,
+  AppState,
+  Easing,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
@@ -91,6 +103,7 @@ export default function TelaGrupo() {
   const [erro, setErro] = useState<string | null>(null);
   const [contaPendente, setContaPendente] = useState(false);
   const [tentativa, setTentativa] = useState(0);
+  const [atualizando, setAtualizando] = useState(false);
 
   const [aba, setAba] = useState<Aba>(null);
   const [verTodasPassadas, setVerTodasPassadas] = useState(false);
@@ -176,6 +189,31 @@ export default function TelaGrupo() {
       void carregarRef.current().catch(() => {});
     }, [])
   );
+
+  // Voltar do segundo plano (o jogador viu o aviso no WhatsApp e abriu o app): a tela
+  // ficou parada e pode estar velha (check-in aberto, resultado publicado). Recarrega em
+  // silêncio, igual ao foco acima. Só enquanto esta tela está em foco, pra não disparar
+  // pra telas do grupo que ficaram empilhadas por baixo.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = AppState.addEventListener("change", (estadoApp) => {
+        if (estadoApp === "active") void carregarRef.current().catch(() => {});
+      });
+      return () => sub.remove();
+    }, [])
+  );
+
+  // Puxar pra atualizar. Se falhar, mantém o que já está na tela e só avisa.
+  async function atualizarPuxando() {
+    setAtualizando(true);
+    try {
+      await carregar();
+    } catch (e) {
+      Alert.alert("Não deu pra atualizar", mensagemDoErro(e));
+    } finally {
+      setAtualizando(false);
+    }
+  }
 
   const grupo = dados?.grupo;
   const souAdmin = grupo?.meuPapel === "ADMIN";
@@ -573,7 +611,17 @@ export default function TelaGrupo() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={atualizando}
+            onRefresh={() => void atualizarPuxando()}
+            tintColor={cores.teal}
+          />
+        }
+      >
         <View style={styles.topoGrupo}>
           <View style={styles.tituloDescBloco}>
             <View style={styles.cabecalho}>
@@ -673,6 +721,7 @@ export default function TelaGrupo() {
                 onAbrir={() => abrirPartida(p)}
                 onMenu={() => abrirMenuPartida(p, !p.cancelada && idsResultado.has(p.id))}
                 onCheckin={() => router.push(`/grupos/${id}/partidas/${p.id}/checkin`)}
+                onAoVivo={() => router.push(`/grupos/${id}/partidas/${p.id}/ao-vivo`)}
               />
             ))}
           </View>
@@ -710,6 +759,7 @@ export default function TelaGrupo() {
                 onAbrir={() => abrirPartida(p)}
                 onMenu={() => abrirMenuPartida(p, !p.cancelada && idsResultado.has(p.id))}
                 onCheckin={() => {}}
+                onAoVivo={() => {}}
               />
             ))}
             {!verTodasPassadas && passadas.length > 3 && (
@@ -845,7 +895,7 @@ export default function TelaGrupo() {
         </View>
         <Text style={styles.modalTitulo}>Marcar mais um jogo</Text>
         <Text style={styles.modalDesc}>Esporte e quadra continuam os mesmos do grupo.</Text>
-        <SeletorData iso={novaData} onChange={setNovaData} />
+        <SeletorData iso={novaData} onChange={setNovaData} minIso={hojeISO()} />
         <SeletorHora hhmm={novaHora} onChange={setNovaHora} />
         <SeletorDuracao min={novaDuracao} onChange={setNovaDuracao} />
         {erroNovaPartida ? <Text style={styles.modalErro}>{erroNovaPartida}</Text> : null}
@@ -1063,6 +1113,25 @@ function DescricaoGrupo({ texto, onVerMais }: { texto: string; onVerMais: () => 
   );
 }
 
+// Bolinha do "Ao vivo": mesmo pulso do `animate-pulse` do site (opacidade 1 → 0,5 → 1 em 2s).
+function PontoPulsante() {
+  const [opacidade] = useState(() => new Animated.Value(1));
+
+  useEffect(() => {
+    const easing = Easing.bezier(0.4, 0, 0.6, 1);
+    const animacao = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacidade, { toValue: 0.5, duration: 1000, easing, useNativeDriver: true }),
+        Animated.timing(opacidade, { toValue: 1, duration: 1000, easing, useNativeDriver: true }),
+      ])
+    );
+    animacao.start();
+    return () => animacao.stop();
+  }, [opacidade]);
+
+  return <Animated.View style={[styles.aoVivoPonto, { opacity: opacidade }]} />;
+}
+
 function CardPartida({
   partida: p,
   grupo,
@@ -1074,6 +1143,7 @@ function CardPartida({
   onAbrir,
   onMenu,
   onCheckin,
+  onAoVivo,
 }: {
   partida: PartidaResumo;
   grupo: Grupo;
@@ -1085,6 +1155,7 @@ function CardPartida({
   onAbrir: () => void;
   onMenu: () => void;
   onCheckin: () => void;
+  onAoVivo: () => void;
 }) {
   const data = new Date(p.data);
   const concluida = passada && !p.cancelada && temResultado;
@@ -1141,6 +1212,11 @@ function CardPartida({
               <Pressable style={styles.checkinBtn} onPress={onCheckin}>
                 <Text style={styles.checkinBtnTexto}>Check-in</Text>
                 <ChevronRight size={14} color={cores.dark} />
+              </Pressable>
+            ) : temResultado ? (
+              <Pressable style={styles.aoVivoBtn} onPress={onAoVivo}>
+                <PontoPulsante />
+                <Text style={styles.aoVivoBtnTexto}>Ao vivo</Text>
               </Pressable>
             ) : (
               <View style={styles.confirmadoPill}>
@@ -1665,6 +1741,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   checkinBtnTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
+  aoVivoBtn: {
+    backgroundColor: "#ef4444",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  aoVivoBtnTexto: { fontSize: 12, fontWeight: "700", color: cores.branco },
+  aoVivoPonto: { width: 6, height: 6, borderRadius: 3, backgroundColor: cores.branco },
   confirmadoPill: { backgroundColor: "#10b981", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   confirmadoTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
   canceladaPill: { backgroundColor: "rgba(239, 68, 68, 0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },

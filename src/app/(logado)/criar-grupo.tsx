@@ -9,6 +9,7 @@ import { CaixaErro } from "@/acesso/ui";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { hojeISO, partidaEncerrada } from "@/partidas";
 import { BotaoLaranja } from "@/painel/ui";
+import { MapPin } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
 import { SeletorData, SeletorDiaSemana, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
@@ -172,7 +173,7 @@ export default function CriarGrupo() {
             <Text style={styles.label}>Datas</Text>
             {avulsas.map((d, i) => (
               <View key={i} style={styles.linha}>
-                <SeletorData iso={d.data} onChange={(v) => setAvulsa(i, { data: v })} />
+                <SeletorData iso={d.data} onChange={(v) => setAvulsa(i, { data: v })} minIso={hojeISO()} />
                 <SeletorHora hhmm={d.horaInicio} onChange={(v) => setAvulsa(i, { horaInicio: v })} />
                 <SeletorDuracao min={d.duracaoMin} onChange={(v) => setAvulsa(i, { duracaoMin: v })} />
                 {avulsas.length > 1 && (
@@ -233,7 +234,13 @@ export default function CriarGrupo() {
           )}
         </View>
 
-        <Text style={styles.nota}>Depois de salvar, vincule a quadra dentro do grupo.</Text>
+        <View style={styles.nota}>
+          <MapPin size={16} color={cores.teal} />
+          <Text style={styles.notaTexto}>
+            Depois de salvar, você pode vincular a <Text style={styles.notaDestaque}>quadra</Text> dentro do
+            grupo.
+          </Text>
+        </View>
 
         {erro && <CaixaErro>{erro}</CaixaErro>}
       </ScrollTeclado>
@@ -312,7 +319,19 @@ const styles = StyleSheet.create({
     backgroundColor: cores.superficieSutil,
   },
   opcaoTexto: { fontSize: 15, color: cores.branco },
-  nota: { fontSize: 13, color: cores.slate400 },
+  nota: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.linhaSutil,
+    backgroundColor: cores.avisoFundo,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  notaTexto: { flex: 1, fontSize: 13, lineHeight: 19, color: cores.slate400 },
+  notaDestaque: { fontWeight: "600", color: cores.slate300 },
   rodape: {
     position: "absolute",
     left: 0,

@@ -76,6 +76,8 @@ const POR_CODIGO: Record<string, string> = {
   SORTEIO_FALHOU: "Não deu pra separar os times. Confira as fixações e os jogadores por time.",
   PARTIDA_ENCERRADA_SORTEIO_BLOQUEADO: "A partida já encerrou. Não dá mais pra refazer o sorteio.",
   PRAZO_EDICAO_GOL_EXPIRADO: "O prazo pra ajustar gols dessa partida já passou.",
+  GOL_REDUCAO_NAO_PERMITIDA:
+    "Só dá pra aumentar a quantidade de gols. Pra tirar um gol, cancele ele no menu da linha do tempo.",
   GOL_NAO_ENCONTRADO: "Esse gol não existe mais.",
   GOL_JA_CANCELADO: "Esse gol já está cancelado.",
   GOL_NAO_CANCELADO: "Esse gol não está cancelado.",

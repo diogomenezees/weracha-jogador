@@ -6,7 +6,6 @@ import { Text } from "@/ui/Texto";
 import { Comemoracao } from "@/partida/Comemoracao";
 import {
   ArrowDownAZ,
-  ArrowDownUp,
   Goal,
   Pause,
   Play,
@@ -14,7 +13,6 @@ import {
   RotateCcw,
   Sparkles,
   Timer,
-  Users,
   Video,
 } from "@/ui/Icone";
 
@@ -37,7 +35,9 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
 import { ModalPerfil } from "@/jogadores/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
-import { ListaReplays } from "@/partida/ListaReplays";
+import { CardsReplay } from "@/partida/CardsReplay";
+import { PainelGols, type JogadorDoPainel } from "@/partida/PainelGols";
+import { ReplaysDoJogadorInline } from "@/partida/ReplaysDoJogadorInline";
 import {
   Abas,
   AvisoPartida,
@@ -53,6 +53,7 @@ import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import { partidaEncerrada } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import { useVoltarDoCelular } from "@/ui/useVoltarDoCelular";
 import type {
   EstadoAoVivoCompleto,
   GolComVideos,
@@ -82,7 +83,13 @@ export default function TelaAoVivo() {
   const [agora, setAgora] = useState(() => new Date());
   const [aba, setAba] = useState<Aba>("ARTILHEIROS");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("NOME");
-  const [modoGols, setModoGols] = useState<"AGRUPADO" | "CRONOLOGICO">("AGRUPADO");
+  // Replays abertos INLINE no lugar do painel do Histórico: os de um jogador (toque no
+  // agrupado) ou só o de um gol (toque na linha do tempo).
+  const [replayInline, setReplayInline] = useState<{ jogadorId: string; golId?: string } | null>(
+    null
+  );
+  // Voltar do celular com replays abertos fecha eles (volta pro Histórico), não sai da tela.
+  useVoltarDoCelular(replayInline !== null, () => setReplayInline(null));
   const [gols, setGols] = useState<GolComVideos[] | null>(null);
   const [lances, setLances] = useState<GolComVideos[] | null>(null);
   const chaveBuscada = useRef<string | null>(null);
@@ -301,14 +308,33 @@ export default function TelaAoVivo() {
 
   const lancesComVideo = (lances ?? []).filter((l) => l.videos.length > 0);
 
-  const goleadores = presentes
-    .map((j) => ({
-      jogador: j,
-      gols: golsPorJogador[j.id] ?? 0,
-      gravados: golsGravadosPorJogador[j.id] ?? 0,
-    }))
-    .filter((x) => x.gols > 0)
-    .sort((a, b) => b.gols - a.gols || a.jogador.nome.localeCompare(b.jogador.nome, "pt-BR"));
+  // Quem entra no painel de gols (o elenco presente). O score não aparece aqui, então 0.
+  const jogadoresDoPainel: JogadorDoPainel[] = presentes.map((j) => ({
+    jogadorId: j.id,
+    nome: j.nome,
+    score: 0,
+    apelido: j.apelido,
+    fotoUrl: j.fotoUrl,
+    posicaoNome: posicaoNome.get(j.id) ?? null,
+  }));
+
+  // Replays do jogador abertos no lugar do painel. Pela linha do tempo (`golId`), só o gol
+  // tocado; pelo agrupado, todos os do jogador (mesma regra do Resultado).
+  const jogadorDoReplay = replayInline
+    ? (gols?.find((x) => x.jogador?.id === replayInline.jogadorId)?.jogador ?? {
+        id: replayInline.jogadorId,
+        nome: presentes.find((j) => j.id === replayInline.jogadorId)?.nome ?? "Jogador",
+        fotoUrl: presentes.find((j) => j.id === replayInline.jogadorId)?.fotoUrl ?? null,
+      })
+    : null;
+  const golsDoReplayInline = replayInline
+    ? (gols ?? []).filter(
+        (x) =>
+          x.jogador?.id === replayInline.jogadorId &&
+          x.videos.length > 0 &&
+          (replayInline.golId ? x.golId === replayInline.golId : !x.cancelado)
+      )
+    : [];
 
   const abas: { chave: Aba; rotulo: string }[] = [
     { chave: "ARTILHEIROS", rotulo: "Artilheiros" },
@@ -381,7 +407,16 @@ export default function TelaAoVivo() {
           </Pressable>
         )}
 
-        <Abas opcoes={abas} valor={abaVisivel} onChange={setAba} compacto />
+        <Abas
+          opcoes={abas}
+          valor={abaVisivel}
+          onChange={(nova) => {
+            // Os replays inline são de uma aba só: trocar de aba volta pra lista.
+            setReplayInline(null);
+            setAba(nova);
+          }}
+          compacto
+        />
 
         {abaVisivel === "ARTILHEIROS" ? (
           <View style={{ gap: 10 }}>
@@ -453,9 +488,12 @@ export default function TelaAoVivo() {
                         </Pressable>
                       </View>
                       {grav > 0 && (
-                        <Text style={styles.golGrav}>
-                          🎥 {grav} gravado{grav > 1 ? "s" : ""}
-                        </Text>
+                        <View style={styles.golGravLinha}>
+                          <Video size={11} color={cores.slate400} />
+                          <Text style={styles.golGrav}>
+                            {grav} gravado{grav > 1 ? "s" : ""}
+                          </Text>
+                        </View>
                       )}
                     </View>
                   }
@@ -467,83 +505,47 @@ export default function TelaAoVivo() {
           lances === null ? (
             <Text style={styles.vazio}>Carregando lances...</Text>
           ) : (
-            <ListaReplays
-              gols={lancesComVideo}
-              vazioTexto="Nenhum lance importante gravado ainda."
-              meuId={meuId}
-            />
+            <View style={{ gap: 10 }}>
+              <Eyebrow>Lances importantes</Eyebrow>
+              <CardsReplay
+                gols={lancesComVideo}
+                grupoNome={g.nome}
+                vazioTexto="Nenhum lance importante gravado ainda."
+              />
+            </View>
           )
+        ) : gols === null ? (
+          <Text style={styles.vazio}>Carregando gols...</Text>
         ) : (
           <View style={{ gap: 10 }}>
-            <View style={styles.tituloLinha}>
-              <Eyebrow>
-                {modoGols === "AGRUPADO" ? "Gols por jogador" : "Linha do tempo dos gols"}
-              </Eyebrow>
-              <View style={styles.ordGrupo}>
-                {(
-                  [
-                    ["AGRUPADO", Users, "Ver agrupado por jogador"],
-                    ["CRONOLOGICO", ArrowDownUp, "Ver em ordem cronológica"],
-                  ] as const
-                ).map(([v, Icone, rotulo], i) => (
-                  <Pressable
-                    key={v}
-                    accessibilityLabel={rotulo}
-                    style={[
-                      styles.ordBtn,
-                      i > 0 && styles.ordBtnDivisor,
-                      modoGols === v && styles.ordBtnAtivo,
-                    ]}
-                    onPress={() => setModoGols(v)}
-                  >
-                    <Icone size={16} color={modoGols === v ? cores.dark : cores.slate400} />
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-            {gols === null ? (
-              <Text style={styles.vazio}>Carregando gols...</Text>
-            ) : modoGols === "CRONOLOGICO" ? (
-              <ListaReplays
+            {/* O painel fica montado (só escondido) enquanto os replays estão abertos, pra
+                não perder o formato escolhido nem a posição da lista ao voltar. Igual ao
+                Resultado, só que aqui abre na linha do tempo (como o site). */}
+            <View style={replayInline ? styles.escondido : undefined}>
+              <PainelGols
+                modoInicial="CRONOLOGICO"
                 gols={gols}
-                vazioTexto="Nenhum gol registrado ainda."
+                golsPorJogador={golsPorJogador}
+                golsGravadosPorJogador={golsGravadosPorJogador}
+                jogadores={jogadoresDoPainel}
                 meuId={meuId}
+                dataPartida={new Date(p.data)}
                 mostrarStatusGravacao={aoVivo.cameraAtiva}
+                onAbrirReplayJogador={(jogadorId) => setReplayInline({ jogadorId })}
+                onAbrirReplayGol={(golId) => {
+                  const gol = gols.find((x) => x.golId === golId);
+                  if (gol?.jogador) setReplayInline({ jogadorId: gol.jogador.id, golId });
+                }}
               />
-            ) : goleadores.length === 0 ? (
-              <View style={styles.vazioCaixa}>
-                <Text style={styles.vazio}>Nenhum gol registrado ainda.</Text>
-              </View>
-            ) : (
-              <View style={{ gap: 10 }}>
-                {goleadores.map(({ jogador, gols: n, gravados }) => (
-                  <CardJogadorPartida
-                    key={jogador.id}
-                    id={jogador.id}
-                    nome={jogador.nome}
-                    apelido={jogador.apelido}
-                    fotoUrl={jogador.fotoUrl}
-                    posicaoNome={posicaoNome.get(jogador.id)}
-                    souEu={jogador.id === meuId}
-                    onAbrirPerfil={() => setPerfilId(jogador.id)}
-                    direita={
-                      <View style={styles.agrupadoDireita}>
-                        <Text style={styles.agrupadoGols}>
-                          {n} gol{n > 1 ? "s" : ""}
-                        </Text>
-                        {gravados > 0 && (
-                          <View style={styles.agrupadoGravLinha}>
-                            <Video size={11} color={cores.slate400} />
-                            <Text style={styles.agrupadoGrav}>
-                              {gravados} gravado{gravados > 1 ? "s" : ""}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                    }
-                  />
-                ))}
-              </View>
+            </View>
+
+            {replayInline && jogadorDoReplay && (
+              <ReplaysDoJogadorInline
+                jogador={jogadorDoReplay}
+                gols={golsDoReplayInline}
+                grupoNome={g.nome}
+                apenasUmGol={!!replayInline.golId}
+              />
             )}
           </View>
         )}
@@ -759,14 +761,6 @@ const styles = StyleSheet.create({
   ordBtnDivisor: { borderLeftWidth: 1, borderLeftColor: cores.avisoBorda },
   ordBtnAtivo: { backgroundColor: cores.teal },
   vazio: { fontSize: 13, color: cores.slate400 },
-  // Mesma caixa do estado vazio de ListaReplays (modo cronológico) e do site.
-  vazioCaixa: {
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.cardBorda,
-    backgroundColor: cores.cardFundo,
-    padding: 14,
-  },
   golDireita: { alignItems: "flex-end", gap: 3 },
   golLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
   golMenos: {
@@ -790,11 +784,9 @@ const styles = StyleSheet.create({
   },
   golBtnOff: { opacity: 0.4 },
   golBtnTexto: { fontSize: 13, fontWeight: "800", color: cores.dark },
+  golGravLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
   golGrav: { fontSize: 11, color: cores.slate400 },
-  agrupadoDireita: { alignItems: "flex-end", gap: 3 },
-  agrupadoGols: { fontSize: 14, fontWeight: "700", color: cores.teal },
-  agrupadoGravLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
-  agrupadoGrav: { fontSize: 11, color: cores.slate400 },
+  escondido: { display: "none" },
   modalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
   modalDescricao: { fontSize: 14, lineHeight: 20, color: cores.slate400 },

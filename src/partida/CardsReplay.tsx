@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import type { OpcoesRequisicao } from "@/api/cliente";
 import { RespostaReplay } from "@/resenha/RespostaReplay";
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { Clock, Download, Goal, Play, Smartphone, Sparkles, Users, VideoOff } from "@/ui/Icone";
+import { Ban, Clock, Goal, Smartphone, Sparkles, Users, VideoOff } from "@/ui/Icone";
+import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
+import { nomeArquivoReplay } from "@/replay/baixarReplay";
+import { PlayerReplay } from "@/replay/PlayerReplay";
 import { formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
 import type { ComentarioResenha, GolComVideos, PodeComentar } from "@/contrato/tipos";
@@ -20,8 +23,8 @@ function formatarHoraCompleta(d: Date): string {
 // site (weracha-site/components/gols-pager.tsx): cabeçalho com quem/tipo + horário
 // completo, vídeo, "Registrado por", "Baixar vídeo", chips de câmera e a resenha
 // embaixo. O site mostra um por tela num pager de Stories; aqui é uma lista vertical
-// (o app abandonou o pager, ver memória weracha_pager_replay_scroll_snap) e o vídeo abre
-// no player do sistema (`Linking.openURL`), sem `expo-video`.
+// (o app abandonou o pager, ver memória weracha_pager_replay_scroll_snap) e o vídeo toca
+// embutido no card (`PlayerReplay`, expo-video), igual ao <video> do site.
 export function CardsReplay({
   gols,
   grupoNome,
@@ -68,6 +71,8 @@ function CardReplay({
   comentar?: Parameters<typeof CardsReplay>[0]["comentar"];
 }) {
   const [cam, setCam] = useState(0);
+  // Trocar de câmera depois de já ter dado play continua tocando (o site faz igual).
+  const [jaTocou, setJaTocou] = useState(false);
 
   // Só vídeo NUVEM tem player; replay que o Cam só salvou no celular (origem LOCAL) vira
   // o aviso "salvo no celular" com o nome do arquivo.
@@ -82,6 +87,10 @@ function CardReplay({
   // Nunca inferir o tipo por `!gol.jogador`: a lista de replays de um jogador é sempre GOL
   // mas pode vir sem `jogador` preenchido.
   const ehLance = gol.tipo === "LANCE";
+  // Gol cancelado só chega aqui quando a linha do tempo do resultado abre o replay dele
+  // (prova de que o gol não era do jogador ou foi marcado errado). Ele não conta pra
+  // nada, e o servidor recusa comentário nele, então o card não mostra a resenha.
+  const cancelado = !!gol.cancelado;
   const tituloResenha = ehLance
     ? "Lance importante"
     : gol.jogador
@@ -89,16 +98,20 @@ function CardReplay({
       : "Gol";
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, cancelado && styles.cardCancelado]}>
       <View style={styles.cabecalho}>
         <View style={{ flex: 1 }}>
           <View style={styles.tituloLinha}>
-            {ehLance ? (
+            {cancelado ? (
+              <Ban size={15} color={cores.erroTexto} />
+            ) : ehLance ? (
               <Sparkles size={15} color={cores.orange} />
             ) : (
               <Goal size={15} color={cores.teal} />
             )}
-            <Text style={styles.titulo}>{ehLance ? "Lance importante" : "Gol marcado"}</Text>
+            <Text style={styles.titulo}>
+              {cancelado ? "Gol cancelado" : ehLance ? "Lance importante" : "Gol marcado"}
+            </Text>
           </View>
           {ehLance ? (
             <View style={styles.subLinha}>
@@ -129,18 +142,27 @@ function CardReplay({
         </View>
       </View>
 
+      {gol.cancelado && (
+        <View style={styles.avisoCancelado}>
+          <Ban size={14} color={cores.erroTexto} style={{ marginTop: 1 }} />
+          <Text style={styles.avisoCanceladoTexto}>
+            Cancelado por <Text style={styles.avisoCanceladoNome}>{gol.cancelado.porNome}</Text>. Esse
+            gol não conta no placar nem no ranking. O replay fica aqui só como registro.
+          </Text>
+        </View>
+      )}
+
       {temVideoNuvem ? (
         <View style={styles.corpo}>
-          <Pressable
-            style={styles.video}
-            onPress={() => void Linking.openURL(videoAtual.link).catch(() => {})}
-          >
-            <Play size={22} color={cores.branco} fill={cores.branco} />
-            <Text style={styles.videoLegenda}>
-              Toque pra ver o replay
-              {videosNuvem.length > 1 ? ` · câmera ${videoAtual.idCamera}` : ""}
-            </Text>
-          </Pressable>
+          <PlayerReplay
+            key={videoAtual.link}
+            link={videoAtual.link}
+            legenda={`Toque pra ver o replay${
+              videosNuvem.length > 1 ? ` · câmera ${videoAtual.idCamera}` : ""
+            }`}
+            autoIniciar={jaTocou}
+            aoIniciar={() => setJaTocou(true)}
+          />
           {gol.marcadoPor && (
             <Text style={styles.registrado}>
               Registrado por <Text style={styles.registradoNome}>{gol.marcadoPor.nome}</Text>
@@ -151,13 +173,10 @@ function CardReplay({
               Movido de {gol.migracao.deNome} por {gol.migracao.porNome}
             </Text>
           )}
-          <Pressable
-            style={styles.baixar}
-            onPress={() => void Linking.openURL(videoAtual.link).catch(() => {})}
-          >
-            <Download size={16} color={cores.dark} />
-            <Text style={styles.baixarTexto}>Baixar vídeo</Text>
-          </Pressable>
+          <BotaoBaixarVideo
+            link={videoAtual.link}
+            nomeArquivo={nomeArquivoReplay(gol.tipo, gol.golId)}
+          />
           {videosNuvem.length > 1 && (
             <View style={styles.cams}>
               {videosNuvem.map((v, i) => (
@@ -185,7 +204,7 @@ function CardReplay({
         <View style={[styles.aviso, styles.avisoAmbar]}>
           <VideoOff size={20} color="rgba(245, 158, 11, 0.7)" />
           <Text style={[styles.avisoTexto, { color: cores.ambar }]}>
-            Gol corrigido pelo admin depois da partida. Não tem replay.
+            Gol adicionado pelo admin depois da partida. Não tem replay.
           </Text>
         </View>
       ) : (
@@ -195,7 +214,7 @@ function CardReplay({
         </View>
       )}
 
-      {comentar && temVideoNuvem && gol.pedidoReplayId && (
+      {comentar && temVideoNuvem && gol.pedidoReplayId && !cancelado && (
         <RespostaReplay
           chamarApi={comentar.chamarApi}
           pedidoReplayId={gol.pedidoReplayId}
@@ -207,7 +226,9 @@ function CardReplay({
           onComentarios={(lista) => comentar.onComentarios(gol.pedidoReplayId!, lista)}
         />
       )}
-      {(!comentar || !temVideoNuvem || !gol.pedidoReplayId) && <View style={{ height: 14 }} />}
+      {(!comentar || !temVideoNuvem || !gol.pedidoReplayId || cancelado) && (
+        <View style={{ height: 14 }} />
+      )}
     </View>
   );
 }
@@ -228,6 +249,22 @@ const styles = StyleSheet.create({
     backgroundColor: cores.cardFundo,
     overflow: "hidden",
   },
+  cardCancelado: { borderColor: "rgba(239, 68, 68, 0.3)", backgroundColor: "rgba(239, 68, 68, 0.04)" },
+  avisoCancelado: {
+    marginHorizontal: 14,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  avisoCanceladoTexto: { flex: 1, fontSize: 12, lineHeight: 17, color: cores.erroTexto },
+  avisoCanceladoNome: { fontWeight: "700" },
   cabecalho: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -243,28 +280,9 @@ const styles = StyleSheet.create({
   horaLinha: { flexDirection: "row", alignItems: "center", gap: 5 },
   hora: { fontSize: 12, color: cores.slate400 },
   corpo: { paddingHorizontal: 14, gap: 8, paddingBottom: 14 },
-  video: {
-    height: 150,
-    borderRadius: raio.campo,
-    backgroundColor: "#000",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  videoLegenda: { fontSize: 12, color: cores.slate400 },
   registrado: { fontSize: 12, color: cores.slate400, textAlign: "right" },
   registradoNome: { color: cores.slate200, fontWeight: "600" },
   migracao: { fontSize: 12, color: "rgba(251, 191, 36, 0.8)", textAlign: "right" },
-  baixar: {
-    height: 40,
-    borderRadius: raio.campo,
-    backgroundColor: cores.orange,
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  baixarTexto: { fontSize: 14, fontWeight: "700", color: cores.dark },
   cams: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   camChip: {
     borderRadius: 999,

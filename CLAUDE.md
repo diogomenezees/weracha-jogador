@@ -83,7 +83,14 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   ganhou foco (senão o teclado cobre o campo). Modais (`Modal`) já se ajustam sozinhos no
   Android e a tela de acesso tem o próprio `KeyboardAvoidingView`.
 - Chat da resenha faz polling só enquanto `AppState.currentState === "active"`.
-- Vídeo de replay abre no player do sistema (`Linking.openURL`), sem `expo-video`.
+- **Vídeo de replay toca embutido** (`src/replay/PlayerReplay.tsx`, `expo-video`): pôster
+  com play, o `VideoView` só monta no toque (cada um segura um decoder no Android) e só
+  um toca por vez. **Nunca `Linking.openURL` num link de replay**: joga o jogador pro
+  navegador. "Baixar vídeo" (`src/replay/baixarReplay.ts`) baixa do R2 pro cache com
+  `expo-file-system` e grava na Galeria com `expo-media-library/legacy` (só escrita, só
+  vídeo), sem passar pelo backend. O R2 (`pub-*.r2.dev`) já serve `video/mp4` com
+  `Accept-Ranges` e `moov` no início, então não precisa de config no bucket nem de CORS
+  (CORS só importa pra `fetch` de navegador, não pro player nativo).
 - **Convite**: `src/app/convite/[token].tsx` (deep link) e
   `(logado)/entrar-por-convite.tsx` (colar link manual) reusam o mesmo fluxo.
   `src/convites.ts`: `tokenDeConvite` extrai o token de uma URL colada;

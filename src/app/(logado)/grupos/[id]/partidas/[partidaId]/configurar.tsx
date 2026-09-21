@@ -35,7 +35,18 @@ import {
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import { dentroDaJanelaDeCheckin, sugerirJogadoresPorTime } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
-import { ArrowDownAZ, Clock, Palette, Plus, Settings, Shield, Shuffle, Star, Swords } from "@/ui/Icone";
+import {
+  ArrowDownAZ,
+  Clock,
+  Palette,
+  Plus,
+  Settings,
+  Shield,
+  Shuffle,
+  Star,
+  Swords,
+  Wallet,
+} from "@/ui/Icone";
 import { cores, raio } from "@/tema";
 import type {
   CorGrupo,
@@ -44,9 +55,10 @@ import type {
   JogadorEmPartida,
   ModoSorteio,
   PartidaResumo,
+  TipoPagamento,
 } from "@/contrato/tipos";
 
-type Ordenacao = "NOME" | "SCORE" | "CHEGADA";
+type Ordenacao = "NOME" | "CHEGADA" | "MENSALISTA" | "SCORE";
 
 // Cores principais pra colete: uma família por opção (nenhum par muito
 // parecido), cobrindo os tons de camisa mais comuns numa pelada.
@@ -69,6 +81,7 @@ const SWATCHES = [
 
 type Presente = {
   jogador: JogadorEmPartida;
+  tipoPagamento: TipoPagamento;
   score: number;
   posicaoNome: string | null;
   ehGoleiro: boolean;
@@ -179,11 +192,16 @@ export default function TelaConfigurar() {
   const presentesOrdenados = useMemo(
     () =>
       [...presentes].sort((a, b) => {
-        if (ordenacao === "SCORE" && a.score !== b.score) return b.score - a.score;
         if (ordenacao === "CHEGADA") {
           const ca = new Date(a.checkinEm).getTime();
           const cb = new Date(b.checkinEm).getTime();
           if (ca !== cb) return cb - ca;
+        } else if (ordenacao === "MENSALISTA") {
+          if (a.tipoPagamento !== b.tipoPagamento) {
+            return a.tipoPagamento === "MENSALISTA" ? -1 : 1;
+          }
+        } else if (ordenacao === "SCORE") {
+          if (a.score !== b.score) return b.score - a.score;
         }
         return a.jogador.nome.localeCompare(b.jogador.nome, "pt-BR");
       }),
@@ -362,6 +380,7 @@ export default function TelaConfigurar() {
                 [
                   ["NOME", ArrowDownAZ, "Ordenar por nome"],
                   ["CHEGADA", Clock, "Ordenar por chegada (mais novo primeiro)"],
+                  ["MENSALISTA", Wallet, "Ordenar por mensalista/avulso"],
                   ["SCORE", Star, "Ordenar por score"],
                 ] as const
               ).map(([v, Icone, rotulo], i) => (
@@ -560,6 +579,7 @@ function montarPresentes(apoio: DadosDeApoioDaPartida): Presente[] {
       const posId = posIdPorJogador.get(jogador.id) ?? null;
       return {
         jogador,
+        tipoPagamento: c.tipoPagamento,
         score: scorePorId.get(jogador.id) ?? 50,
         posicaoNome: posId ? (posNomePorId.get(posId) ?? null) : null,
         ehGoleiro: posId ? (posGoleiroPorId.get(posId) ?? false) : false,

@@ -23,6 +23,7 @@ import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { CardsReplay } from "@/partida/CardsReplay";
 import { PainelGols } from "@/partida/PainelGols";
+import { ReplaysDoJogadorInline } from "@/partida/ReplaysDoJogadorInline";
 import { montarResultado, type JogadorNoTime, type ResultadoMontado } from "@/partida/montarResultado";
 import {
   Abas,
@@ -37,11 +38,12 @@ import {
 } from "@/partida/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import {
-  ArrowLeft,
   ArrowLeftRight,
   Ban,
   Clock,
   EllipsisVertical,
+  Goal,
+  MapPin,
   Plus,
   Radio,
   RotateCcw,
@@ -58,6 +60,7 @@ import {
   dentroDoPrazoDeEdicaoDeGols,
   formatarDiaSemanaData,
   formatarHora,
+  formatarPartidaResumo,
   JANELA_CHECKIN_ANTES_HORAS,
   partidaAindaNaoComecou,
   partidaEncerrada,
@@ -65,15 +68,17 @@ import {
 } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import { useVoltarDoCelular } from "@/ui/useVoltarDoCelular";
 import type {
   ComentarioResenha,
   GolComVideos,
   Grupo,
   PartidaResumo,
   PodeComentar,
+  Quadra,
 } from "@/contrato/tipos";
 
-type Aba = "TIMES" | "ARTILHEIROS" | "LANCES";
+type Aba = "TIMES" | "ARTILHEIROS" | "HISTORICO" | "LANCES";
 
 export default function TelaResultado() {
   const { id, partidaId } = useLocalSearchParams<{ id: string; partidaId: string }>();
@@ -83,6 +88,10 @@ export default function TelaResultado() {
 
   const [grupo, setGrupo] = useState<Grupo | null | undefined>(undefined);
   const [partida, setPartida] = useState<PartidaResumo | null | undefined>(undefined);
+  // Quadra vinculada ao grupo (já vem na mesma chamada dos dados do grupo). A pílula da
+  // quadra abre o modal com nome e endereço, igual ao site.
+  const [quadra, setQuadra] = useState<Quadra | null>(null);
+  const [modalQuadra, setModalQuadra] = useState(false);
   const [montado, setMontado] = useState<ResultadoMontado | null>(null);
   const [gols, setGols] = useState<GolComVideos[]>([]);
   const [lances, setLances] = useState<GolComVideos[]>([]);
@@ -103,6 +112,9 @@ export default function TelaResultado() {
   const [confirmarRefazer, setConfirmarRefazer] = useState(false);
   const [adicionarGol, setAdicionarGol] = useState(false);
   const [migrar, setMigrar] = useState<GolComVideos | null>(null);
+  // Gol que o menu pediu pra cancelar: confirma antes (igual ao site).
+  const [golParaCancelar, setGolParaCancelar] = useState<GolComVideos | null>(null);
+  const [cancelandoGol, setCancelandoGol] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   // Só em memória de propósito (igual ao site): some ao sair da tela.
   const [avisoGolsFechado, setAvisoGolsFechado] = useState(false);
@@ -112,6 +124,8 @@ export default function TelaResultado() {
     jogadorId: string;
     golId?: string;
   } | null>(null);
+  // Voltar do celular com replays abertos fecha eles (volta pra lista), não sai da tela.
+  useVoltarDoCelular(replayInline !== null, () => setReplayInline(null));
 
   const carregar = useCallback(async () => {
     const [dados, resultado, gs, ls, apoio, aoVivo] = await Promise.all([
@@ -134,6 +148,7 @@ export default function TelaResultado() {
     const p = g ? buscarPartida(g, partidaId) ?? null : null;
     setGrupo(g);
     setPartida(p);
+    setQuadra(dados.quadra ?? null);
     setGols(gs);
     setLances(ls);
 
@@ -202,8 +217,13 @@ export default function TelaResultado() {
     }));
   }, [montado]);
 
-  const jogadoresSemGol = useMemo(
-    () => todosDaPartida.filter((j) => (golsPorJogador[j.id] ?? 0) === 0),
+  // Todo mundo da partida, com quantos gols já tem, pro modal "Adicionar gol": serve pra
+  // quem ainda não tem gol e pra quem já tem e esqueceram de marcar mais um.
+  const jogadoresParaAdicionarGol = useMemo(
+    () =>
+      [...todosDaPartida]
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+        .map((j) => ({ ...j, gols: golsPorJogador[j.id] ?? 0 })),
     [todosDaPartida, golsPorJogador]
   );
 
@@ -284,10 +304,14 @@ export default function TelaResultado() {
   // vez" ainda. Mesmo critério do site (weracha-site .../resultado/page.tsx).
   const temPartida = montado.times.length >= 2;
   const lancesComVideo = lances.filter((l) => l.videos.length > 0);
-  // As abas Artilheiros/Lances só fazem sentido com a partida encerrada —
+  // As abas Artilheiros/Histórico/Lances só fazem sentido com a partida encerrada —
   // enquanto o jogo rola, o que importa aqui é ver quem está em quadra (o resto
   // é a tela "Ao vivo"). Mesma regra do site.
-  const temAbaArtilheiros = encerrada && (golsAtivos.length > 0 || podeEditarGols);
+  const temAbaArtilheiros = encerrada && golsAtivos.length > 0;
+  // Histórico = linha do tempo dos gols (inclui os cancelados) e onde o admin ajusta gols
+  // (aviso das 24h, "Adicionar gol", menu ⋮ de cada gol). Por isso aparece também pro admin
+  // dentro do prazo sem nenhum gol registrado: é o único caminho pra adicionar o primeiro.
+  const temAbaHistorico = encerrada && (gols.length > 0 || podeEditarGols);
   const temAbaLances = encerrada && lancesComVideo.length > 0;
 
   // Quem entra no painel de artilheiros (elenco da partida, com o que o card do jogador
@@ -300,30 +324,34 @@ export default function TelaResultado() {
       return m;
     }, {});
   // Replays do jogador abertos no lugar do painel. Pela linha do tempo (`golId`), só o
-  // gol tocado.
+  // gol tocado, mesmo cancelado (o vídeo é a prova de que o gol não valia). Pela lista do
+  // jogador (aba Artilheiros), gol cancelado fica de fora, pra bater com o "N gravado" dele.
   const jogadorDoReplay = replayInline
-    ? (golsAtivos.find((x) => x.jogador?.id === replayInline.jogadorId)?.jogador ?? {
+    ? (gols.find((x) => x.jogador?.id === replayInline.jogadorId)?.jogador ?? {
         id: replayInline.jogadorId,
         nome: jogadoresDoPainel.find((j) => j.jogadorId === replayInline.jogadorId)?.nome ?? "Jogador",
         fotoUrl: jogadoresDoPainel.find((j) => j.jogadorId === replayInline.jogadorId)?.fotoUrl ?? null,
       })
     : null;
   const golsDoReplayInline = replayInline
-    ? golsAtivos.filter(
+    ? gols.filter(
         (x) =>
           x.jogador?.id === replayInline.jogadorId &&
           x.videos.length > 0 &&
-          (!replayInline.golId || x.golId === replayInline.golId)
+          (replayInline.golId ? x.golId === replayInline.golId : !x.cancelado)
       )
     : [];
 
   const abas: { chave: Aba; rotulo: string }[] = [
-    { chave: "TIMES", rotulo: encerrada ? "Resultado" : "Times" },
+    { chave: "TIMES", rotulo: "Times" },
     ...(temAbaArtilheiros ? [{ chave: "ARTILHEIROS" as Aba, rotulo: "Artilheiros" }] : []),
+    ...(temAbaHistorico ? [{ chave: "HISTORICO" as Aba, rotulo: "Histórico" }] : []),
     ...(temAbaLances ? [{ chave: "LANCES" as Aba, rotulo: "Lances" }] : []),
   ];
   const abaVisivel: Aba =
-    (aba === "ARTILHEIROS" && !temAbaArtilheiros) || (aba === "LANCES" && !temAbaLances)
+    (aba === "ARTILHEIROS" && !temAbaArtilheiros) ||
+    (aba === "HISTORICO" && !temAbaHistorico) ||
+    (aba === "LANCES" && !temAbaLances)
       ? "TIMES"
       : aba;
 
@@ -346,13 +374,22 @@ export default function TelaResultado() {
           }
         />
         <View style={styles.bridges}>
-          <View style={styles.esportePill}>
-            <Text style={styles.esportePillTexto}>{g.esporte}</Text>
-          </View>
+          {g.quadraId ? (
+            <Pressable style={[styles.esportePill, styles.quadraPill]} onPress={() => setModalQuadra(true)}>
+              <MapPin size={12} color={cores.branco} />
+              <Text style={[styles.esportePillTexto, { flexShrink: 1 }]} numberOfLines={1}>
+                {quadra?.nome ?? "Quadra não encontrada"}
+              </Text>
+            </Pressable>
+          ) : (
+            <View style={styles.esportePill}>
+              <Text style={styles.esportePillTexto}>{g.esporte}</Text>
+            </View>
+          )}
           <View style={styles.infoPill}>
             <Clock size={12} color={cores.zinc500} />
             <Text style={styles.infoPillTexto}>
-              {formatarDiaSemanaData(new Date(p.data))} · {formatarHora(new Date(p.data))}
+              {formatarPartidaResumo(new Date(p.data))}
             </Text>
           </View>
           <View style={styles.infoPill}>
@@ -360,7 +397,17 @@ export default function TelaResultado() {
             <Text style={styles.infoPillTexto}>{rotuloModoSorteio}</Text>
           </View>
         </View>
-        {abas.length > 1 && <Abas opcoes={abas} valor={abaVisivel} onChange={setAba} />}
+        {abas.length > 1 && (
+          <Abas
+            opcoes={abas}
+            valor={abaVisivel}
+            onChange={(nova) => {
+              // Os replays inline são de uma aba só: trocar de aba volta pra lista.
+              setReplayInline(null);
+              setAba(nova);
+            }}
+          />
+        )}
 
         {abaVisivel === "TIMES" ? (
           <View style={{ gap: 14 }}>
@@ -402,9 +449,9 @@ export default function TelaResultado() {
               </>
             )}
           </View>
-        ) : abaVisivel === "ARTILHEIROS" ? (
+        ) : abaVisivel === "ARTILHEIROS" || abaVisivel === "HISTORICO" ? (
           <View style={{ gap: 10 }}>
-            {souAdmin && podeEditarGols && !avisoGolsFechado && (
+            {abaVisivel === "HISTORICO" && souAdmin && podeEditarGols && !avisoGolsFechado && (
               <View style={styles.avisoGols}>
                 <TriangleAlert size={16} color={cores.ambar} style={{ marginTop: 2 }} />
                 <View style={{ flex: 1 }}>
@@ -428,9 +475,11 @@ export default function TelaResultado() {
             {erroAcao && <Text style={styles.erroAcao}>{erroAcao}</Text>}
 
             {/* O painel fica montado (só escondido) enquanto os replays estão abertos,
-                pra não perder o modo agrupado/linha do tempo ao voltar. */}
+                pra não perder a posição da lista ao voltar. Artilheiros = agrupado por
+                jogador; Histórico = linha do tempo. */}
             <View style={replayInline ? styles.escondido : undefined}>
               <PainelGols
+                modoFixo={abaVisivel === "HISTORICO" ? "CRONOLOGICO" : "AGRUPADO"}
                 gols={gols}
                 golsPorJogador={golsPorJogador}
                 golsGravadosPorJogador={golsGravadosPorJogador}
@@ -452,47 +501,22 @@ export default function TelaResultado() {
               />
             </View>
 
-            {replayInline && (
-              <View style={{ gap: 10 }}>
-                <Pressable style={styles.replayVoltar} onPress={() => setReplayInline(null)}>
-                  <ArrowLeft size={16} color={cores.branco} />
-                  <Text style={styles.replayVoltarTexto}>Artilheiros</Text>
-                </Pressable>
-                {jogadorDoReplay && (
-                  <View style={styles.replayJogador}>
-                    <AvatarJogador
-                      id={jogadorDoReplay.id}
-                      nome={jogadorDoReplay.nome}
-                      fotoUrl={jogadorDoReplay.fotoUrl}
-                      tamanho={48}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.replayJogadorNome} numberOfLines={1}>
-                        {jogadorDoReplay.nome}
-                      </Text>
-                      <Text style={styles.replayJogadorSub}>
-                        {replayInline.golId
-                          ? "Replay desse gol"
-                          : `${golsDoReplayInline.length} replay${golsDoReplayInline.length === 1 ? "" : "s"} nessa partida`}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                <CardsReplay
-                  gols={golsDoReplayInline}
-                  grupoNome={g.nome}
-                  vazioTexto="Nenhum replay desse jogador nessa partida."
-                  comentar={{
-                    chamarApi,
-                    meuJogadorId: meuId,
-                    podeComentar,
-                    podeModerar: !!souAdmin,
-                    porPedido: comentarios,
-                    onComentarios: (pid, lista) =>
-                      setComentarios((prev) => ({ ...prev, [pid]: lista })),
-                  }}
-                />
-              </View>
+            {replayInline && jogadorDoReplay && (
+              <ReplaysDoJogadorInline
+                jogador={jogadorDoReplay}
+                gols={golsDoReplayInline}
+                grupoNome={g.nome}
+                apenasUmGol={!!replayInline.golId}
+                comentar={{
+                  chamarApi,
+                  meuJogadorId: meuId,
+                  podeComentar,
+                  podeModerar: !!souAdmin,
+                  porPedido: comentarios,
+                  onComentarios: (pid, lista) =>
+                    setComentarios((prev) => ({ ...prev, [pid]: lista })),
+                }}
+              />
             )}
           </View>
         ) : (
@@ -529,6 +553,23 @@ export default function TelaResultado() {
         />
       )}
 
+      <ModalCartao aberto={modalQuadra} onFechar={() => setModalQuadra(false)}>
+        <View style={styles.modalEyebrowLinha}>
+          <MapPin size={16} color={cores.teal} />
+          <Eyebrow>Quadra</Eyebrow>
+        </View>
+        <Text style={styles.modalTitulo}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
+        {quadra && quadra.status !== "VALIDADA" && (
+          <View style={styles.pendentePill}>
+            <Text style={styles.pendenteTexto}>Pendente</Text>
+          </View>
+        )}
+        <View style={[styles.esportePill, { alignSelf: "flex-start" }]}>
+          <Text style={styles.esportePillTexto}>{g.esporte}</Text>
+        </View>
+        <Text style={styles.modalDesc}>{quadra?.endereco ?? "Endereço não informado."}</Text>
+      </ModalCartao>
+
       <MenuAcoes
         aberto={menuMais}
         titulo="Times"
@@ -558,32 +599,57 @@ export default function TelaResultado() {
         titulo={menuGol?.jogador ? `Gol de ${menuGol.jogador.nome}` : "Gol"}
         itens={
           menuGol
-            ? ([
-                menuGol.cancelado
-                  ? {
-                      rotulo: "Reativar gol",
-                      Icone: RotateCcw,
-                      onPress: () => void acaoGol(() => reativarGol(chamarApi, menuGol.golId)),
-                    }
-                  : {
-                      rotulo: "Cancelar gol",
-                      Icone: Ban,
-                      destrutivo: true,
-                      onPress: () => void acaoGol(() => cancelarGol(chamarApi, menuGol.golId)),
-                    },
-                ...(!menuGol.cancelado
-                  ? [
-                      {
-                        rotulo: "Migrar pra outro jogador",
-                        Icone: ArrowLeftRight,
-                        onPress: () => setMigrar(menuGol),
-                      } as ItemMenu,
-                    ]
-                  : []),
-              ] as ItemMenu[])
+            ? // Cancelar é a última opção (a mais destrutiva), igual o site.
+              menuGol.cancelado
+              ? ([
+                  {
+                    rotulo: "Reativar gol",
+                    Icone: RotateCcw,
+                    onPress: () => void acaoGol(() => reativarGol(chamarApi, menuGol.golId)),
+                  },
+                ] as ItemMenu[])
+              : ([
+                  {
+                    rotulo: "Migrar pra outro jogador",
+                    Icone: ArrowLeftRight,
+                    onPress: () => setMigrar(menuGol),
+                  },
+                  {
+                    rotulo: "Cancelar gol",
+                    Icone: Ban,
+                    destrutivo: true,
+                    onPress: () => setGolParaCancelar(menuGol),
+                  },
+                ] as ItemMenu[])
             : []
         }
         onFechar={() => setMenuGol(null)}
+      />
+
+      <ModalConfirmar
+        aberto={golParaCancelar !== null}
+        Icone={Ban}
+        eyebrow="Cancelar gol"
+        titulo={`Cancelar esse gol de ${golParaCancelar?.jogador?.nome ?? ""}?`}
+        descricao={
+          golParaCancelar && golParaCancelar.videos.length > 0
+            ? "O gol sai do ranking de artilheiros, da contagem e da resenha. Fica na linha do tempo marcado como cancelado, e o replay continua disponível ali como registro. Dá pra reativar o gol depois."
+            : "O gol sai do ranking de artilheiros e da contagem. Fica registrado na linha do tempo que foi cancelado, e dá pra reativar depois."
+        }
+        destrutivo
+        confirmarLabel="Sim, cancelar"
+        ocupado={cancelandoGol}
+        onConfirmar={async () => {
+          const gol = golParaCancelar;
+          if (!gol) return;
+          setCancelandoGol(true);
+          await acaoGol(() => cancelarGol(chamarApi, gol.golId));
+          setCancelandoGol(false);
+          setGolParaCancelar(null);
+        }}
+        onFechar={() => {
+          if (!cancelandoGol) setGolParaCancelar(null);
+        }}
       />
 
       <ModalConfirmar
@@ -608,11 +674,11 @@ export default function TelaResultado() {
 
       {adicionarGol && (
         <ModalAdicionarGol
-          jogadores={jogadoresSemGol}
+          jogadores={jogadoresParaAdicionarGol}
           onFechar={() => setAdicionarGol(false)}
-          onSalvar={async (jogadorId, quantidade) => {
+          onSalvar={async (jogadorId, total) => {
             setAdicionarGol(false);
-            await acaoGol(() => corrigirGols(chamarApi, partidaId, jogadorId, quantidade));
+            await acaoGol(() => corrigirGols(chamarApi, partidaId, jogadorId, total));
           }}
         />
       )}
@@ -772,44 +838,68 @@ function LinhaJogadorTime({
   );
 }
 
+// Qualquer jogador da partida (com ou sem gol registrado). Só AUMENTA: o contador é
+// "quantos gols adicionar" (mínimo 1), e a API recebe o total (o que já tem + o que
+// está adicionando). Pra tirar um gol, o admin usa "Cancelar gol" no menu da linha do tempo.
 function ModalAdicionarGol({
   jogadores,
   onFechar,
   onSalvar,
 }: {
-  jogadores: { id: string; nome: string }[];
+  jogadores: { id: string; nome: string; gols: number }[];
   onFechar: () => void;
-  onSalvar: (jogadorId: string, quantidade: number) => void;
+  onSalvar: (jogadorId: string, total: number) => void;
 }) {
   const [sel, setSel] = useState<string | null>(jogadores[0]?.id ?? null);
-  const [qtd, setQtd] = useState(1);
+  const [adicionar, setAdicionar] = useState(1);
+  const jaTem = jogadores.find((j) => j.id === sel)?.gols ?? 0;
 
   return (
     <ModalCartao aberto onFechar={onFechar}>
-      <Eyebrow>Adicionar gol</Eyebrow>
+      <View style={styles.modalEyebrowLinha}>
+        <Goal size={16} color={cores.teal} />
+        <Eyebrow>Adicionar gol</Eyebrow>
+      </View>
       <Text style={styles.modalTitulo}>Quem fez o gol?</Text>
       {jogadores.length === 0 ? (
-        <Text style={styles.modalDesc}>Todo mundo da partida já tem gol registrado.</Text>
+        <Text style={styles.modalDesc}>Ninguém fez check-in nessa partida.</Text>
       ) : (
         <>
           <ScrollView style={{ maxHeight: 220 }}>
             {jogadores.map((j) => (
               <Pressable
                 key={j.id}
-                style={[styles.opcao, sel === j.id && styles.opcaoAtiva]}
-                onPress={() => setSel(j.id)}
+                style={[styles.opcao, styles.opcaoLinha, sel === j.id && styles.opcaoAtiva]}
+                onPress={() => {
+                  setSel(j.id);
+                  setAdicionar(1);
+                }}
               >
-                <Text style={styles.opcaoTexto}>{j.nome}</Text>
+                <Text style={[styles.opcaoTexto, { flex: 1 }]} numberOfLines={1}>
+                  {j.nome}
+                </Text>
+                {j.gols > 0 && (
+                  <Text style={styles.opcaoGols}>
+                    {j.gols} gol{j.gols > 1 ? "s" : ""}
+                  </Text>
+                )}
               </Pressable>
             ))}
           </ScrollView>
+          <Text style={styles.modalRotulo}>Gols a adicionar</Text>
           <View style={styles.modalStepper}>
-            <Stepper valor={qtd} onChange={setQtd} min={0} max={30} />
+            <Stepper valor={adicionar} onChange={setAdicionar} min={1} max={30} />
           </View>
+          <Text style={[styles.modalDesc, { textAlign: "center" }]}>
+            {jaTem > 0
+              ? `Já tem ${jaTem} gol${jaTem > 1 ? "s" : ""}. Depois de salvar: ${jaTem + adicionar}.`
+              : "Ainda não tem gol registrado."}{" "}
+            Pra tirar um gol, use Cancelar gol no menu da linha do tempo.
+          </Text>
           <Pressable
             style={styles.modalBotao}
             disabled={!sel}
-            onPress={() => sel && onSalvar(sel, qtd)}
+            onPress={() => sel && onSalvar(sel, jaTem + adicionar)}
           >
             <Text style={styles.modalBotaoTexto}>Salvar</Text>
           </Pressable>
@@ -877,6 +967,18 @@ const styles = StyleSheet.create({
     backgroundColor: cores.tealDark,
   },
   esportePillTexto: { fontSize: 12, fontWeight: "500", color: cores.branco },
+  // Pílula da quadra: mesma cor da do esporte, com o ícone de pino à frente e clicável.
+  quadraPill: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
+  pendentePill: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: cores.ambarFundo,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  pendenteTexto: { fontSize: 10, fontWeight: "700", color: cores.ambar, textTransform: "uppercase" },
   infoPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -941,20 +1043,6 @@ const styles = StyleSheet.create({
   avisoGolsAcao: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
   avisoGolsAcaoTexto: { fontSize: 12, fontWeight: "700", color: cores.ambar },
   escondido: { display: "none" },
-  replayVoltar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    height: 44,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.cardBorda,
-  },
-  replayJogador: { flexDirection: "row", alignItems: "center", gap: 12 },
-  replayJogadorNome: { fontSize: 18, fontWeight: "700", color: cores.branco },
-  replayJogadorSub: { fontSize: 12, color: cores.slate400 },
-  replayVoltarTexto: { fontSize: 15, color: cores.branco },
   erroAcao: { fontSize: 13, color: cores.erroTexto },
   opcao: {
     paddingVertical: 11,
@@ -967,6 +1055,18 @@ const styles = StyleSheet.create({
   },
   opcaoAtiva: { borderColor: cores.teal, backgroundColor: cores.avisoFundo },
   opcaoTexto: { fontSize: 15, color: cores.branco },
+  opcaoLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
+  opcaoGols: { fontSize: 12, color: cores.slate400 },
+  modalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  modalRotulo: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    color: cores.slate400,
+    textAlign: "center",
+    textTransform: "uppercase",
+    marginTop: 4,
+  },
   modalStepper: { alignItems: "center", marginVertical: 6 },
   modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
   modalDesc: { fontSize: 13, lineHeight: 19, color: cores.slate400 },

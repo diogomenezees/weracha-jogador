@@ -149,8 +149,8 @@ que caia em `em-breve` (só check-in / ao vivo / resultado das partidas seguem s
   `src/ui/AvatarJogador.tsx` novo (foto via `expo-image`, iniciais coloridas).
 - **Resenha** (`grupos/[id]/resenha.tsx`): feed paginado de replays comentados;
   cada card abre um chat modal com polling de 3s (`src/resenha/ChatResenha.tsx`,
-  só enquanto `AppState === active`). Vídeo do replay = `Linking.openURL` (abre
-  no player do sistema; sem `expo-video` por ora). Apagar comentário = long-press.
+  só enquanto `AppState === active`). Vídeo do replay toca embutido no card
+  (`PlayerReplay`, `expo-video`). Apagar comentário = long-press.
 - **Enquetes** (`grupos/[id]/enquetes/{index,nova}.tsx` + global
   `(logado)/enquetes.tsx`): listar/criar/votar (toggle)/editar pergunta/ver
   votantes. `src/enquetes/ModalEnquete.tsx`.
@@ -193,8 +193,9 @@ grupo não tem mais nada que caia em `em-breve` — os botões de partida
 - **Ao vivo** (`.../ao-vivo.tsx`): ticker 1s + polling 3s do `estadoAoVivo`.
   Cronômetro (play/pause, +30s, resetar com o texto condicional, editar
   duração/gols). Abas Artilheiros (marcar/desmarcar gol otimista + cooldown 2s,
-  "N gravado", lance importante), Histórico e Lances (`ListaReplays`, busca só
-  quando os contadores do poll mudam). Comemoração "GOOOL!/LANCE!" = fade
+  "N gravado", lance importante), Histórico (`PainelGols`, abre na linha do tempo,
+  com os replays abertos inline) e Lances (`CardsReplay`, vídeo já no card), a mesma
+  experiência do Resultado; a busca só roda quando os contadores do poll mudam. Comemoração "GOOOL!/LANCE!" = fade
   `Animated` (sem confete de partículas).
 - **Resultado** (`.../resultado.tsx`): monta o equivalente de
   `dadosDaTelaResultado` no cliente (`src/partida/montarResultado.ts`) — não há
@@ -203,11 +204,19 @@ grupo não tem mais nada que caia em `em-breve` — os botões de partida
     cadastrada, "começa com a bola" / "escolhe o lado"), rodapé leva pro "Ao
     vivo", menu "⋯" com "Refazer o sorteio" (só admin, some quando encerra).
   - **Depois do jogo** (`partidaEncerrada`): título "Resultado", botão de
-    compartilhar (`Share` só-texto), e as abas Artilheiros (linha do tempo +
-    admin dentro de `PRAZO_EDICAO_GOLS_HORAS`: adicionar gol, cancelar/reativar,
-    migrar — `MenuAcoes` por gol) e Lances (`ListaReplays` com comentário via
-    `ChatResenha`).
-- **Peças compartilhadas**: `src/partida/{ui.tsx,ListaReplays.tsx,montarResultado.ts}`.
+    compartilhar (`Share` só-texto), e as abas Times / Artilheiros (agrupado por
+    jogador, só consulta) / Histórico (linha do tempo dos gols; é onde o admin,
+    dentro de `PRAZO_EDICAO_GOLS_HORAS`, tem o aviso das 24h, "Adicionar gol"
+    (qualquer jogador da partida, com ou sem gol; só aumenta, o contador é "gols a
+    adicionar" e a API recebe o total; o gol vira "Adicionado por") e
+    cancelar/reativar/migrar — `MenuAcoes` por gol; a aba aparece pro admin no
+    prazo mesmo sem gol, pra ele poder adicionar o primeiro) / Lances (`CardsReplay`, com a resenha
+    embaixo). Artilheiros e Histórico são o mesmo `PainelGols` com
+    `modoFixo`, sem botão de alternar (igual o site). Na linha do tempo, o replay de
+    um gol **cancelado** também abre (card "Gol cancelado" com quem cancelou, sem
+    comentário): serve de prova de que o gol não era do jogador. "Cancelar gol"
+    pede confirmação (`ModalConfirmar`), igual o site.
+- **Peças compartilhadas**: `src/partida/{ui.tsx,PainelGols.tsx,CardsReplay.tsx,ReplaysDoJogadorInline.tsx,montarResultado.ts}`.
   Helpers `src/aoVivo.ts` (porte de `lib/aoVivo.ts`) + `src/partidas.ts` ganhou
   `partidaAindaNaoComecou`, `dentroDoPrazoDeEdicaoDeGols`,
   `PRAZO_EDICAO_GOLS_HORAS` (24), `sugerirJogadoresPorTime`.
@@ -305,8 +314,8 @@ lint/jest limpos, não rodou em device.
   (`src/resenha/BlocoCard.tsx`, layout copiado do feed; `ListaMeusReplays` foi
   removida), com a prop `meus`: cabeçalho ganha o nome do grupo, o menu ⋮
   (`MenuAcoes`) ganha "Ir para o grupo" e o botão diz "Comentar" quando ainda não
-  há comentário. Vídeo continua abrindo no player do sistema (`Linking.openURL`,
-  sem `expo-video`). `grupoRemovido` esconde atalhos + resenha. Antes era um card
+  há comentário. Vídeo toca embutido (`PlayerReplay`) e "Baixar vídeo" do menu
+  salva na Galeria. `grupoRemovido` esconde atalhos + resenha. Antes era um card
   próprio com "▶ Assistir" e atalhos "Grupo ›" / "Resultado ›".
 - `podeComentar` = tem data de nascimento (o servidor faz o gate 18+ de verdade).
   `podeModerar: false` — `/replays` não é escopado a grupo, então não há sinal de
@@ -321,20 +330,22 @@ A aba "Artilheiros" da tela de resultado de partida encerrada
 aviso âmbar "É possível ajustar gols até 24h depois do fim da partida" com "Adicionar
 gol" e fechar (só admin dentro do prazo), botão agrupado/linha do tempo, toggle de
 Score, cards agrupados com "N gols"/"N gravados", linhas da linha do tempo com
-"Registrado/Corrigido por", "Movido de…", "Cancelado por", hora (e dia quando difere da
+"Registrado/Adicionado por", "Movido de…", "Cancelado por", hora (e dia quando difere da
 partida), ícone de replay (nuvem/celular/sem) + legenda, e menu ⋮ por linha (cancelar,
 migrar, reativar). Tocar num jogador ou numa linha abre os replays dele **inline**
-(`ListaReplays` + botão "Artilheiros" pra voltar; vídeo segue abrindo no player do
-sistema). `cameraAtiva` e `golsGravadosPorJogador` vêm de `GET .../ao-vivo`.
+(`ReplaysDoJogadorInline`, sem botão de voltar: o voltar do celular ou trocar de aba fecha; vídeo toca embutido no card). `cameraAtiva` e `golsGravadosPorJogador` vêm de `GET .../ao-vivo`.
 Diferença que sobra: cancelar gol no app não pede confirmação (o site pede).
 
 A aba **Lances** e os replays inline usam o `src/partida/CardsReplay.tsx`, porte do
 `GolCard` do site: cabeçalho ("Lance importante" + grupo, ou "Gol marcado" + jogador) com
-hora completa, vídeo, "Registrado por", "Movido de…", "Baixar vídeo" (hoje abre no player
-do sistema), chips de câmera, avisos de "salvo no celular" / "corrigido pelo admin" / "ainda
+hora completa, vídeo, "Registrado por", "Movido de…", "Baixar vídeo" (salva na Galeria,
+`src/replay/baixarReplay.ts`), chips de câmera, avisos de "salvo no celular" / "adicionado pelo admin" / "ainda
 não chegou", e a resenha embaixo (`src/resenha/RespostaReplay.tsx`: preview dos 2 últimos
 comentários + "Comentar"/"Responder"). Lista vertical em vez do pager de Stories do site. O
-`ListaReplays` segue só na tela Ao vivo.
+O Ao vivo usa os mesmos `PainelGols`, `CardsReplay` e `ReplaysDoJogadorInline`, sem
+comentários (igual o site); a aba Histórico dele abre na linha do tempo (`modoInicial`).
+Com replays abertos inline (Ao vivo e Resultado), o voltar do celular fecha eles e volta
+pra lista, em vez de sair da tela (`src/ui/useVoltarDoCelular.ts`, `BackHandler`).
 
 ### Feito: tela de Contato nativa, logada (2026-09-19)
 
@@ -473,10 +484,18 @@ legais.
   (`mostrarIrParaLogin` novo em `useFluxoAcesso.ts`, checa `e.codigo` do
   `ErroApi`, não o texto da mensagem como o site faz). typecheck/lint/jest
   limpos, não rodou em device.
-- **Fases 4-8 (pendentes)**: vídeo embutido (`expo-video`), pager estilo
-  Stories (`/replays`, `/resenha`), seletor de cor em configurar, compartilhar
-  como imagem (`react-native-view-shot`), deep link de compartilhar replay
-  (novo nos dois repos). Todas exigem o dev client da Fase 1.
+- **Fase 4 (feita em 2026-09-20, sem rodar em device)**: vídeo embutido.
+  `src/replay/PlayerReplay.tsx` (`expo-video`, pôster com play, `VideoView` só monta no
+  toque, um por vez; o pôster mostra a capa = 1º quadro do vídeo via
+  `generateThumbnailsAsync` do próprio expo-video, gerada numa fila de 1 em 1 e guardada
+  por link), `BotaoBaixarVideo` + `baixarReplay.ts` (`expo-file-system` baixa do
+  R2 pro cache, `expo-media-library/legacy` grava na Galeria, só escrita/só vídeo).
+  Ligado em `CardsReplay` e `BlocoCard`. Deps novas + plugin
+  `expo-media-library` em `app.json`: **exige rebuild do dev client/APK** (Expo Go já
+  traz `expo-video`). R2 não precisou de mudança (mp4 com `Accept-Ranges` e faststart).
+- **Fases 5-8 (pendentes)**: pager estilo Stories (`/replays`, `/resenha`), seletor de
+  cor em configurar, compartilhar como imagem (`react-native-view-shot`), deep link de
+  compartilhar replay (novo nos dois repos). Todas exigem o dev client da Fase 1.
 
 ### Próximo passo
 
