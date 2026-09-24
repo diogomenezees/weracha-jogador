@@ -128,7 +128,11 @@ As 4 sub-telas do grupo (endpoints verificados por curl no site Local).
 - **Resenha** (`grupos/[id]/resenha.tsx`): feed paginado de replays comentados;
   cada card abre um chat modal com polling de 3s (`src/resenha/ChatResenha.tsx`,
   só enquanto `AppState === active`). Vídeo do replay toca embutido no card
-  (`PlayerReplay`, `expo-video`). Apagar comentário = long-press.
+  (`PlayerReplay`, `expo-video`). Cada comentário tem um menu ⋯
+  (`MenuAcoes`): **Denunciar** (todo mundo, menos o autor; cai na ouvidoria) e **Apagar**
+  (autor só nos primeiros 5 min, admin do grupo / dono do site sempre) e **Bloquear usuário**
+  (bloqueio pessoal: o servidor devolve os comentários da pessoa como "Mensagem de usuário
+  bloqueado"; o menu dessa mensagem oferece **Desbloquear usuário**).
 - **Enquetes** (`grupos/[id]/enquetes/{index,nova}.tsx` + global
   `(logado)/enquetes.tsx`): listar/criar/votar (toggle)/editar pergunta/ver
   votantes. `src/enquetes/ModalEnquete.tsx`.

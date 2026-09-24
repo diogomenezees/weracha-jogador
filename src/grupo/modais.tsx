@@ -115,6 +115,34 @@ export function ModalConfirmar({
   );
 }
 
+// Aviso de um botão só (erro ou informação). Substitui o Alert.alert(titulo, texto).
+export function ModalAviso({
+  aberto,
+  eyebrow = "Aviso",
+  titulo,
+  texto,
+  onFechar,
+}: {
+  aberto: boolean;
+  eyebrow?: string;
+  titulo: string;
+  texto: string;
+  onFechar: () => void;
+}) {
+  return (
+    <Base aberto={aberto} onFechar={onFechar}>
+      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      <Text style={styles.titulo}>{titulo}</Text>
+      <Text style={styles.descricao}>{texto}</Text>
+      <View style={styles.acoes}>
+        <Pressable style={styles.btnPrimario} onPress={onFechar}>
+          <Text style={styles.btnPrimarioTexto}>Entendi</Text>
+        </Pressable>
+      </View>
+    </Base>
+  );
+}
+
 export function ModalTexto({
   aberto,
   eyebrow,

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { router } from "expo-router";
 
@@ -21,6 +21,7 @@ import {
 import { baixarReplay, mensagemDownload, nomeArquivoReplay } from "@/replay/baixarReplay";
 import { PlayerReplay } from "@/replay/PlayerReplay";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
+import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
 import type { BlocoFeedResenha, ComentarioResenha, PodeComentar } from "@/contrato/tipos";
 
@@ -50,6 +51,7 @@ export function BlocoCard({
   podeComentar: PodeComentar;
   meus?: { grupoNome: string; grupoRemovido: boolean };
 }) {
+  const { avisar } = useDialogos();
   const ehLance = bloco.tipo === "LANCE";
   const grupoRemovido = meus?.grupoRemovido ?? false;
   const tituloConversa = meus
@@ -106,13 +108,13 @@ export function BlocoCard({
       rotulo: "Baixar vídeo",
       Icone: Download,
       cor: cores.orange,
-      // O menu fecha ao tocar, então o retorno vem num alerta (o botão do card mostra
+      // O menu fecha ao tocar, então o retorno vem num aviso (o botão do card mostra
       // "Baixando..." inline, aqui não tem onde).
       onPress: () =>
         void baixarReplay(video.link, nomeArquivoReplay(bloco.tipo, bloco.pedidoReplayId)).then(
           (r) => {
             const { titulo, texto } = mensagemDownload(r);
-            Alert.alert(titulo, texto);
+            avisar(titulo, texto);
           }
         ),
     });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -28,11 +28,13 @@ import {
   TelaErro,
 } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
+import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
 import type { Grupo } from "@/contrato/tipos";
 
 export default function Painel() {
   const { estado, chamarApi, recarregarPerfil } = useSessao();
+  const { avisar } = useDialogos();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
   const primeiroNome = jogador?.nome.split(" ")[0] ?? "";
 
@@ -92,7 +94,7 @@ export default function Painel() {
       await cancelarExclusao(chamarApi);
       setExclusaoPendente(false);
     } catch (e) {
-      Alert.alert("Não deu pra reativar", mensagemDoErro(e));
+      avisar("Não deu pra reativar", mensagemDoErro(e));
     } finally {
       setReativando(false);
     }

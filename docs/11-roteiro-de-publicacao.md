@@ -22,12 +22,46 @@
 As fases 1, 2 e 3 andam em paralelo. A 2 é a que tem relógio correndo, então é a que se abre
 primeiro.
 
+## Andamento (atualizado em 2026-09-23)
+
+**Já feito** (o detalhe de cada item está na fase correspondente):
+
+- **Conta da Google Play Console criada.** Aguardando a validação do telefone pela Google. É o
+  item com relógio correndo (fase 2); o teste fechado de 14 dias (fase 4) só começa depois dela
+  e do app criado no console.
+- **Gate de versão mínima** (API + app), fase 3. `GET /api/v1/app/versao-minima` no site e tela
+  "Atualize o We Racha" no app, com abertura normal se o site falhar.
+- **Denunciar comentário da resenha**, fase 2. Menu ⋯ em cada comentário, no app e no site, com
+  Denunciar, Apagar (autor em 5 min, admin sempre) e Bloquear usuário. A denúncia cai na ouvidoria,
+  que ganhou atalhos pra apagar o comentário e bloquear a conta do autor.
+- **Diálogos no padrão do app.** Os alertas brancos nativos (`Alert.alert`) foram trocados por
+  modais escuros com blur (`useDialogos()`, `src/ui/Dialogos.tsx`; o servidor do login virou um
+  menu de baixo).
+
+**Pendências que surgiram no caminho:**
+
+- [ ] **Aplicar a migration 0066 em produção** (`migrar-producao`): cria `bloqueios_jogador` e as
+      colunas de denúncia em `mensagens_contato`. O site novo não pode subir antes dela, senão as
+      telas de resenha quebram.
+- [ ] **Validar em device** o gate de versão, o menu ⋯ (denunciar, bloquear, apagar) e os novos
+      diálogos. Nada disso foi testado num aparelho ainda.
+- [ ] **Investigar a lentidão do modal "Responder" no Expo Go.** Com muitas mensagens, a conversa
+      completa demora dezenas de segundos pra aparecer (só nessa tela). A rede está boa (o site
+      responde em milissegundos) e a suspeita é o desfoque de fundo do Android
+      (`dimezisBlurView`) redesenhando o app inteiro por trás. O desfoque foi mantido por
+      decisão de 2026-09-23 e o assunto fica pra depois. O app já ganhou proteção contra pedidos
+      empilhados, timeout que cobre o corpo e uma nova tentativa. Ver `src/api/cliente.ts` e
+      `src/api/resenha.ts`.
+- [ ] **Testar no Expo Go pelo Wi-Fi, não pelo `adb reverse`.** O túnel USB deixa as respostas
+      vazias ou penduradas (`exp://<IP-do-PC>:8081`, celular na mesma rede).
+
 ## Decisões pra conversar amanhã
 
 Sem isso não dá pra fechar o plano:
 
-1. **Google Play: conta pessoal ou de empresa?** Pessoal exige teste fechado com 12 testadores
-   por 14 dias antes de produção; empresa não, mas pede mais documentação (conferir). Doc 10 §4.
+1. ~~**Google Play: conta pessoal ou de empresa?**~~ **Decidido em 2026-09-23: conta pessoal.**
+   Consequência: o teste fechado com 12 testadores por 14 dias seguidos é obrigatório antes de
+   pedir produção (conferir na Play Console). Ver fase 4. Doc 10 §4.
 2. **O Cam vai pra Play Store ou fica como APK direto?** Ele roda num celular fixo e só o dono
    instala. APK direto (ou teste interno da Play) evita a declaração de foreground service e a
    revisão de câmera/microfone. Ver fase 4.
@@ -111,9 +145,12 @@ achando que é o app do grupo.
 
 ## Fase 2. Contas e burocracia das lojas (abrir em paralelo, tem prazo)
 
-- [ ] **Google Play Console:** US$ 25, pagamento único. Escolher pessoa física ou empresa **antes**
+- [~] **Google Play Console:** US$ 25, pagamento único. Escolher pessoa física ou empresa **antes**
       de pagar: muda a exigência de teste (fase 4). Conta de empresa costuma pedir número D-U-N-S
-      **(conferir)**.
+      **(conferir)**. **Conta pessoal criada em 2026-09-23, aguardando a validação do telefone.**
+      Falta: criar o app no console e preencher a ficha e as declarações. Por ser conta pessoal,
+      o teste fechado de 12 testadores por 14 dias é obrigatório (fase 4), então dá pra já ir
+      juntando os 12 (ver o lembrete lá).
 - [ ] **Apple Developer Program:** US$ 99/ano. É o item de maior lead time (dias a semanas de
       verificação). Só necessário se for lançar no iPhone. Doc 10 §4. Se iOS ficar pra depois,
       pular sem culpa.
@@ -126,11 +163,13 @@ achando que é o app do grupo.
 - [ ] **Exclusão de conta:** o fluxo dentro do app já existe (perfil, "Excluir meus dados"). A Play
       também pede uma **URL web** pra solicitar exclusão de dados fora do app **(conferir)**.
       Verificar se `weracha.app/contato` ou uma página dedicada serve.
-- [ ] **Conteúdo gerado por usuário (resenha e comentários dos replays):** a Play e a Apple exigem
-      um jeito de **denunciar** conteúdo e **bloquear** usuário **(conferir)**. Hoje o app não tem
-      isso (só apagar o próprio comentário; admin apaga). Decidir o mínimo aceitável: botão
-      "Denunciar" que cai na ouvidoria já existente (`/admin/ouvidoria`) pode bastar. É trabalho
-      novo nos dois repos.
+- [x] **Conteúdo gerado por usuário (resenha e comentários dos replays):** a Play e a Apple exigem
+      um jeito de **denunciar** conteúdo e **bloquear** usuário **(conferir)**. **Feito em 2026-09-23:**
+      cada comentário tem um menu ⋯ (Denunciar pra todo mundo menos o autor, Apagar pro autor na
+      janela de 5 min e pro admin sempre). A denúncia cai na ouvidoria
+      (`POST /api/v1/comentarios/{id}/denuncia`, texto copiado). **Bloquear usuário** (pessoal) também
+      feito em 2026-09-23, e a ouvidoria ganhou atalhos pra apagar o comentário e bloquear a conta do
+      autor. Site e app têm o mesmo menu ⋯. **Falta aplicar a migration 0066 em produção.**
 - [ ] **Classificação indicativa:** questionário da Play. O site já exige 18+ pra comentar (gate por
       data de nascimento no servidor).
 - [ ] **Material da ficha na loja:** ícone 512×512, imagem de destaque 1024×500, no mínimo 2
@@ -150,10 +189,15 @@ Sem isto, um bug em aparelho de terceiro é invisível e não dá pra forçar at
       órfã, replay truncado), que só foram achados com logcat manual. Opções: Sentry Android ou
       Firebase Crashlytics. Vale mais aqui do que no app de jogador, porque o celular fica
       sozinho no tripé.
-- [ ] **Gate de versão mínima** (doc 10 §5): endpoint tipo `GET /api/v1/app/versao-minima` no
-      site + checagem no boot do app + tela bloqueante "atualize pra continuar". Precisa estar na
-      **primeira** versão publicada, porque versão antiga sem o gate não pode ser forçada a
-      atualizar. Definir quantas versões pra trás são suportadas. O Cam precisa do mesmo? Decidir.
+- [x] **Gate de versão mínima, feito em 2026-09-23** (doc 10 §5): endpoint
+      `GET /api/v1/app/versao-minima` no site (pública, contrato em `16-api-v1.md`) + checagem
+      no boot e ao voltar pro primeiro plano + tela bloqueante "Atualize o We Racha" com botão pra
+      loja. A versão mínima mora em `weracha-site/lib/appVersao.ts` (hoje `1.0.0`, igual ao
+      `app.json`) e só sobe quando uma versão antiga precisa sair de circulação. Se o site falhar
+      ou responder algo estranho, o app abre normal. Precisa estar na **primeira** versão
+      publicada, porque versão antiga sem o gate não pode ser forçada a atualizar. **Falta:** o
+      link da loja (`URL_LOJA_ANDROID`) só funciona depois do app publicado; definir quantas
+      versões pra trás são suportadas; decidir se o Cam precisa do mesmo.
 - [ ] **Analytics de uso:** decidir (doc 10 §6). Se entrar, atualizar as declarações da fase 2.
 - [ ] **Deep link (`assetlinks.json`):** o SHA-256 em
       `weracha-site/app/.well-known/assetlinks.json/route.ts` ainda é **placeholder** (doc 10 §3).
@@ -172,9 +216,12 @@ Sem isto, um bug em aparelho de terceiro é invisível e não dá pra forçar at
        `npx eas credentials` mostra o fingerprint).
 2. [ ] Criar o app na Play Console, preencher ficha, declarações e questionários da fase 2.
 3. [ ] **Teste interno** (até 100 testadores, sem revisão): validar que o AAB instala pela loja.
-4. [ ] **Teste fechado.** Se a conta for pessoal: **12 testadores por 14 dias seguidos** antes de
-       poder pedir produção **(conferir)**. O próprio grupo da pelada serve. Começar cedo, é o
-       maior prazo da fase.
+4. [ ] **Teste fechado (obrigatório: a conta é pessoal).** **12 testadores por 14 dias seguidos**
+       antes de poder pedir produção **(conferir)**. O próprio grupo da pelada serve. É o maior
+       prazo do roteiro, então o relógio só começa quando o app estiver no ar no teste fechado e
+       os 12 tiverem aceitado o convite. Cada testador precisa de uma **conta Google (Gmail)** e
+       de um Android; vale já combinar com o pessoal e coletar os e-mails, pra não perder dias
+       depois. Dica: chamar uns 15 pra sobrar margem se alguém sair antes dos 14 dias.
 5. [ ] Preencher o `assetlinks.json` com o fingerprint real (fase 3) e conferir o link de convite.
 6. [ ] Enviar pra produção (`npx eas submit -p android` ou upload manual). Primeira revisão pode
        levar dias.
@@ -234,9 +281,9 @@ Nada aqui bloqueia a loja. Ordem sugerida por valor:
 - [ ] Checklist de device do doc 10 todo riscado
 - [ ] Sem seletor de servidor no login de produção; Cam com `BASE_URL` real
 - [ ] Crash reporting nos dois apps, recebendo evento de teste
-- [ ] Gate de versão mínima no site e no app
-- [ ] Fluxo de denúncia/bloqueio de comentário (ou decisão de que não é exigido)
+- [x] Gate de versão mínima no site e no app (falta só validar em device)
+- [x] Fluxo de denúncia/bloqueio de comentário (falta a migration 0066 em produção e validar em device)
 - [ ] Política de privacidade e URL de exclusão conferidas
 - [ ] Declarações da loja (dados, classificação) preenchidas
 - [ ] `assetlinks.json` com o fingerprint real
-- [ ] Teste fechado cumprido (se conta pessoal)
+- [ ] Teste fechado cumprido (12 testadores, 14 dias seguidos; obrigatório, a conta é pessoal)

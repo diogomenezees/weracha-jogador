@@ -1,16 +1,38 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, AppState, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { BlurView } from "expo-blur";
+import { ActivityIndicator, AppState, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
-import { apagarComentario, buscarComentarios, enviarComentario } from "@/api/resenha";
+import {
+  apagarComentario,
+  bloquearJogador,
+  buscarComentarios,
+  denunciarComentario,
+  desbloquearJogador,
+  enviarComentario,
+} from "@/api/resenha";
 import { ErroApi } from "@/api/erros";
-import { MessageCircle, Send, X } from "@/ui/Icone";
+import {
+  Ban,
+  CircleUserRound,
+  Flag,
+  MessageCircle,
+  MoreHorizontal,
+  Send,
+  Trash2,
+  X,
+} from "@/ui/Icone";
+import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
+import { ModalConfirmar } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
-import { podeApagarComentario, reconciliarComentarios } from "@/resenha/reconciliar";
+import {
+  podeApagarComentario,
+  podeDenunciarComentario,
+  reconciliarComentarios,
+} from "@/resenha/reconciliar";
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { cores, raio } from "@/tema";
 import { useBlurTarget } from "@/ui/BlurTarget";
+import { cores, raio } from "@/tema";
 import type { ComentarioResenha, PodeComentar } from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: import("@/api/cliente").OpcoesRequisicao) => Promise<T>;
@@ -54,10 +76,22 @@ export function ChatResenha({
   const [erro, setErro] = useState<string | null>(null);
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [menuDe, setMenuDe] = useState<ComentarioResenha | null>(null);
+  const [confirmando, setConfirmando] = useState<{
+    tipo: "apagar" | "denunciar" | "bloquear";
+    c: ComentarioResenha;
+  } | null>(null);
+  const [confOcupado, setConfOcupado] = useState(false);
+  const [confErro, setConfErro] = useState<string | null>(null);
+  const [avisoChat, setAvisoChat] = useState<string | null>(null);
 
+  // Só avisa o card depois da 1ª sincronização com o servidor. Antes disso a
+  // lista é só a prévia (2 últimos): avisar já no mount faria o card trocar o
+  // total real (ex.: 11) por 2 e esconder o "ver todos os N comentários".
+  const [sincronizado, setSincronizado] = useState(false);
   useEffect(() => {
-    onComentarios(comentarios);
-  }, [comentarios, onComentarios]);
+    if (sincronizado) onComentarios(comentarios);
+  }, [sincronizado, comentarios, onComentarios]);
 
   const buscar = useCallback(async () => {
     const servidor = await buscarComentarios(chamarApi, pedidoReplayId);
@@ -71,7 +105,14 @@ export function ChatResenha({
       setErro(null);
       setCarregando(true);
       try {
-        await buscar();
+        try {
+          await buscar();
+        } catch {
+          // Uma conexão ruim (ex.: reaproveitada depois de o servidor fechá-la)
+          // costuma passar na 2ª tentativa; só então mostra erro.
+          await buscar();
+        }
+        setSincronizado(true);
       } catch {
         if (vivo) setErro("Não foi possível carregar a conversa.");
       } finally {
@@ -107,22 +148,82 @@ export function ChatResenha({
     }
   }
 
-  function confirmarApagar(c: ComentarioResenha) {
-    Alert.alert("Apagar comentário?", "Essa ação não pode ser desfeita.", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Apagar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await apagarComentario(chamarApi, c.id);
-            setComentarios((atual) => atual.filter((x) => x.id !== c.id));
-          } catch (e) {
-            Alert.alert("Não deu pra apagar", mensagemDoErro(e));
-          }
-        },
-      },
-    ]);
+  // Confirmações no mesmo padrão das outras telas (ModalConfirmar, escuro com
+  // blur), não o Alert nativo do Android. Uma ação por vez; erro aparece dentro
+  // do próprio modal.
+  function executarConfirmacao() {
+    if (!confirmando) return;
+    const { tipo, c } = confirmando;
+    setConfOcupado(true);
+    setConfErro(null);
+    (async () => {
+      try {
+        if (tipo === "apagar") {
+          await apagarComentario(chamarApi, c.id);
+          setComentarios((atual) => atual.filter((x) => x.id !== c.id));
+        } else if (tipo === "denunciar") {
+          await denunciarComentario(chamarApi, c.id);
+          setAvisoChat("Denúncia enviada. Obrigado por avisar, vamos analisar.");
+        } else {
+          // Bloqueio pessoal: o servidor passa a devolver os comentários dessa
+          // pessoa com aviso no lugar do texto. Recarrega a thread pra refletir.
+          await bloquearJogador(chamarApi, c.autor.id);
+          await buscar();
+          setAvisoChat("Usuário bloqueado. Você não vê mais os comentários dele.");
+        }
+        setConfirmando(null);
+      } catch (e) {
+        setConfErro(mensagemDoErro(e));
+      } finally {
+        setConfOcupado(false);
+      }
+    })();
+  }
+
+  function fecharConfirmacao() {
+    setConfirmando(null);
+    setConfErro(null);
+  }
+
+  async function desbloquear(c: ComentarioResenha) {
+    try {
+      setErro(null);
+      await desbloquearJogador(chamarApi, c.autor.id);
+      await buscar();
+      setAvisoChat("Usuário desbloqueado.");
+    } catch (e) {
+      setErro(mensagemDoErro(e));
+    }
+  }
+
+  function abrirConfirmacao(tipo: "apagar" | "denunciar" | "bloquear", c: ComentarioResenha) {
+    setConfErro(null);
+    setAvisoChat(null);
+    setConfirmando({ tipo, c });
+  }
+
+  // Ações do comentário no menu ⋯. Quem pode apagar (admin sempre, autor só na
+  // janela de 5 min) e quem pode denunciar (todo mundo, menos o próprio autor).
+  function itensDoMenu(c: ComentarioResenha): ItemMenu[] {
+    const itens: ItemMenu[] = [];
+    // Autor que eu bloqueei: o texto nem chegou aqui, só resta desbloquear.
+    if (c.bloqueado) {
+      itens.push({ rotulo: "Desbloquear usuário", Icone: Ban, onPress: () => void desbloquear(c) });
+      return itens;
+    }
+    if (podeDenunciarComentario(c, meuJogadorId)) {
+      itens.push({ rotulo: "Denunciar", Icone: Flag, onPress: () => abrirConfirmacao("denunciar", c) });
+      itens.push({ rotulo: "Bloquear usuário", Icone: Ban, onPress: () => abrirConfirmacao("bloquear", c) });
+    }
+    if (podeApagarComentario(c, meuJogadorId, podeModerar)) {
+      itens.push({
+        rotulo: "Apagar",
+        Icone: Trash2,
+        destrutivo: true,
+        onPress: () => abrirConfirmacao("apagar", c),
+      });
+    }
+    return itens;
   }
 
   const aviso = avisoComposer(podeComentar);
@@ -161,6 +262,10 @@ export function ChatResenha({
             </Text>
           </View>
 
+          {carregando && !sincronizado && comentarios.length > 0 ? (
+            <Text style={styles.carregandoRestante}>Carregando as outras mensagens...</Text>
+          ) : null}
+
           {comentarios.length === 0 ? (
             <View style={styles.vazio}>
               <Text style={styles.vazioTexto}>
@@ -174,30 +279,50 @@ export function ChatResenha({
               contentContainerStyle={styles.lista}
               renderItem={({ item: c }) => {
                 const meu = !!meuJogadorId && c.autor.id === meuJogadorId;
+                const temMenu = itensDoMenu(c).length > 0;
                 return (
-                  <Pressable
-                    style={styles.item}
-                    onLongPress={() =>
-                      podeApagarComentario(c, meuJogadorId, podeModerar) && confirmarApagar(c)
-                    }
-                  >
-                    <AvatarJogador
-                      id={c.autor.id}
-                      nome={c.autor.nome}
-                      fotoUrl={c.autor.fotoUrl}
-                      tamanho={28}
-                    />
+                  <View style={styles.item}>
+                    {c.bloqueado ? (
+                      <View style={styles.avatarBloqueado}>
+                        <CircleUserRound size={16} color={cores.slate500} />
+                      </View>
+                    ) : (
+                      <AvatarJogador
+                        id={c.autor.id}
+                        nome={c.autor.nome}
+                        fotoUrl={c.autor.fotoUrl}
+                        tamanho={28}
+                      />
+                    )}
                     <View style={styles.itemCorpo}>
-                      <Text style={styles.itemAutor}>{meu ? "Você" : c.autor.nome}</Text>
-                      <Text style={styles.itemTexto}>{c.texto}</Text>
+                      <Text style={[styles.itemAutor, c.bloqueado && styles.itemAutorBloqueado]}>
+                        {meu ? "Você" : c.autor.nome}
+                      </Text>
+                      {c.bloqueado ? (
+                        <Text style={styles.itemTextoBloqueado}>Mensagem de usuário bloqueado.</Text>
+                      ) : (
+                        <Text style={styles.itemTexto}>{c.texto}</Text>
+                      )}
                     </View>
-                  </Pressable>
+                    {temMenu ? (
+                      <Pressable
+                        hitSlop={10}
+                        style={styles.itemMenu}
+                        onPress={() => setMenuDe(c)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Mais opções do comentário"
+                      >
+                        <MoreHorizontal size={18} color={cores.slate500} />
+                      </Pressable>
+                    ) : null}
+                  </View>
                 );
               }}
             />
           )}
 
           {erro ? <Text style={styles.erro}>{erro}</Text> : null}
+          {avisoChat ? <Text style={styles.avisoOk}>{avisoChat}</Text> : null}
 
           {aviso ? (
             <View style={styles.composerAviso}>
@@ -228,6 +353,51 @@ export function ChatResenha({
             </View>
           )}
         </KeyboardAvoidingView>
+        <ModalConfirmar
+          aberto={confirmando?.tipo === "denunciar"}
+          Icone={Flag}
+          eyebrow="Denunciar"
+          titulo="Denunciar comentário?"
+          descricao="O dono do We Racha vai analisar. Quem escreveu não é avisado."
+          destrutivo
+          confirmarLabel="Denunciar"
+          ocupado={confOcupado}
+          erro={confErro}
+          onConfirmar={executarConfirmacao}
+          onFechar={fecharConfirmacao}
+        />
+        <ModalConfirmar
+          aberto={confirmando?.tipo === "bloquear"}
+          Icone={Ban}
+          eyebrow="Bloquear"
+          titulo={`Bloquear ${confirmando?.c.autor.nome ?? "usuário"}?`}
+          descricao="Você não vai mais ver os comentários dessa pessoa na resenha. Só você é afetado, e dá pra desbloquear no menu de uma mensagem dela."
+          destrutivo
+          confirmarLabel="Bloquear"
+          ocupado={confOcupado}
+          erro={confErro}
+          onConfirmar={executarConfirmacao}
+          onFechar={fecharConfirmacao}
+        />
+        <ModalConfirmar
+          aberto={confirmando?.tipo === "apagar"}
+          Icone={Trash2}
+          eyebrow="Ação irreversível"
+          titulo="Apagar comentário?"
+          descricao="Essa ação não pode ser desfeita."
+          destrutivo
+          confirmarLabel="Apagar"
+          ocupado={confOcupado}
+          erro={confErro}
+          onConfirmar={executarConfirmacao}
+          onFechar={fecharConfirmacao}
+        />
+        <MenuAcoes
+          aberto={menuDe !== null}
+          titulo={menuDe ? (menuDe.autor.id === meuJogadorId ? "Seu comentário" : menuDe.autor.nome) : undefined}
+          itens={menuDe ? itensDoMenu(menuDe) : []}
+          onFechar={() => setMenuDe(null)}
+        />
       </BlurView>
     </Modal>
   );
@@ -267,14 +437,32 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   avisoGrupoTexto: { fontSize: 12, lineHeight: 17, color: cores.slate400 },
+  carregandoRestante: {
+    fontSize: 12,
+    color: cores.slate500,
+    textAlign: "center",
+    paddingTop: 10,
+  },
   vazio: { paddingVertical: 40, alignItems: "center" },
   vazioTexto: { fontSize: 14, color: cores.slate500 },
   lista: { padding: 16, gap: 14 },
   item: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
   itemCorpo: { flex: 1, gap: 2 },
+  itemMenu: { paddingTop: 2 },
+  avatarBloqueado: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  itemAutorBloqueado: { color: cores.slate500 },
+  itemTextoBloqueado: { fontSize: 14, lineHeight: 19, color: cores.slate500, fontStyle: "italic" },
   itemAutor: { fontSize: 12, fontWeight: "600", color: cores.teal },
   itemTexto: { fontSize: 14, lineHeight: 19, color: cores.slate200 },
   erro: { fontSize: 13, color: cores.erroTexto, paddingHorizontal: 16, paddingBottom: 6 },
+  avisoOk: { fontSize: 13, color: cores.teal, paddingHorizontal: 16, paddingBottom: 6 },
   composerAviso: {
     marginHorizontal: 16,
     borderRadius: raio.campo,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -41,6 +41,7 @@ import {
 } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
+import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
 import type { DadosDaTelaJogadoresDoGrupo, JogadorDoGrupo, MembroGrupo } from "@/contrato/tipos";
 
@@ -61,6 +62,7 @@ function linkWhatsapp(telefone: string): string {
 export default function GerenciarJogadores() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { chamarApi } = useSessao();
+  const { avisar, confirmar } = useDialogos();
   const insets = useSafeAreaInsets();
 
   const [dados, setDados] = useState<DadosDaTelaJogadoresDoGrupo | undefined>(undefined);
@@ -125,7 +127,7 @@ export default function GerenciarJogadores() {
       await fn();
       await recarregar();
     } catch (e) {
-      Alert.alert("Não deu certo", mensagemDoErro(e));
+      avisar("Não deu certo", mensagemDoErro(e));
     }
   }
 
@@ -260,19 +262,14 @@ export default function GerenciarJogadores() {
 
   function confirmarMensalista(m: MembroGrupo, j: JogadorDoGrupo) {
     const ativar = !ehMensalistaHoje(m);
-    Alert.alert(
-      ativar ? `Tornar ${j.nome} mensalista?` : `Tornar ${j.nome} avulso?`,
-      ativar
+    confirmar({
+      eyebrow: "Mensalista",
+      titulo: ativar ? `Tornar ${j.nome} mensalista?` : `Tornar ${j.nome} avulso?`,
+      descricao: ativar
         ? "Passa a ser cobrado como mensalista nas próximas partidas."
         : "Passa a ser cobrado como avulso nas próximas partidas.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          onPress: () => void acao(() => definirMensalista(chamarApi, id, j.id, ativar)),
-        },
-      ]
-    );
+      onConfirmar: () => void acao(() => definirMensalista(chamarApi, id, j.id, ativar)),
+    });
   }
 
   async function salvarScore(valor: number) {

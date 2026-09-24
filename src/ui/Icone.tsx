@@ -55,6 +55,7 @@ export {
   NotebookPen,
   Ban,
   Trash2,
+  Flag,
   Search,
   Share2,
   RefreshCw,

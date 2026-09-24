@@ -1,6 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   AppState,
   Easing,
@@ -88,6 +87,7 @@ import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { SeletorData, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
 import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
+import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
 import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/tipos";
 
@@ -96,6 +96,7 @@ type Aba = "detalhe" | "quadra" | "horarios" | "adicionar" | null;
 export default function TelaGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { estado, chamarApi } = useSessao();
+  const { avisar, confirmar: confirmarDialogo } = useDialogos();
   const meuId = estado.fase === "logado" ? estado.jogador.id : "";
   const insets = useSafeAreaInsets();
 
@@ -209,7 +210,7 @@ export default function TelaGrupo() {
     try {
       await carregar();
     } catch (e) {
-      Alert.alert("Não deu pra atualizar", mensagemDoErro(e));
+      avisar("Não deu pra atualizar", mensagemDoErro(e));
     } finally {
       setAtualizando(false);
     }
@@ -289,10 +290,9 @@ export default function TelaGrupo() {
       destrutivo: true,
       onPress: () =>
         souDono
-          ? Alert.alert(
+          ? avisar(
               "Você é o dono",
-              "Pra sair, transfira o grupo pra outra pessoa admin primeiro (pelo site, em Gerenciar jogadores).",
-              [{ text: "Entendi" }]
+              "Pra sair, transfira o grupo pra outra pessoa admin primeiro (pelo site, em Gerenciar jogadores)."
             )
           : setConfirmando({ tipo: "sair" }),
     });
@@ -373,7 +373,7 @@ export default function TelaGrupo() {
   async function handleReativar(partidaId: string) {
     await comApi(
       () => reativarPartida(chamarApi, partidaId),
-      (m) => Alert.alert("Não deu pra reativar", m)
+      (m) => avisar("Não deu pra reativar", m)
     );
     recarregar();
   }
@@ -408,7 +408,7 @@ export default function TelaGrupo() {
     if (!grupo) return;
     const atualizado = await comApi(
       () => renovarGrupo(chamarApi, grupo.id),
-      (m) => Alert.alert("Não deu pra renovar", m)
+      (m) => avisar("Não deu pra renovar", m)
     );
     if (atualizado) recarregar();
   }
@@ -440,28 +440,21 @@ export default function TelaGrupo() {
 
   async function handleVincularQuadraExistente(q: Quadra) {
     if (!grupo) return;
-    Alert.alert(
-      "Vincular quadra",
-      `Vincular "${q.nome}" a esse grupo? Não dá pra trocar a quadra depois.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Vincular",
-          onPress: async () => {
-            setSalvandoQuadra(true);
-            const r = await comApi(
-              () => vincularQuadra(chamarApi, grupo.id, q.id),
-              setErroQuadra
-            );
-            setSalvandoQuadra(false);
-            if (r !== null) {
-              setAba(null);
-              recarregar();
-            }
-          },
-        },
-      ]
-    );
+    confirmarDialogo({
+      eyebrow: "Quadra",
+      titulo: "Vincular quadra?",
+      descricao: `Vincular "${q.nome}" a esse grupo? Não dá pra trocar a quadra depois.`,
+      confirmarLabel: "Vincular",
+      onConfirmar: async () => {
+        setSalvandoQuadra(true);
+        const r = await comApi(() => vincularQuadra(chamarApi, grupo.id, q.id), setErroQuadra);
+        setSalvandoQuadra(false);
+        if (r !== null) {
+          setAba(null);
+          recarregar();
+        }
+      },
+    });
   }
 
   async function handleCadastrarQuadra() {
@@ -512,7 +505,7 @@ export default function TelaGrupo() {
     if (!tokenConvite) return;
     // Sem Alert aqui de propósito: Android e iOS já mostram a notificação
     // nativa de "copiado pra área de transferência" sozinhos, o usuário já
-    // conhece esse aviso — um Alert.alert por cima seria feio e redundante.
+    // conhece esse aviso — um aviso por cima seria feio e redundante.
     await Clipboard.setStringAsync(linkConvite(p));
   }
 

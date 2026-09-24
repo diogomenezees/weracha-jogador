@@ -33,3 +33,12 @@ export function podeApagarComentario(
   const idadeMin = (Date.now() - new Date(comentario.criadoEm).getTime()) / 60_000;
   return idadeMin <= JANELA_APAGAR_COMENTARIO_MIN;
 }
+
+// Denunciar vale pro comentário de OUTRA pessoa (o próprio, o autor apaga). O
+// servidor recusa o resto (COMENTARIO_DENUNCIA_PROPRIO, GRUPO_NAO_MEMBRO).
+export function podeDenunciarComentario(
+  comentario: ComentarioResenha,
+  meuJogadorId: string | null
+): boolean {
+  return !!meuJogadorId && comentario.autor.id !== meuJogadorId;
+}

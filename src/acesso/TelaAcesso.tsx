@@ -1,10 +1,11 @@
-import { useEffect } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { Check } from "@/ui/Icone";
+import { MenuAcoes } from "@/grupo/MenuAcoes";
 import { rotuloDoAmbiente, type Ambiente } from "@/config/servidor";
 import { abrirNoNavegador, URL_CONTATO, URL_PRIVACIDADE, URL_TERMOS } from "@/config/links";
 import { useSessao } from "@/sessao/contexto";
@@ -33,6 +34,7 @@ function formatarCooldown(segundos: number): string {
 export function TelaAcesso() {
   const { estado, ambiente, urlBase, entrar, trocarAmbiente, chamarApi } = useSessao();
   const f = useFluxoAcesso({ urlBase, entrar, chamarApi });
+  const [servidorAberto, setServidorAberto] = useState(false);
 
   // Rede de segurança: `concluirLogin` é quem sempre navega explícito quando a
   // sessão vira "logado" (destino do convite, ou /painel no caso comum) — mas
@@ -65,22 +67,17 @@ export function TelaAcesso() {
     );
   }
 
+  // Menu próprio (MenuAcoes) no lugar do Alert nativo, no padrão do resto do app.
+  const opcoesServidor: Ambiente[] = ["producao", "local"];
+  const itensServidor = opcoesServidor.map((op) => ({
+    rotulo: rotuloDoAmbiente(op) + (op === ambiente ? " (atual)" : ""),
+    Icone: op === ambiente ? Check : undefined,
+    onPress: () => {
+      if (op !== ambiente) void trocarAmbiente(op);
+    },
+  }));
   function escolherServidor() {
-    const opcoes: Ambiente[] = ["producao", "local"];
-    Alert.alert(
-      "Servidor",
-      "Onde o app deve se conectar.",
-      [
-        ...opcoes.map((op) => ({
-          text: rotuloDoAmbiente(op) + (op === ambiente ? " (atual)" : ""),
-          onPress: () => {
-            if (op !== ambiente) void trocarAmbiente(op);
-          },
-        })),
-        { text: "Cancelar", style: "cancel" as const },
-      ],
-      { cancelable: true }
-    );
+    setServidorAberto(true);
   }
 
   const subtitulo =
@@ -355,6 +352,12 @@ export function TelaAcesso() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <MenuAcoes
+        aberto={servidorAberto}
+        titulo="Servidor"
+        itens={itensServidor}
+        onFechar={() => setServidorAberto(false)}
+      />
     </SafeAreaView>
   );
 }

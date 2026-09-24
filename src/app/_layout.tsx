@@ -13,7 +13,9 @@ import {
 import { GeistMono_400Regular } from "@expo-google-fonts/geist-mono";
 
 import { SessaoProvider } from "@/sessao/contexto";
+import { PortaoDeVersao } from "@/versao/PortaoDeVersao";
 import { BlurTargetProvider } from "@/ui/BlurTarget";
+import { DialogosProvider } from "@/ui/Dialogos";
 import { cores } from "@/tema";
 
 // Segura o splash até as fontes carregarem (o site usa Space Grotesk em tudo e
@@ -39,15 +41,19 @@ export default function RootLayout() {
   return (
     <BlurTargetProvider>
       <SessaoProvider>
+        <DialogosProvider>
         <StatusBar style="auto" />
-        <Stack
-          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.dark } }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="convite/[token]" />
-          <Stack.Screen name="(logado)" />
-        </Stack>
+        <PortaoDeVersao>
+          <Stack
+            screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.dark } }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="login" />
+            <Stack.Screen name="convite/[token]" />
+            <Stack.Screen name="(logado)" />
+          </Stack>
+        </PortaoDeVersao>
+        </DialogosProvider>
       </SessaoProvider>
     </BlurTargetProvider>
   );

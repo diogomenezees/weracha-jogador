@@ -279,6 +279,9 @@ export type ComentarioResenha = {
   autor: AutorComentario;
   texto: string;
   criadoEm: string;
+  // true quando EU bloqueei o autor: o servidor já trocou nome, foto e texto por
+  // um aviso. Ausente no caso comum. Espelha ComentarioResenha do site.
+  bloqueado?: boolean;
 };
 
 export type MotivoNaoPodeComentar = "sem-data-nascimento" | "menor" | "cancelada";

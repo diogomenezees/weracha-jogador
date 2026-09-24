@@ -16,14 +16,31 @@ export function buscarFeedResenha(
 
 // GET /api/v1/replays/{pedidoReplayId}/comentarios — thread completa de um
 // replay. É o que a carga inicial e o polling de 3s do chat usam.
-export async function buscarComentarios(
+// Busca em andamento por replay. Quem pedir de novo enquanto uma está no ar (polling
+// de 3s, recarga depois de bloquear alguém, carga inicial) reaproveita a mesma em vez
+// de empilhar pedidos: numa rede ruim os pendurados enchiam o limite de conexões por
+// host do Android e a carga inicial da conversa ficava presa atrás deles.
+const buscasEmAndamento = new Map<string, Promise<ComentarioResenha[]>>();
+
+export function buscarComentarios(
   chamarApi: ChamarApi,
   pedidoReplayId: string
 ): Promise<ComentarioResenha[]> {
-  const { comentarios } = await chamarApi<{ comentarios: ComentarioResenha[] }>(
-    `/api/v1/replays/${pedidoReplayId}/comentarios`
-  );
-  return comentarios;
+  const emVoo = buscasEmAndamento.get(pedidoReplayId);
+  if (emVoo) return emVoo;
+  const p = (async () => {
+    const { comentarios } = await chamarApi<{ comentarios: ComentarioResenha[] }>(
+      `/api/v1/replays/${pedidoReplayId}/comentarios`,
+      // Teto curto: é leitura barata e repetida (polling), melhor desistir e tentar
+      // de novo do que ficar pendurado 15s.
+      { timeoutMs: 8000 }
+    );
+    return comentarios;
+  })().finally(() => {
+    buscasEmAndamento.delete(pedidoReplayId);
+  });
+  buscasEmAndamento.set(pedidoReplayId, p);
+  return p;
 }
 
 // GET /api/v1/replays/comentarios?ids=<id1>,<id2>,... — comentários em lote de
@@ -57,4 +74,24 @@ export async function enviarComentario(
 // próprio nos primeiros 5min; admin do grupo / dono do site, qualquer um.
 export function apagarComentario(chamarApi: ChamarApi, comentarioId: string) {
   return chamarApi<{ ok: true }>(`/api/v1/comentarios/${comentarioId}`, { metodo: "DELETE" });
+}
+
+// POST /api/v1/comentarios/{comentarioId}/denuncia — denuncia um comentário de
+// outra pessoa. Cai na ouvidoria com o texto copiado. Idempotente. Sem corpo.
+// 404 (comentário já apagado), 422 (é o próprio), 429 (limite por hora).
+export function denunciarComentario(chamarApi: ChamarApi, comentarioId: string) {
+  return chamarApi<{ ok: true }>(`/api/v1/comentarios/${comentarioId}/denuncia`, {
+    metodo: "POST",
+  });
+}
+
+// PUT /api/v1/jogadores/{jogadorId}/bloqueio — bloqueio PESSOAL: passo a não ver
+// os comentários dessa pessoa na resenha (o servidor troca por um aviso).
+// Idempotente. DELETE na mesma rota desfaz. Não afeta a conta dela.
+export function bloquearJogador(chamarApi: ChamarApi, jogadorId: string) {
+  return chamarApi<{ ok: true }>(`/api/v1/jogadores/${jogadorId}/bloqueio`, { metodo: "PUT" });
+}
+
+export function desbloquearJogador(chamarApi: ChamarApi, jogadorId: string) {
+  return chamarApi<{ ok: true }>(`/api/v1/jogadores/${jogadorId}/bloqueio`, { metodo: "DELETE" });
 }

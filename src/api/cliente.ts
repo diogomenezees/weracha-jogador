@@ -10,6 +10,8 @@ export type OpcoesRequisicao = {
   /** Bearer. Ausente = chamada anônima (login, verificação de telefone). */
   token?: string;
   sinal?: AbortSignal;
+  /** Teto da chamada inteira (cabeçalho + corpo). Padrão 15s. */
+  timeoutMs?: number;
 };
 
 const TIMEOUT_MS = 15_000;
@@ -27,15 +29,20 @@ export async function requisicao<T>(
   caminho: string,
   opcoes: OpcoesRequisicao = {}
 ): Promise<T> {
-  const { metodo = "GET", corpo, token, sinal } = opcoes;
+  const { metodo = "GET", corpo, token, sinal, timeoutMs = TIMEOUT_MS } = opcoes;
 
   const controle = new AbortController();
-  const timeout = setTimeout(() => controle.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controle.abort(), timeoutMs);
   if (sinal) {
     sinal.addEventListener("abort", () => controle.abort(), { once: true });
   }
 
+  // O timeout cobre a chamada INTEIRA, inclusive a leitura do corpo. Antes ele
+  // era desarmado assim que o cabeçalho chegava, e uma conexão que entregava o
+  // cabeçalho e travava no corpo ficava pendurada pra sempre (e, com o limite de
+  // conexões por host do Android, travava as outras chamadas junto).
   let resposta: Response;
+  let texto: string;
   try {
     resposta = await fetch(juntarUrl(urlBase, caminho), {
       method: metodo,
@@ -47,17 +54,24 @@ export async function requisicao<T>(
       body: corpo !== undefined ? JSON.stringify(corpo) : undefined,
       signal: controle.signal,
     });
+    texto = await resposta.text();
   } catch (causa) {
     throw erroSemResposta(causa);
   } finally {
     clearTimeout(timeout);
   }
 
-  const texto = await resposta.text();
   const json = texto ? seguroParse(texto) : undefined;
 
   if (!resposta.ok) {
     throw erroDaResposta(resposta.status, json);
+  }
+  // Toda rota GET da API responde JSON. 200 com corpo vazio é conexão que caiu no
+  // meio (o servidor loga 200, o app recebe nada): tratar como falha de rede pra
+  // quem chamou poder tentar de novo, em vez de devolver `undefined` e estourar
+  // um "cannot read property of undefined" lá na frente.
+  if (metodo === "GET" && json === undefined) {
+    throw erroSemResposta(new Error("Resposta vazia do servidor."));
   }
   return json as T;
 }

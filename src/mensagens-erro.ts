@@ -52,6 +52,12 @@ const POR_CODIGO: Record<string, string> = {
   CONTATO_DESCRICAO_MUITO_LONGA: "A mensagem é longa demais. Encurte um pouco.",
   CONTATO_LIMITE_EXCEDIDO: "Você já enviou várias mensagens agora há pouco. Tente de novo mais tarde.",
 
+  // Resenha (denúncia e exclusão de comentário)
+  COMENTARIO_NAO_ENCONTRADO: "Esse comentário não existe mais.",
+  BLOQUEIO_PROPRIO: "Você não pode bloquear a si mesmo.",
+  COMENTARIO_DENUNCIA_PROPRIO: "Você não pode denunciar o seu próprio comentário.",
+  COMENTARIO_JANELA_EXCLUSAO_EXPIRADA: "Você só pode apagar seu comentário nos primeiros 5 minutos.",
+
   CSRF_ORIGEM_INVALIDA: "Não deu pra concluir agora. Tente de novo.",
 
   // Perfil

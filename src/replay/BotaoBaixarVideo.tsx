@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import { baixarReplay, mensagemDownload } from "@/replay/baixarReplay";
 import { Check, Download } from "@/ui/Icone";
+import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
 
 // Botão laranja "Baixar vídeo" do card de replay (espelha BotaoBaixarVideo de
 // weracha-site/components/gols-pager.tsx). Diferente do site, aqui o download tem
 // conclusão de verdade, então o estado "pronto" só aparece depois do vídeo estar na Galeria.
 export function BotaoBaixarVideo({ link, nomeArquivo }: { link: string; nomeArquivo: string }) {
+  const { avisar } = useDialogos();
   const [estado, setEstado] = useState<"parado" | "baixando" | "pronto">("parado");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
@@ -24,7 +26,7 @@ export function BotaoBaixarVideo({ link, nomeArquivo }: { link: string; nomeArqu
     } else {
       setEstado("parado");
       const { titulo, texto } = mensagemDownload(resultado);
-      Alert.alert(titulo, texto);
+      avisar(titulo, texto);
     }
   }
 
