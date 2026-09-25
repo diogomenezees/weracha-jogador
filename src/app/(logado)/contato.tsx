@@ -100,7 +100,7 @@ export default function Contato() {
             <TituloTela Icone={Mail}>Contato</TituloTela>
             <Text style={styles.sub}>
               Estabelecimento, parceria, dúvida sobre o funcionamento ou ajuda com o app: manda sua
-              mensagem que ela cai direto pro administrador do We Racha.
+              mensagem que ela cai direto pro administrador do WeRacha.
             </Text>
           </View>
 

@@ -491,7 +491,7 @@ export default function TelaGrupo() {
     if (!tokenConvite || !grupo) return;
     const data = new Date(p.data);
     const msg =
-      `Bora jogar? Você foi convidado pro grupo ${grupo.nome} no We Racha.\n` +
+      `Bora jogar? Você foi convidado pro grupo ${grupo.nome} no WeRacha.\n` +
       `${formatarDiaSemanaData(data)} às ${formatarHora(data)}\n\n` +
       `Entra no link pra fazer parte da turma:\n${linkConvite(p)}`;
     try {

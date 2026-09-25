@@ -70,7 +70,7 @@ export default function Parcerias() {
         <View style={styles.cabecalho}>
           <TituloTela Icone={Store}>Parcerias</TituloTela>
           <Text style={styles.sub}>
-            Negócios de gente do próprio racha, com condição especial pra quem é do We Racha.
+            Negócios de gente do próprio racha, com condição especial pra quem é do WeRacha.
           </Text>
         </View>
 

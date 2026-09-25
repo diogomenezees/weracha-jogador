@@ -53,7 +53,7 @@ export function PortaoDeVersao({ children }: { children: ReactNode }) {
 function TelaAtualizar({ urlLoja }: { urlLoja: string }) {
   return (
     <View style={styles.tela}>
-      <Text style={styles.titulo}>Atualize o We Racha</Text>
+      <Text style={styles.titulo}>Atualize o WeRacha</Text>
       <Text style={styles.texto}>
         Essa versão do app ficou antiga e não funciona mais. Atualize pela loja pra continuar.
       </Text>

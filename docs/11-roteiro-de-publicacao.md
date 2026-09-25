@@ -22,15 +22,27 @@
 As fases 1, 2 e 3 andam em paralelo. A 2 é a que tem relógio correndo, então é a que se abre
 primeiro.
 
-## Andamento (atualizado em 2026-09-23)
+## Andamento (atualizado em 2026-09-24)
 
 **Já feito** (o detalhe de cada item está na fase correspondente):
 
-- **Conta da Google Play Console criada.** Aguardando a validação do telefone pela Google. É o
-  item com relógio correndo (fase 2); o teste fechado de 14 dias (fase 4) só começa depois dela
-  e do app criado no console.
+- **Conta da Google Play Console aprovada e app criado no console (2026-09-24).** O relógio do
+  teste fechado de 14 dias (fase 4) ainda não começou: falta subir um AAB, terminar a ficha e
+  juntar os 12 testadores.
+- **Primeiro build no EAS (2026-09-24).** `eas login` feito (conta `weracha`), projeto
+  `@weracha/weracha-jogador` criado e vinculado (`projectId` no `app.json`), keystore gerada pelo
+  EAS na nuvem e **APK de preview compilado e instalado** no celular do dono, que relatou que
+  funcionou tudo (login em produção incluso). Ainda sem o checklist formal do doc 10.
+- **Nome do app: "WeRacha"** (era "We Racha"): `name` e permissões do `app.json` e os textos
+  visíveis do app. O slug (`weracha-jogador`) e o package (`com.weracha.jogador`) não mudam. O
+  nome novo só aparece em build novo.
+- **Conta de teste pro revisor da Google** criada em produção (jogador "Revisor Google", telefone
+  (11) 99999-9999, senha forte guardada fora do repo, telefone já validado, nascimento 1990) e
+  um grupo "Pelada de Teste" com ela como dona. Apagar a conta e o grupo em "Gerenciar usuários"
+  depois que o app for aprovado.
+- **Migration 0066 aplicada em produção** (a tabela `bloqueios_jogador` existe).
 - **Gate de versão mínima** (API + app), fase 3. `GET /api/v1/app/versao-minima` no site e tela
-  "Atualize o We Racha" no app, com abertura normal se o site falhar.
+  "Atualize o WeRacha" no app, com abertura normal se o site falhar.
 - **Denunciar comentário da resenha**, fase 2. Menu ⋯ em cada comentário, no app e no site, com
   Denunciar, Apagar (autor em 5 min, admin sempre) e Bloquear usuário. A denúncia cai na ouvidoria,
   que ganhou atalhos pra apagar o comentário e bloquear a conta do autor.
@@ -40,11 +52,12 @@ primeiro.
 
 **Pendências que surgiram no caminho:**
 
-- [ ] **Aplicar a migration 0066 em produção** (`migrar-producao`): cria `bloqueios_jogador` e as
-      colunas de denúncia em `mensagens_contato`. O site novo não pode subir antes dela, senão as
-      telas de resenha quebram.
-- [ ] **Validar em device** o gate de versão, o menu ⋯ (denunciar, bloquear, apagar) e os novos
-      diálogos. Nada disso foi testado num aparelho ainda.
+- [x] ~~Aplicar a migration 0066 em produção~~ (feito, confirmado em 2026-09-24).
+- [ ] **Validar em device, item a item,** o gate de versão, o menu ⋯ (denunciar, bloquear, apagar)
+      e os novos diálogos. O dono relatou em 2026-09-24 que o APK de preview "funcionou tudo",
+      mas sem passar pelo checklist formal.
+- [ ] **Commitar o `app.json`** (tem o `projectId` do EAS, o nome "WeRacha" e as permissões) e os
+      textos trocados nas telas. Nada disso foi commitado ainda.
 - [ ] **Investigar a lentidão do modal "Responder" no Expo Go.** Com muitas mensagens, a conversa
       completa demora dezenas de segundos pra aparecer (só nessa tela). A rede está boa (o site
       responde em milissegundos) e a suspeita é o desfoque de fundo do Android
@@ -118,9 +131,12 @@ achando que é o app do grupo.
 **Perfis do [`eas.json`](../eas.json):** `development` e `preview` geram **APK** (instalar direto),
 `production` gera **AAB**, que é o que a Play aceita pra app novo.
 
-1. [ ] `npx eas login` (conta Expo grátis).
-2. [ ] `npx eas build -p android --profile preview`: APK pra instalar no seu celular e no de
-       alguns amigos. Roda sem Metro e sem o notebook ligado.
+1. [x] `npx eas-cli login` (feito em 2026-09-24; o login do Expo Go no celular é outra coisa e
+       não vale pro EAS). Conta `weracha`, dona também de `werachas-team`.
+2. [x] `npx eas-cli build -p android --profile preview`: APK compilado em 2026-09-24 e instalado
+       no celular do dono (link do build fica em expo.dev, conta `weracha`, projeto
+       `weracha-jogador`). Falta instalar nos celulares de alguns amigos. A conta grátis do EAS
+       tem cota mensal de builds, então juntar mudanças antes de gerar outro.
 3. [ ] Rodar o **checklist de validação** do doc 10 (seção "Validação em device"), riscando tela
        por tela. É aqui que aparecem os bugs reais. O ponto de maior risco conhecido: upload da
        foto de perfil pro R2 (o `PUT` do blob via `fetch` do RN).
@@ -145,12 +161,39 @@ achando que é o app do grupo.
 
 ## Fase 2. Contas e burocracia das lojas (abrir em paralelo, tem prazo)
 
-- [~] **Google Play Console:** US$ 25, pagamento único. Escolher pessoa física ou empresa **antes**
-      de pagar: muda a exigência de teste (fase 4). Conta de empresa costuma pedir número D-U-N-S
-      **(conferir)**. **Conta pessoal criada em 2026-09-23, aguardando a validação do telefone.**
-      Falta: criar o app no console e preencher a ficha e as declarações. Por ser conta pessoal,
-      o teste fechado de 12 testadores por 14 dias é obrigatório (fase 4), então dá pra já ir
-      juntando os 12 (ver o lembrete lá).
+- [~] **Google Play Console:** conta pessoal criada em 2026-09-23 e **aprovada em 2026-09-24**;
+      app criado no console. Falta terminar a ficha e as declarações (abaixo). Por ser conta
+      pessoal, o teste fechado de 12 testadores por 14 dias é obrigatório (fase 4), então dá pra
+      já ir juntando os 12 (ver o lembrete lá). O painel só libera o teste fechado depois de
+      "Termine de configurar seu app"; o teste interno precisa de um AAB.
+- [~] **Declarações do painel, andamento em 2026-09-24:**
+  - [x] Classificação de conteúdo: interação entre usuários, conteúdo gerado por usuários,
+        bloquear e denunciar (Sim), sem nudez nem violência real, interações limitadas a amigos
+        convidados (Sim). Diversos: tudo "Não" (sem localização, compra digital, recompensa em
+        dinheiro, navegador, notícia). Saiu 12+. Ponto em aberto: "moderação de conversas por
+        chat" ficou como "Não"; é defensável marcar "Sim" (admin do grupo apaga, dono do site
+        trata denúncias na ouvidoria), mas só se o dono acompanhar a ouvidoria.
+  - [ ] **Público-alvo:** ainda não preenchido. Recomendação: **16-17 e 18+** (o cadastro não tem
+        idade mínima; só comentar exige 18+). Evitar faixas abaixo de 13 (ativa a política de
+        Famílias). Conferir se `weracha.app/termos` cita idade mínima e alinhar.
+  - [ ] **Acesso ao app:** informar a conta de teste do revisor (ver "Já feito").
+  - [~] **Segurança dos dados (Data safety), respostas decididas, faltou terminar de
+        preencher:** coleta = Sim; criptografia em trânsito = Sim; conta criada por "Nome de
+        usuário, senha e outras autenticações" (telefone + senha + código SMS); exclusão pedida
+        pelo usuário = Sim. Tipos, todos **Coletado, não Compartilhado, não efêmero**:
+        Nome (obrigatório; funcionalidade + gerenciamento de conta), Telefone (obrigatório;
+        funcionalidade + conta + segurança/fraude), IDs do usuário (obrigatório; funcionalidade +
+        conta), E-mail (opcional; só mensagens do desenvolvedor), Outras informações = data de
+        nascimento (opcional; funcionalidade), Fotos = foto de perfil (opcional; funcionalidade),
+        Outras mensagens no app = comentários e contato (opcional; funcionalidade).
+        **Não declarar:** Vídeos (o app só reproduz e baixa; quem grava é o Cam), SMS/MMS (o app
+        não lê SMS, o código é digitado), IDs do dispositivo, localização, análise, publicidade.
+        Prestadores (Vercel, Neon, R2, Twilio) não contam como compartilhamento. Não marcar
+        "Personalização" em nenhum. **Se entrar Sentry/analytics, atualizar este formulário.**
+        Conferir se a política de privacidade cita a Twilio e diz que a foto é visível aos outros
+        membros do grupo.
+  - [ ] Marketing externo (opção de anunciar fora da Play): deixado marcado; revisar ao ir pra
+        produção (a mudança leva até 60 dias).
 - [ ] **Apple Developer Program:** US$ 99/ano. É o item de maior lead time (dias a semanas de
       verificação). Só necessário se for lançar no iPhone. Doc 10 §4. Se iOS ficar pra depois,
       pular sem culpa.
@@ -172,9 +215,10 @@ achando que é o app do grupo.
       autor. Site e app têm o mesmo menu ⋯. **Falta aplicar a migration 0066 em produção.**
 - [ ] **Classificação indicativa:** questionário da Play. O site já exige 18+ pra comentar (gate por
       data de nascimento no servidor).
-- [ ] **Material da ficha na loja:** ícone 512×512, imagem de destaque 1024×500, no mínimo 2
+- [~] **Material da ficha na loja:** ícone 512×512, imagem de destaque 1024×500, no mínimo 2
       screenshots de celular, descrição curta e completa, categoria (Esportes). Screenshots saem
-      do APK da fase 1.
+      do APK da fase 1. **Textos escritos em 2026-09-24** (ver o anexo no fim). Faltam o ícone
+      512, a imagem de destaque e os screenshots.
 
 ---
 
@@ -282,8 +326,62 @@ Nada aqui bloqueia a loja. Ordem sugerida por valor:
 - [ ] Sem seletor de servidor no login de produção; Cam com `BASE_URL` real
 - [ ] Crash reporting nos dois apps, recebendo evento de teste
 - [x] Gate de versão mínima no site e no app (falta só validar em device)
-- [x] Fluxo de denúncia/bloqueio de comentário (falta a migration 0066 em produção e validar em device)
+- [x] Fluxo de denúncia/bloqueio de comentário (migration 0066 já em produção; falta validar em device)
 - [ ] Política de privacidade e URL de exclusão conferidas
-- [ ] Declarações da loja (dados, classificação) preenchidas
+- [~] Declarações da loja: classificação feita; faltam público-alvo, acesso ao app (conta de
+      teste) e terminar o Data safety
+- [ ] AAB de produção gerado (`eas build --profile production`) e subido no teste interno
+- [ ] Ficha: ícone 512, imagem de destaque, screenshots
 - [ ] `assetlinks.json` com o fingerprint real
 - [ ] Teste fechado cumprido (12 testadores, 14 dias seguidos; obrigatório, a conta é pessoal)
+
+---
+
+## Anexo: textos da ficha da loja (escritos em 2026-09-24)
+
+**Breve descrição (77 caracteres, limite 80):**
+
+```
+Organize seu racha: sorteio de times, placar ao vivo, replays e artilheiros.
+```
+
+**Descrição completa (cerca de 2.100 caracteres, limite 4.000):**
+
+```
+O WeRacha organiza o seu racha do começo ao fim. Junte o grupo, confirme presença, sorteie os times, acompanhe o placar e reveja os gols depois do jogo, tudo num lugar só.
+
+COMO FUNCIONA
+Crie o grupo do seu racha, escolha o esporte e o horário e convide o pessoal por link, pelo WhatsApp. Quem entra já vê a próxima partida e pode confirmar presença.
+
+O QUE VOCÊ FAZ NO APP
+
+• Grupos e convites: crie o seu grupo ou entre no de um amigo com um link de convite. Cada grupo tem administradores e jogadores.
+
+• Check-in: confirme se você vai ou não jogar e veja quem já confirmou.
+
+• Sorteio de times: o app monta times equilibrados entre os presentes, e você pode refazer o sorteio antes de começar.
+
+• Ao vivo: acompanhe o placar da partida e veja quem marcou cada gol.
+
+• Resultado: ao fim do jogo, veja o placar final, os times e a linha do tempo dos gols.
+
+• Artilheiros: ranking de gols do grupo, com filtro por mês e por esporte.
+
+• Enquetes: pergunte ao grupo o horário, o local ou o que for, e vote com um toque.
+
+• Replays: veja os lances e os gols em vídeo, baixe para a galeria e compartilhe com a galera. Os replays são gravados pelo We Racha Cam, um celular fixo no tripé, que funciona em conjunto com este app.
+
+• Resenha: comente os lances do grupo. Os comentários são liberados apenas para maiores de 18 anos, e você pode denunciar um comentário ou bloquear alguém a qualquer momento.
+
+• Parcerias: benefícios de estabelecimentos parceiros para quem joga no WeRacha.
+
+FEITO PARA O GRUPO
+Só quem está no grupo vê as partidas, os replays e os comentários. Você pode pedir a exclusão dos seus dados direto no perfil.
+
+Esportes: futebol de campo, futebol de salão (futsal), society, futebol de areia e futevôlei.
+
+Baixe o WeRacha e organize o próximo racha sem confusão no grupo do WhatsApp.
+```
+
+Se o Cam não for citado na ficha, reescrever o item "Replays". Se "Parcerias" não estiver
+pronto pro público geral, tirar.

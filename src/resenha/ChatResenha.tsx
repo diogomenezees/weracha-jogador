@@ -358,7 +358,7 @@ export function ChatResenha({
           Icone={Flag}
           eyebrow="Denunciar"
           titulo="Denunciar comentário?"
-          descricao="O dono do We Racha vai analisar. Quem escreveu não é avisado."
+          descricao="O dono do WeRacha vai analisar. Quem escreveu não é avisado."
           destrutivo
           confirmarLabel="Denunciar"
           ocupado={confOcupado}

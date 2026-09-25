@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "We Racha",
+    "name": "WeRacha",
     "slug": "weracha-jogador",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -60,14 +60,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "O We Racha usa suas fotos pra você escolher a foto de perfil."
+          "photosPermission": "O WeRacha usa suas fotos pra você escolher a foto de perfil."
         }
       ],
       "expo-video",
       [
         "expo-media-library",
         {
-          "savePhotosPermission": "O We Racha salva os replays que você baixa na sua galeria.",
+          "savePhotosPermission": "O WeRacha salva os replays que você baixa na sua galeria.",
           "granularPermissions": [
             "video"
           ]
@@ -77,6 +77,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "332e20fd-a6c9-43ee-b717-a116febc314e"
+      }
+    },
+    "owner": "weracha"
   }
 }

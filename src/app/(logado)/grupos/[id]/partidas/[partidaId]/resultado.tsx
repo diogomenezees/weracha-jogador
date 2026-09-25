@@ -245,10 +245,10 @@ export default function TelaResultado() {
     const msg = encerrada
       ? `Saiu o resultado do racha do grupo ${grupo.nome}.\n` +
         `${formatarDiaSemanaData(d)} às ${formatarHora(d)}.\n` +
-        `Veja os times e os gols no We Racha.`
+        `Veja os times e os gols no WeRacha.`
       : `Saiu a separação dos times do racha do grupo ${grupo.nome}.\n` +
         `${formatarDiaSemanaData(d)} às ${formatarHora(d)}.\n` +
-        `Veja quem tá no seu time no We Racha.`;
+        `Veja quem tá no seu time no WeRacha.`;
     try {
       await Share.share({ message: msg });
     } catch {

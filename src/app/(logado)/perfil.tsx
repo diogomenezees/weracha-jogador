@@ -278,7 +278,7 @@ export default function Perfil() {
               marcado={receberNotif}
               onToggle={() => setReceberNotif((v) => !v)}
               desabilitado={!email.trim()}
-              rotulo="Quero receber novidades e avisos do We Racha por e-mail"
+              rotulo="Quero receber novidades e avisos do WeRacha por e-mail"
             />
 
             <View style={styles.senhaBloco}>
