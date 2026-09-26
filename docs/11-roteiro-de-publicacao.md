@@ -46,6 +46,25 @@ primeiro.
 - **Denunciar comentário da resenha**, fase 2. Menu ⋯ em cada comentário, no app e no site, com
   Denunciar, Apagar (autor em 5 min, admin sempre) e Bloquear usuário. A denúncia cai na ouvidoria,
   que ganhou atalhos pra apagar o comentário e bloquear a conta do autor.
+- **Upload da foto de perfil validado e corrigido (2026-09-26).** No Expo Go, `fetch(uri).blob()`
+  devolvia o texto "File not found" (14 bytes) e ele ia pro R2 no lugar da foto: avatar preto, sem
+  erro nenhum. Agora o envio é por `uploadAsync` (`expo-file-system`), o app recusa arquivo
+  menor que 1 KB e não pede mais permissão de galeria (o seletor do sistema não precisa). Testado
+  no aparelho: a troca de foto funciona. **O APK de preview antigo ainda tem o bug**, só o próximo
+  build leva a correção.
+- **Seletor Local/Produção escondido em build de release (2026-09-26).** Só aparece em
+  desenvolvimento (`PODE_ESCOLHER_SERVIDOR = __DEV__` em `src/config/servidor.ts`); no APK/AAB o
+  app fala sempre com `https://weracha.app` e ignora um "local" guardado.
+- **Sentry configurado no app de jogador (2026-09-26).** `@sentry/react-native`, plugin no
+  `app.json`, `metro.config.js` com debug IDs e `Sentry.init` em `src/app/_layout.tsx`: só liga em
+  release, sem `setUser`, sem PII e sem corpo/cabeçalhos de requisição. O DSN
+  (`EXPO_PUBLIC_SENTRY_DSN`) e o token de sourcemaps (`SENTRY_AUTH_TOKEN`, secreto) vivem nas
+  variáveis do EAS (production e preview), nunca no repo. **Falta ver um evento de teste chegando**
+  (só dá em build de release). **Data safety já atualizado** com Registros de falhas e Diagnóstico
+  (2026-09-26, ver a fase 2).
+- **Enquetes no formato do site (2026-09-26):** descrições e aviso "pra criar uma enquete, entre no
+  grupo", card com selo Ativa/Encerrada e nome do grupo, nome do grupo no modal e botão "Ir ao
+  grupo" na tela global.
 - **Diálogos no padrão do app.** Os alertas brancos nativos (`Alert.alert`) foram trocados por
   modais escuros com blur (`useDialogos()`, `src/ui/Dialogos.tsx`; o servidor do login virou um
   menu de baixo).
@@ -66,19 +85,20 @@ primeiro.
       empilhados, timeout que cobre o corpo e uma nova tentativa. Ver `src/api/cliente.ts` e
       `src/api/resenha.ts`.
 - [ ] **Testar no Expo Go pelo Wi-Fi, não pelo `adb reverse`.** O túnel USB deixa as respostas
-      vazias ou penduradas (`exp://<IP-do-PC>:8081`, celular na mesma rede).
+      vazias ou penduradas (`exp://<IP-do-PC>:8081`, celular na mesma rede). Aviso do Expo Go
+      sobre a biblioteca de mídia é só limitação dele: o "Baixar vídeo" só vale no APK/AAB.
 
 ## Próximos passos (definidos em 2026-09-25)
 
 O Play Console está pronto. Antes de gerar a versão que vai pra loja, o dono quer **melhorar o app
 no Expo Go**, depois gerar o build no EAS e só então subir na Play. Ordem:
 
-1. [ ] **Melhorar o app no Expo Go** (Metro na máquina, celular no Wi-Fi via
+1. [~] **Melhorar o app no Expo Go** (em andamento em 2026-09-26: foto e enquetes revisadas) (Metro na máquina, celular no Wi-Fi via
        `exp://<IP-do-PC>:8081`, site local com o `rodar-local`). Aproveitar pra riscar o
        checklist de device do doc 10 e validar o gate de versão, o menu ⋯ e os diálogos.
-2. [ ] **Fechar o que bloqueia a loja no código** (fases 1 e 3): esconder o seletor
-       Local/Produção no login de produção, crash reporting (Sentry) e, se for pra loja, o
-       que faltar do Cam. Ao adicionar o Sentry, atualizar o Data safety.
+2. [x] **Fechar o que bloqueia a loja no código** (fases 1 e 3): seletor Local/Produção
+       escondido e Sentry configurado (2026-09-26). Do Cam ainda falta, se for pra loja. O Data
+       safety já ganhou "Registros de falhas" e "Diagnóstico" por causa do Sentry (2026-09-26).
 3. [ ] **Gerar o AAB:** `npx eas-cli build -p android --profile production` (cota mensal do EAS:
        juntar as mudanças antes; o `versionCode` sobe sozinho).
 4. [ ] **Subir o AAB no teste interno** e conferir que instala pela loja.
@@ -165,7 +185,7 @@ achando que é o app do grupo.
 4. [ ] `npx eas build -p android --profile development`: dev client, necessário pras fases 5-8 da
        paridade com o site e pro `expo-media-library` ("Baixar vídeo" na Galeria).
 5. [ ] **Limpeza do que não pode ir pra loja** (achados no código, 2026-09-21):
-   - [ ] **Jogador:** o seletor Local/Produção fica visível na tela de login. Em build de
+   - [x] **Jogador (feito em 2026-09-26):** o seletor Local/Produção ficava visível na tela de login. Em build de
          produção, esconder (ou deixar atrás de gesto escondido). Usuário não pode apontar o app
          pra outro servidor.
    - [ ] **Cam:** `release` ainda tem `BASE_URL = "https://weracha.example.com/"` (placeholder) em
@@ -199,8 +219,8 @@ achando que é o app do grupo.
         idade mínima; só comentar exige 18+). Evitar faixas abaixo de 13 (ativa a política de
         Famílias). Conferir se `weracha.app/termos` cita idade mínima e alinhar.
   - [x] **Acesso ao app:** conta de teste do revisor informada (ver "Já feito").
-  - [x] **Segurança dos dados (Data safety), preenchido com estas respostas:** coleta = Sim; criptografia em trânsito = Sim; conta criada por "Nome de
-        usuário, senha e outras autenticações" (telefone + senha + código SMS); exclusão pedida
+  - [x] **Segurança dos dados (Data safety), preenchido com estas respostas:** coleta = Sim;
+        criptografia em trânsito = Sim; conta criada por "Nome de usuário, senha e outras autenticações" (telefone + senha + código SMS); exclusão pedida
         pelo usuário = Sim. Tipos, todos **Coletado, não Compartilhado, não efêmero**:
         Nome (obrigatório; funcionalidade + gerenciamento de conta), Telefone (obrigatório;
         funcionalidade + conta + segurança/fraude), IDs do usuário (obrigatório; funcionalidade +
@@ -210,7 +230,8 @@ achando que é o app do grupo.
         **Não declarar:** Vídeos (o app só reproduz e baixa; quem grava é o Cam), SMS/MMS (o app
         não lê SMS, o código é digitado), IDs do dispositivo, localização, análise, publicidade.
         Prestadores (Vercel, Neon, R2, Twilio) não contam como compartilhamento. Não marcar
-        "Personalização" em nenhum. **Se entrar Sentry/analytics, atualizar este formulário.**
+        "Personalização" em nenhum. **Sentry entrou em 2026-09-26 e o formulário foi atualizado
+        (ver abaixo). Se entrar analytics, atualizar de novo.**
         Conferir se a política de privacidade cita a Twilio e diz que a foto é visível aos outros
         membros do grupo.
   - [x] Marketing externo (opção de anunciar fora da Play): deixado marcado; revisar ao ir pra
@@ -221,9 +242,14 @@ achando que é o app do grupo.
 - [ ] **Política de privacidade:** a página `weracha.app/privacidade` **já existe** no site
       (spec 12) e o app já linka pra ela. Conferir que cobre o que a loja pede: dados coletados
       (telefone, nome, foto, vídeo, sem localização), como excluir, contato.
-- [~] **Formulário de segurança de dados (Data safety) da Play** preenchido em 2026-09-25 (sem
-      crash reporting nem analytics, ver acima). **Reabrir e atualizar quando o Sentry entrar**
-      (diagnósticos de falha). *Privacy nutrition labels* da Apple só se for pro iOS.
+- [x] **Formulário de segurança de dados (Data safety) da Play** preenchido em 2026-09-25 e
+      **atualizado em 2026-09-26 pelo Sentry:** em "Informações e desempenho do app" foram marcados
+      **Registros de falhas** e **Diagnóstico** (coletados, não compartilhados, não efêmeros,
+      obrigatórios, finalidade Análise); "Outros dados de desempenho" ficou de fora porque o
+      desempenho está desligado (`tracesSampleRate: 0`). No layout novo da Play Console o caminho
+      é Monitorar e aprimorar, Política e programas, Conteúdo do app, Segurança dos dados (ou a
+      busca do topo). Se entrar analytics, reabrir. *Privacy nutrition labels* da Apple só se for
+      pro iOS.
 - [ ] **Exclusão de conta:** o fluxo dentro do app já existe (perfil, "Excluir meus dados"). A Play
       também pede uma **URL web** pra solicitar exclusão de dados fora do app **(conferir)**.
       Verificar se `weracha.app/contato` ou uma página dedicada serve.
@@ -246,8 +272,9 @@ achando que é o app do grupo.
 
 Sem isto, um bug em aparelho de terceiro é invisível e não dá pra forçar atualização depois.
 
-- [ ] **Crash reporting no app de jogador** (doc 10 §6). Sentry (`@sentry/react-native` + plugin
-      Expo) e envio de sourcemaps no build do EAS, senão o stack trace vem ofuscado. Não funciona
+- [~] **Crash reporting no app de jogador** (doc 10 §6). **Configurado em 2026-09-26** e Data safety
+      atualizado; falta ver o evento de teste num build de release. Sentry (`@sentry/react-native`
+      + plugin Expo) e envio de sourcemaps no build do EAS, senão o stack trace vem ofuscado. Não funciona
       no Expo Go; só em build EAS. Cuidado pra **não** mandar telefone/nome no contexto do usuário.
 - [ ] **Crash reporting no Cam.** O Cam é Kotlin nativo e já teve bugs de campo difíceis (gravação
       órfã, replay truncado), que só foram achados com logcat manual. Opções: Sentry Android ou
@@ -343,8 +370,8 @@ Nada aqui bloqueia a loja. Ordem sugerida por valor:
 
 - [ ] Intro pré-login nos dois apps (fase 0)
 - [ ] Checklist de device do doc 10 todo riscado
-- [ ] Sem seletor de servidor no login de produção; Cam com `BASE_URL` real
-- [ ] Crash reporting nos dois apps, recebendo evento de teste
+- [~] Sem seletor de servidor no login de produção (feito no app); Cam com `BASE_URL` real (falta)
+- [~] Crash reporting nos dois apps, recebendo evento de teste (app configurado, sem evento ainda; Cam não)
 - [x] Gate de versão mínima no site e no app (falta só validar em device)
 - [x] Fluxo de denúncia/bloqueio de comentário (migration 0066 já em produção; falta validar em device)
 - [ ] Política de privacidade e URL de exclusão conferidas
