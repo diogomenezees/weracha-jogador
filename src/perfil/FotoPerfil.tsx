@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import * as ImagePicker from "expo-image-picker";
+import { File } from "expo-file-system";
+import { FileSystemUploadType, uploadAsync } from "expo-file-system/legacy";
 
 import type { OpcoesRequisicao } from "@/api/cliente";
 import { definirFotoUrl, pedirUrlUploadFoto } from "@/api/perfil";
@@ -13,6 +15,9 @@ import { cores } from "@/tema";
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
 const TIPOS_ACEITOS = ["image/jpeg", "image/png", "image/webp"];
+
+// Uma imagem de verdade tem bem mais que isso. Barra arquivo vazio ou texto de erro.
+const MIN_BYTES_FOTO = 1024;
 
 // Foto de perfil: escolhe da galeria (expo-image-picker), pede a URL assinada
 // (POST /api/v1/perfil/foto/upload-url), faz o PUT direto no R2 e persiste a
@@ -36,11 +41,9 @@ export function FotoPerfil({
 
   async function escolher() {
     setErro(null);
-    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissao.granted) {
-      setErro("Libere o acesso às fotos pra escolher uma imagem.");
-      return;
-    }
+    // Sem pedir permissão de galeria: o seletor do sistema (Android Photo Picker, PHPicker
+    // no iOS) entrega só a foto que a pessoa escolheu, sem o app ler a biblioteca. Pedir
+    // READ_MEDIA_IMAGES aqui bloquearia quem negar e ainda pesaria na revisão da Play.
     const resultado = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -52,17 +55,26 @@ export function FotoPerfil({
 
     setOcupado(true);
     try {
-      const blob = await (await fetch(asset.uri)).blob();
-      let contentType = asset.mimeType || blob.type || "image/jpeg";
+      // O arquivo é lido pelo lado nativo (uploadAsync), não por `fetch(uri).blob()`: no
+      // Android o fetch de uma URI de arquivo devolvia o texto "File not found" (14 bytes),
+      // que ia pro R2 no lugar da foto e deixava o avatar preto, sem nenhum erro.
+      const arquivo = new File(asset.uri);
+      const tamanho = arquivo.size ?? asset.fileSize ?? 0;
+      if (!arquivo.exists || tamanho < MIN_BYTES_FOTO) {
+        throw new Error("Não foi possível ler a foto escolhida.");
+      }
+      let contentType = asset.mimeType ?? "image/jpeg";
       if (!TIPOS_ACEITOS.includes(contentType)) contentType = "image/jpeg";
 
-      const { url, linkPublico } = await pedirUrlUploadFoto(chamarApi, contentType, blob.size);
-      const envio = await fetch(url, {
-        method: "PUT",
-        body: blob,
+      const { url, linkPublico } = await pedirUrlUploadFoto(chamarApi, contentType, tamanho);
+      const envio = await uploadAsync(url, asset.uri, {
+        httpMethod: "PUT",
+        uploadType: FileSystemUploadType.BINARY_CONTENT,
         headers: { "Content-Type": contentType },
       });
-      if (!envio.ok) throw new Error(`R2 respondeu ${envio.status}`);
+      if (envio.status < 200 || envio.status >= 300) {
+        throw new Error(`R2 respondeu ${envio.status}`);
+      }
 
       await definirFotoUrl(chamarApi, linkPublico);
       onAtualizada(linkPublico);

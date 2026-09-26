@@ -6,7 +6,7 @@ import { router } from "expo-router";
 
 import { Check } from "@/ui/Icone";
 import { MenuAcoes } from "@/grupo/MenuAcoes";
-import { rotuloDoAmbiente, type Ambiente } from "@/config/servidor";
+import { PODE_ESCOLHER_SERVIDOR, rotuloDoAmbiente, type Ambiente } from "@/config/servidor";
 import { abrirNoNavegador, URL_CONTATO, URL_PRIVACIDADE, URL_TERMOS } from "@/config/links";
 import { useSessao } from "@/sessao/contexto";
 import { cores, tipografia } from "@/tema";
@@ -346,9 +346,11 @@ export function TelaAcesso() {
             <Pressable onPress={() => abrirNoNavegador(URL_CONTATO)} hitSlop={8}>
               <Text style={styles.rodapeLink}>Não consegue entrar? Fale com a gente</Text>
             </Pressable>
-            <Pressable onPress={escolherServidor} disabled={f.ocupado} hitSlop={8}>
-              <Text style={styles.servidorTexto}>Servidor: {rotuloDoAmbiente(ambiente)}</Text>
-            </Pressable>
+            {PODE_ESCOLHER_SERVIDOR ? (
+              <Pressable onPress={escolherServidor} disabled={f.ocupado} hitSlop={8}>
+                <Text style={styles.servidorTexto}>Servidor: {rotuloDoAmbiente(ambiente)}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

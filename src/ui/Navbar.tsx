@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams, type Href } from "expo-router";
 
 import { abrirNoNavegador } from "@/config/links";
-import { rotuloDoAmbiente } from "@/config/servidor";
+import { PODE_ESCOLHER_SERVIDOR, rotuloDoAmbiente } from "@/config/servidor";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { AvatarJogador } from "@/ui/AvatarJogador";
@@ -254,7 +254,9 @@ function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void })
             </ScrollView>
 
             <View style={styles.rodape}>
-              <Text style={styles.ambiente}>{`Servidor: ${rotuloDoAmbiente(ambiente)}`}</Text>
+              {PODE_ESCOLHER_SERVIDOR ? (
+                <Text style={styles.ambiente}>{`Servidor: ${rotuloDoAmbiente(ambiente)}`}</Text>
+              ) : null}
               <Pressable
                 style={styles.item}
                 onPress={() => {

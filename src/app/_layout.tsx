@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
+import * as Sentry from "@sentry/react-native";
 import { useFonts } from "expo-font";
 import {
   SpaceGrotesk_300Light,
@@ -22,7 +23,27 @@ import { cores } from "@/tema";
 // Geist Mono no eyebrow; ver src/ui/Texto.tsx).
 void SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+// Relatório de falhas. Só liga em build de release (no Expo Go/dev o erro já aparece no
+// Metro) e só quando o DSN existe (vem do EAS, nunca do código). Nada de dado pessoal:
+// sem `setUser`, sem PII padrão e sem corpo de requisição, porque telefone e nome não
+// podem sair do aparelho (ver o Data safety da Play).
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: !__DEV__ && !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+  sendDefaultPii: false,
+  tracesSampleRate: 0,
+  beforeSend(evento) {
+    if (evento.request) {
+      delete evento.request.data;
+      delete evento.request.cookies;
+      delete evento.request.headers;
+    }
+    if (evento.user) evento.user = { id: evento.user.id };
+    return evento;
+  },
+});
+
+function RootLayout() {
   const [fontesCarregadas] = useFonts({
     SpaceGrotesk_300Light,
     SpaceGrotesk_400Regular,
@@ -58,3 +79,5 @@ export default function RootLayout() {
     </BlurTargetProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

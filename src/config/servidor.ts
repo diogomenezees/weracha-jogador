@@ -24,6 +24,11 @@ const PRODUCAO = "https://weracha.app";
 
 export const AMBIENTE_PADRAO: Ambiente = __DEV__ ? "local" : "producao";
 
+// Só em desenvolvimento (Expo Go, dev client) o usuário escolhe o servidor. Em build
+// de release (APK do EAS, AAB da loja) o app fala sempre com a produção: ninguém pode
+// apontar o app pra outro servidor, e um "local" guardado de um build anterior é ignorado.
+export const PODE_ESCOLHER_SERVIDOR = __DEV__;
+
 // IP da máquina que roda o Metro, extraído do `hostUri` (ex.: "192.168.15.24:8081").
 // É onde o `next dev` também está, já que rodam na mesma máquina.
 function ipDaMaquinaDeDev(): string | null {
@@ -55,6 +60,7 @@ export function rotuloDoAmbiente(ambiente: Ambiente): string {
 }
 
 export async function lerAmbiente(): Promise<Ambiente> {
+  if (!PODE_ESCOLHER_SERVIDOR) return "producao";
   try {
     const salvo = await SecureStore.getItemAsync(CHAVE);
     return salvo === "local" || salvo === "producao" ? salvo : AMBIENTE_PADRAO;

@@ -72,6 +72,13 @@
             "video"
           ]
         }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "weracha",
+          "project": "weracha"
+        }
       ]
     ],
     "experiments": {

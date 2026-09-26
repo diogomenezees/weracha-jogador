@@ -22,7 +22,7 @@
 As fases 1, 2 e 3 andam em paralelo. A 2 é a que tem relógio correndo, então é a que se abre
 primeiro.
 
-## Andamento (atualizado em 2026-09-24)
+## Andamento (atualizado em 2026-09-25)
 
 **Já feito** (o detalhe de cada item está na fase correspondente):
 
@@ -67,6 +67,28 @@ primeiro.
       `src/api/resenha.ts`.
 - [ ] **Testar no Expo Go pelo Wi-Fi, não pelo `adb reverse`.** O túnel USB deixa as respostas
       vazias ou penduradas (`exp://<IP-do-PC>:8081`, celular na mesma rede).
+
+## Próximos passos (definidos em 2026-09-25)
+
+O Play Console está pronto. Antes de gerar a versão que vai pra loja, o dono quer **melhorar o app
+no Expo Go**, depois gerar o build no EAS e só então subir na Play. Ordem:
+
+1. [ ] **Melhorar o app no Expo Go** (Metro na máquina, celular no Wi-Fi via
+       `exp://<IP-do-PC>:8081`, site local com o `rodar-local`). Aproveitar pra riscar o
+       checklist de device do doc 10 e validar o gate de versão, o menu ⋯ e os diálogos.
+2. [ ] **Fechar o que bloqueia a loja no código** (fases 1 e 3): esconder o seletor
+       Local/Produção no login de produção, crash reporting (Sentry) e, se for pra loja, o
+       que faltar do Cam. Ao adicionar o Sentry, atualizar o Data safety.
+3. [ ] **Gerar o AAB:** `npx eas-cli build -p android --profile production` (cota mensal do EAS:
+       juntar as mudanças antes; o `versionCode` sobe sozinho).
+4. [ ] **Subir o AAB no teste interno** e conferir que instala pela loja.
+5. [ ] **`assetlinks.json`:** pegar o SHA-256 da chave de assinatura no console (Integridade do
+       app) e preencher no site, senão o link de convite abre o seletor "abrir com".
+6. [ ] **Juntar os 9 testadores que faltam** (Gmail + Android) e mandar o convite do teste
+       fechado; o relógio dos 14 dias só começa quando os 12 aceitarem.
+7. [ ] **Teste fechado por 14 dias seguidos**, depois pedir produção.
+8. [ ] Depois da aprovação: apagar a conta "Revisor Google" e o grupo de teste em "Gerenciar
+       usuários"; revisar o Marketing externo.
 
 ## Decisões pra conversar amanhã
 
@@ -161,24 +183,23 @@ achando que é o app do grupo.
 
 ## Fase 2. Contas e burocracia das lojas (abrir em paralelo, tem prazo)
 
-- [~] **Google Play Console:** conta pessoal criada em 2026-09-23 e **aprovada em 2026-09-24**;
-      app criado no console. Falta terminar a ficha e as declarações (abaixo). Por ser conta
-      pessoal, o teste fechado de 12 testadores por 14 dias é obrigatório (fase 4), então dá pra
-      já ir juntando os 12 (ver o lembrete lá). O painel só libera o teste fechado depois de
-      "Termine de configurar seu app"; o teste interno precisa de um AAB.
-- [~] **Declarações do painel, andamento em 2026-09-24:**
+- [x] **Google Play Console:** conta pessoal criada em 2026-09-23 e **aprovada em 2026-09-24**;
+      app criado no console. **Em 2026-09-25 o dono relatou ter preenchido tudo o que o painel
+      pedia** (declarações e ficha, abaixo). O que falta na Play é só a **versão** (AAB) e os
+      **testadores**: por ser conta pessoal, o teste fechado exige 12 testadores por 14 dias
+      seguidos (fase 4) e o dono tem 3 até agora, **faltam 9**. O teste interno precisa de um AAB.
+- [x] **Declarações do painel, preenchidas (relato do dono em 2026-09-25; detalhes abaixo):**
   - [x] Classificação de conteúdo: interação entre usuários, conteúdo gerado por usuários,
         bloquear e denunciar (Sim), sem nudez nem violência real, interações limitadas a amigos
         convidados (Sim). Diversos: tudo "Não" (sem localização, compra digital, recompensa em
         dinheiro, navegador, notícia). Saiu 12+. Ponto em aberto: "moderação de conversas por
         chat" ficou como "Não"; é defensável marcar "Sim" (admin do grupo apaga, dono do site
         trata denúncias na ouvidoria), mas só se o dono acompanhar a ouvidoria.
-  - [ ] **Público-alvo:** ainda não preenchido. Recomendação: **16-17 e 18+** (o cadastro não tem
+  - [x] **Público-alvo:** preenchido. Recomendação que foi dada: **16-17 e 18+** (o cadastro não tem
         idade mínima; só comentar exige 18+). Evitar faixas abaixo de 13 (ativa a política de
         Famílias). Conferir se `weracha.app/termos` cita idade mínima e alinhar.
-  - [ ] **Acesso ao app:** informar a conta de teste do revisor (ver "Já feito").
-  - [~] **Segurança dos dados (Data safety), respostas decididas, faltou terminar de
-        preencher:** coleta = Sim; criptografia em trânsito = Sim; conta criada por "Nome de
+  - [x] **Acesso ao app:** conta de teste do revisor informada (ver "Já feito").
+  - [x] **Segurança dos dados (Data safety), preenchido com estas respostas:** coleta = Sim; criptografia em trânsito = Sim; conta criada por "Nome de
         usuário, senha e outras autenticações" (telefone + senha + código SMS); exclusão pedida
         pelo usuário = Sim. Tipos, todos **Coletado, não Compartilhado, não efêmero**:
         Nome (obrigatório; funcionalidade + gerenciamento de conta), Telefone (obrigatório;
@@ -192,7 +213,7 @@ achando que é o app do grupo.
         "Personalização" em nenhum. **Se entrar Sentry/analytics, atualizar este formulário.**
         Conferir se a política de privacidade cita a Twilio e diz que a foto é visível aos outros
         membros do grupo.
-  - [ ] Marketing externo (opção de anunciar fora da Play): deixado marcado; revisar ao ir pra
+  - [x] Marketing externo (opção de anunciar fora da Play): deixado marcado; revisar ao ir pra
         produção (a mudança leva até 60 dias).
 - [ ] **Apple Developer Program:** US$ 99/ano. É o item de maior lead time (dias a semanas de
       verificação). Só necessário se for lançar no iPhone. Doc 10 §4. Se iOS ficar pra depois,
@@ -200,9 +221,9 @@ achando que é o app do grupo.
 - [ ] **Política de privacidade:** a página `weracha.app/privacidade` **já existe** no site
       (spec 12) e o app já linka pra ela. Conferir que cobre o que a loja pede: dados coletados
       (telefone, nome, foto, vídeo, sem localização), como excluir, contato.
-- [ ] **Formulário de segurança de dados (Data safety) da Play** / *privacy nutrition labels* da
-      Apple: declarar o que o app coleta. Depende das decisões de crash e analytics (fase 3), então
-      preencher **depois** dela.
+- [~] **Formulário de segurança de dados (Data safety) da Play** preenchido em 2026-09-25 (sem
+      crash reporting nem analytics, ver acima). **Reabrir e atualizar quando o Sentry entrar**
+      (diagnósticos de falha). *Privacy nutrition labels* da Apple só se for pro iOS.
 - [ ] **Exclusão de conta:** o fluxo dentro do app já existe (perfil, "Excluir meus dados"). A Play
       também pede uma **URL web** pra solicitar exclusão de dados fora do app **(conferir)**.
       Verificar se `weracha.app/contato` ou uma página dedicada serve.
@@ -212,13 +233,12 @@ achando que é o app do grupo.
       janela de 5 min e pro admin sempre). A denúncia cai na ouvidoria
       (`POST /api/v1/comentarios/{id}/denuncia`, texto copiado). **Bloquear usuário** (pessoal) também
       feito em 2026-09-23, e a ouvidoria ganhou atalhos pra apagar o comentário e bloquear a conta do
-      autor. Site e app têm o mesmo menu ⋯. **Falta aplicar a migration 0066 em produção.**
-- [ ] **Classificação indicativa:** questionário da Play. O site já exige 18+ pra comentar (gate por
-      data de nascimento no servidor).
-- [~] **Material da ficha na loja:** ícone 512×512, imagem de destaque 1024×500, no mínimo 2
+      autor. Site e app têm o mesmo menu ⋯. Migration 0066 aplicada em produção.
+- [x] **Classificação indicativa:** questionário respondido (12+). O site já exige 18+ pra comentar
+      (gate por data de nascimento no servidor).
+- [x] **Material da ficha na loja (preenchido, relato do dono em 2026-09-25):** ícone 512×512, imagem de destaque 1024×500, no mínimo 2
       screenshots de celular, descrição curta e completa, categoria (Esportes). Screenshots saem
-      do APK da fase 1. **Textos escritos em 2026-09-24** (ver o anexo no fim). Faltam o ícone
-      512, a imagem de destaque e os screenshots.
+      do APK da fase 1. **Textos escritos em 2026-09-24** (ver o anexo no fim).
 
 ---
 
@@ -328,12 +348,11 @@ Nada aqui bloqueia a loja. Ordem sugerida por valor:
 - [x] Gate de versão mínima no site e no app (falta só validar em device)
 - [x] Fluxo de denúncia/bloqueio de comentário (migration 0066 já em produção; falta validar em device)
 - [ ] Política de privacidade e URL de exclusão conferidas
-- [~] Declarações da loja: classificação feita; faltam público-alvo, acesso ao app (conta de
-      teste) e terminar o Data safety
-- [ ] AAB de produção gerado (`eas build --profile production`) e subido no teste interno
-- [ ] Ficha: ícone 512, imagem de destaque, screenshots
+- [x] Declarações da loja preenchidas na Play Console (relato do dono em 2026-09-25)
+- [ ] **Falta:** AAB de produção gerado (`eas build --profile production`) e subido no teste interno
+- [x] Ficha da loja preenchida (textos, ícone, imagem de destaque, screenshots)
 - [ ] `assetlinks.json` com o fingerprint real
-- [ ] Teste fechado cumprido (12 testadores, 14 dias seguidos; obrigatório, a conta é pessoal)
+- [ ] **Faltam 9 testadores** (tem 3 de 12). Teste fechado cumprido (12 testadores, 14 dias seguidos; obrigatório, a conta é pessoal)
 
 ---
 

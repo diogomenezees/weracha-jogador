@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, TextInput,
 import { Text } from "@/ui/Texto";
 
 import { buscarVotantes, editarPergunta, votar } from "@/api/enquetes";
-import { BarChart3, Check, Clock, Pencil, Share2, X } from "@/ui/Icone";
+import { ArrowRight, BarChart3, Check, Clock, Pencil, Share2, Users, X } from "@/ui/Icone";
 import { ModalCartao } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
@@ -25,6 +25,7 @@ export function ModalEnquete({
   linkCompartilhar,
   grupoNome,
   onRecarregar,
+  onIrAoGrupo,
 }: {
   enquete: Enquete | null;
   aberto: boolean;
@@ -37,6 +38,8 @@ export function ModalEnquete({
   grupoNome: string;
   /** Recarrega a lista no parent (que re-passa a enquete fresca por prop). */
   onRecarregar: () => Promise<void>;
+  /** Quando informado, mostra o botão "Ir ao grupo" (tela global de enquetes). */
+  onIrAoGrupo?: () => void;
 }) {
   const [aba, setAba] = useState<"votacao" | "votos">("votacao");
   const [votantes, setVotantes] = useState<Record<string, VotanteEnquete[]> | null>(null);
@@ -142,6 +145,7 @@ export function ModalEnquete({
         </Text>
       </View>
 
+      <View style={styles.tituloBloco}>
       {editando ? (
         <View style={styles.editLinha}>
           <TextInput
@@ -175,6 +179,15 @@ export function ModalEnquete({
           )}
         </View>
       )}
+      {!editando && grupoNome ? (
+        <View style={styles.grupoLinha}>
+          <Users size={12} color={cores.slate400} />
+          <Text style={styles.grupoNome} numberOfLines={1}>
+            {grupoNome}
+          </Text>
+        </View>
+      ) : null}
+      </View>
       {erroPergunta ? <Text style={styles.erro}>{erroPergunta}</Text> : null}
 
       <Text style={styles.meta}>
@@ -265,10 +278,24 @@ export function ModalEnquete({
 
       {erroVoto ? <Text style={styles.erro}>{erroVoto}</Text> : null}
 
-      <Pressable style={styles.compartilhar} onPress={() => void compartilhar()}>
-        <Share2 size={16} color={cores.dark} />
-        <Text style={styles.compartilharTexto}>Compartilhar</Text>
-      </Pressable>
+      <View style={styles.acoes}>
+        {onIrAoGrupo ? (
+          <Pressable
+            style={styles.irAoGrupo}
+            onPress={() => {
+              fechar();
+              onIrAoGrupo();
+            }}
+          >
+            <ArrowRight size={16} color={cores.branco} />
+            <Text style={styles.irAoGrupoTexto}>Ir ao grupo</Text>
+          </Pressable>
+        ) : null}
+        <Pressable style={styles.compartilhar} onPress={() => void compartilhar()}>
+          <Share2 size={16} color={cores.dark} />
+          <Text style={styles.compartilharTexto}>Compartilhar</Text>
+        </Pressable>
+      </View>
     </ModalCartao>
   );
 }
@@ -297,6 +324,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: cores.branco,
   },
+  tituloBloco: { gap: 2 },
+  grupoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  grupoNome: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
   meta: { fontSize: 13, color: cores.slate400 },
   tabs: {
     flexDirection: "row",
@@ -359,7 +389,21 @@ const styles = StyleSheet.create({
   prazoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   prazo: { fontSize: 13, color: cores.slate400 },
   erro: { fontSize: 13, color: cores.erroTexto },
+  acoes: { flexDirection: "row", gap: 8, marginTop: 4 },
+  irAoGrupo: {
+    flex: 1,
+    height: 48,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "rgba(31,179,163,0.3)",
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  irAoGrupoTexto: { fontSize: 15, color: cores.branco },
   compartilhar: {
+    flex: 1,
     height: 48,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,
@@ -367,7 +411,6 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
   },
   compartilharTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
 });
