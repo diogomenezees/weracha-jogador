@@ -123,8 +123,11 @@ no Expo Go**, depois gerar o build no EAS e só então subir na Play. Ordem:
        celular**: ao tocar em "Download test app" a Play respondeu "item não encontrado",
        provavelmente propagação (pode levar de minutos a 1 ou 2 horas no 1º envio). Conferir a
        lista de testadores marcada e a conta certa no celular.
-5. [ ] **`assetlinks.json`:** pegar o SHA-256 da chave de assinatura no console (Integridade do
-       app) e preencher no site, senão o link de convite abre o seletor "abrir com".
+5. [x] **`assetlinks.json`** preenchido em 2026-09-26 com o SHA-256 da **chave de assinatura do
+       app** (Play Console > Protegido com o Google Play > Assinatura de apps > chave clássica;
+       a de upload não vale). Falta **testar o link de convite** no app instalado pela loja: ele
+       deve abrir direto no app, sem o seletor "abrir com". Um APK do EAS instalado à mão é
+       assinado pela chave de upload e não bate com este fingerprint.
 6. [ ] **Juntar os 9 testadores que faltam** (Gmail + Android) e mandar o convite do teste
        fechado; o relógio dos 14 dias só começa quando os 12 aceitarem.
 7. [ ] **Teste fechado por 14 dias seguidos**, depois pedir produção.
