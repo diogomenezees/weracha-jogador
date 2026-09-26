@@ -39,6 +39,14 @@
             }
           ]
         }
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -60,7 +68,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "O WeRacha usa suas fotos pra você escolher a foto de perfil."
+          "photosPermission": "O WeRacha usa suas fotos pra você escolher a foto de perfil.",
+          "microphonePermission": false
         }
       ],
       "expo-video",
@@ -68,9 +77,7 @@
         "expo-media-library",
         {
           "savePhotosPermission": "O WeRacha salva os replays que você baixa na sua galeria.",
-          "granularPermissions": [
-            "video"
-          ]
+          "granularPermissions": []
         }
       ],
       [

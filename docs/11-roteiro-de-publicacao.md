@@ -52,6 +52,24 @@ primeiro.
   menor que 1 KB e não pede mais permissão de galeria (o seletor do sistema não precisa). Testado
   no aparelho: a troca de foto funciona. **O APK de preview antigo ainda tem o bug**, só o próximo
   build leva a correção.
+- **AAB de produção no teste interno (2026-09-26).** Dois builds de produção no EAS: o
+  versionCode 2 voltou da Play com o **erro "permissões de fotos e vídeos precisam da declaração
+  de funcionalidade principal"**. Causa: o plugin do `expo-media-library` (`READ_MEDIA_VIDEO`,
+  `READ_MEDIA_VISUAL_USER_SELECTED`, `READ_EXTERNAL_STORAGE`) e o do `expo-image-picker`
+  (`RECORD_AUDIO`) adicionavam permissões que o app não usa. Correção no `app.json`:
+  `microphonePermission: false` no image-picker, `granularPermissions: []` no media-library e
+  `android.blockedPermissions` com `READ_MEDIA_*`, `READ_EXTERNAL_STORAGE` e `RECORD_AUDIO`. Sobram
+  no manifesto `INTERNET`, `VIBRATE`, `SYSTEM_ALERT_WINDOW` (padrão do Expo) e
+  `WRITE_EXTERNAL_STORAGE` (só até o Android 12). O versionCode 3 subiu limpo (sobrou só o aviso
+  inofensivo do arquivo de desofuscação: o R8/ProGuard não está ligado, não há o que enviar) e
+  está publicado no **teste interno**, "Disponível para testadores internos", 31,6 MB, API 24+.
+  **Risco a testar no aparelho:** o "Baixar vídeo" sem nenhuma permissão de leitura. Pelo código do
+  `expo-media-library`, no Android 13+ a gravação (`writeOnly`) não pede permissão nenhuma, mas
+  isso só se confirma num build. Dica: se descartar uma versão na Play, o pacote continua na
+  biblioteca e o mesmo versionCode não pode ser reenviado: usar "Adicionar da biblioteca".
+  O nome "(unreviewed)" que aparece na loja é normal até a ficha ser revisada.
+- **Política de privacidade e selo "Em breve, Na Google Play" no ar (2026-09-26).** Ver a spec 12
+  do site.
 - **Seletor Local/Produção escondido em build de release (2026-09-26).** Só aparece em
   desenvolvimento (`PODE_ESCOLHER_SERVIDOR = __DEV__` em `src/config/servidor.ts`); no APK/AAB o
   app fala sempre com `https://weracha.app` e ignora um "local" guardado.
@@ -99,9 +117,12 @@ no Expo Go**, depois gerar o build no EAS e só então subir na Play. Ordem:
 2. [x] **Fechar o que bloqueia a loja no código** (fases 1 e 3): seletor Local/Produção
        escondido e Sentry configurado (2026-09-26). Do Cam ainda falta, se for pra loja. O Data
        safety já ganhou "Registros de falhas" e "Diagnóstico" por causa do Sentry (2026-09-26).
-3. [ ] **Gerar o AAB:** `npx eas-cli build -p android --profile production` (cota mensal do EAS:
-       juntar as mudanças antes; o `versionCode` sobe sozinho).
-4. [ ] **Subir o AAB no teste interno** e conferir que instala pela loja.
+3. [x] **Gerar o AAB** (feito em 2026-09-26, versionCode 3; cota mensal do EAS: cada build
+       gasta uma unidade, então juntar as mudanças antes de gerar outro).
+4. [~] **Subir o AAB no teste interno** (feito, publicado). Falta **instalar pela loja no
+       celular**: ao tocar em "Download test app" a Play respondeu "item não encontrado",
+       provavelmente propagação (pode levar de minutos a 1 ou 2 horas no 1º envio). Conferir a
+       lista de testadores marcada e a conta certa no celular.
 5. [ ] **`assetlinks.json`:** pegar o SHA-256 da chave de assinatura no console (Integridade do
        app) e preencher no site, senão o link de convite abre o seletor "abrir com".
 6. [ ] **Juntar os 9 testadores que faltam** (Gmail + Android) e mandar o convite do teste
