@@ -304,6 +304,9 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
     } catch (e) {
       // Senha errada numa conta com_senha volta aqui. Mensagem clara pelo código.
       setErro(mensagemDoErro(e));
+      // Limpa a senha: sem isso a tela fica idêntica depois de cada tentativa
+      // (mesma senha, mesma mensagem) e parece que o botão travou.
+      if (e instanceof ErroApi && e.codigo === "SENHA_INCORRETA") setSenha("");
     } finally {
       setOcupado(false);
     }
@@ -364,7 +367,7 @@ export function useFluxoAcesso({ urlBase, entrar, chamarApi }: Deps) {
     passo === "reset"
       ? "Redefinir senha"
       : passo === "telefone"
-        ? "Entrar"
+        ? "Bora jogar?"
         : passo === "verificar"
           ? status?.estado === "novo"
             ? "Criar conta"

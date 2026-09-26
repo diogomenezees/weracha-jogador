@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { Check } from "@/ui/Icone";
+import { LogoWeRacha } from "@/ui/LogoWeRacha";
 import { MenuAcoes } from "@/grupo/MenuAcoes";
 import { PODE_ESCOLHER_SERVIDOR, rotuloDoAmbiente, type Ambiente } from "@/config/servidor";
 import { abrirNoNavegador, URL_CONTATO, URL_PRIVACIDADE, URL_TERMOS } from "@/config/links";
@@ -16,6 +24,7 @@ import {
   CaixaErro,
   CampoComRotulo,
   CampoSenha,
+  CampoTelefone,
   Cartao,
   Eyebrow,
   LinkBotao,
@@ -23,6 +32,7 @@ import {
 import { useFluxoAcesso } from "@/acesso/useFluxoAcesso";
 
 const AVISO_SPAM_APOS = 1;
+
 
 function formatarCooldown(segundos: number): string {
   if (segundos < 60) return `${segundos}s`;
@@ -35,6 +45,8 @@ export function TelaAcesso() {
   const { estado, ambiente, urlBase, entrar, trocarAmbiente, chamarApi } = useSessao();
   const f = useFluxoAcesso({ urlBase, entrar, chamarApi });
   const [servidorAberto, setServidorAberto] = useState(false);
+  const [paisAberto, setPaisAberto] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // Rede de segurança: `concluirLogin` é quem sempre navega explícito quando a
   // sessão vira "logado" (destino do convite, ou /painel no caso comum) — mas
@@ -87,17 +99,28 @@ export function TelaAcesso() {
         ? "Enviamos um código de 6 dígitos por SMS pro número digitado."
         : f.passo === "verificar"
           ? "Confirme que esse telefone é seu pra continuar."
-          : "Você entra com telefone e senha, sem e-mail. Se for a primeira vez, a conta é criada na hora.";
+          : f.passo === "senha" && f.status?.estado === "com_senha"
+            ? "Digite sua senha pra entrar."
+            : f.passo === "senha"
+              ? "Falta pouco. Escolha uma senha pra entrar nas próximas vezes."
+              : "Digite seu celular pra entrar. Criamos a sua conta se for a primeira vez.";
 
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: 32 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.marcaLinha}>
+            <LogoWeRacha tamanho={56} />
+            <Text style={styles.marca}>
+              We<Text style={styles.marcaForte}>Racha</Text>
+            </Text>
+          </View>
+
           <Cartao>
             <View>
               <Eyebrow>Acesso</Eyebrow>
@@ -105,8 +128,9 @@ export function TelaAcesso() {
               <Text style={[tipografia.subtitulo, styles.subtitulo]}>{subtitulo}</Text>
             </View>
 
-            <CampoComRotulo
+            <CampoTelefone
               rotulo="Telefone"
+              onPais={() => setPaisAberto(true)}
               value={f.telefone}
               onChangeText={f.aoMudarTelefone}
               placeholder="(11) 90000-0000"
@@ -298,6 +322,7 @@ export function TelaAcesso() {
                   onAlternar={() => f.setMostrarSenha(!f.mostrarSenha)}
                   editable={!f.ocupado}
                 />
+                <LinkBotao titulo="Lembrei minha senha" onPress={f.voltarParaLogin} />
                 {f.erro ? <CaixaErro>{f.erro}</CaixaErro> : null}
                 {f.mostrarIrParaLogin ? (
                   <LinkBotao titulo="Ir pro login" onPress={f.voltarParaLogin} />
@@ -319,7 +344,6 @@ export function TelaAcesso() {
                     desabilitado={f.cooldownReenvio > 0 || f.ocupado}
                   />
                 </View>
-                <LinkBotao titulo="Lembrei minha senha" onPress={f.voltarParaLogin} />
               </>
             )}
 
@@ -360,18 +384,33 @@ export function TelaAcesso() {
         itens={itensServidor}
         onFechar={() => setServidorAberto(false)}
       />
+      <MenuAcoes
+        aberto={paisAberto}
+        titulo="Por enquanto, só no Brasil"
+        itens={[{ rotulo: "🇧🇷  Brasil (+55)", Icone: Check, onPress: () => {} }]}
+        onFechar={() => setPaisAberto(false)}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
+  marcaLinha: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  marca: { fontSize: 30, fontWeight: "700", color: cores.branco },
+  marcaForte: { color: cores.teal },
   centroCarregando: { flex: 1, alignItems: "center", justifyContent: "center" },
   flex: { flex: 1 },
   scroll: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 32,
     gap: 16,
   },

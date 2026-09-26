@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, TextInput, type TextInputProp
 import { Text } from "@/ui/Texto";
 
 import { cores, raio, tipografia } from "@/tema";
+import { ChevronDown, Eye, EyeOff } from "@/ui/Icone";
 
 // Peças de UI da tela de acesso, espelhando o site (weracha-site/app/login e
 // /esqueci-senha): card com borda teal, eyebrow com barrinha laranja, campos
@@ -43,21 +44,73 @@ export function CampoComRotulo({
   );
 }
 
+/**
+ * Telefone com o país na frente, no formato de "select" (bandeira + DDI). Por
+ * enquanto só existe o Brasil: o toque em `onPais` abre um menu com essa
+ * única opção, pra deixar claro que o app é só pra números brasileiros.
+ */
+export function CampoTelefone({
+  rotulo,
+  onPais,
+  ...props
+}: TextInputProps & { rotulo: string; onPais: () => void }) {
+  const inativo = props.editable === false;
+  return (
+    <View style={styles.campoBloco}>
+      <Text style={tipografia.rotulo}>{rotulo}</Text>
+      <View style={[styles.campo, styles.campoComAcessorio]}>
+        <Pressable
+          onPress={onPais}
+          disabled={inativo}
+          hitSlop={4}
+          style={styles.pais}
+          accessibilityRole="button"
+          accessibilityLabel="País: Brasil, +55"
+        >
+          <Text style={styles.bandeira}>🇧🇷</Text>
+          <Text style={styles.ddi}>+55</Text>
+          <ChevronDown size={14} color={cores.slate500} />
+        </Pressable>
+        <View style={styles.divisor} />
+        <TextInput
+          placeholderTextColor={cores.slate500}
+          {...props}
+          style={[styles.campoInterno, props.style]}
+        />
+      </View>
+    </View>
+  );
+}
+
 export function CampoSenha({
   rotulo,
   mostrar,
   onAlternar,
   ...props
 }: TextInputProps & { rotulo: string; mostrar: boolean; onAlternar: () => void }) {
+  const Olho = mostrar ? EyeOff : Eye;
   return (
     <View style={styles.campoBloco}>
-      <View style={styles.senhaRotuloLinha}>
-        <Text style={tipografia.rotulo}>{rotulo}</Text>
-        <Pressable onPress={onAlternar} hitSlop={8}>
-          <Text style={styles.link}>{mostrar ? "Ocultar" : "Mostrar"}</Text>
+      <Text style={tipografia.rotulo}>{rotulo}</Text>
+      <View style={[styles.campo, styles.campoComAcessorio, styles.campoSenha]}>
+        <TextInput
+          placeholderTextColor={cores.slate500}
+          secureTextEntry={!mostrar}
+          autoCapitalize="none"
+          autoCorrect={false}
+          {...props}
+          style={[styles.campoInterno, props.style]}
+        />
+        <Pressable
+          onPress={onAlternar}
+          hitSlop={8}
+          style={styles.olho}
+          accessibilityRole="button"
+          accessibilityLabel={mostrar ? "Ocultar senha" : "Mostrar senha"}
+        >
+          <Olho size={20} color={cores.slate400} />
         </Pressable>
       </View>
-      <Campo secureTextEntry={!mostrar} autoCapitalize="none" autoCorrect={false} {...props} />
     </View>
   );
 }
@@ -95,7 +148,11 @@ export function BotaoPrimario({
     <Pressable
       onPress={onPress}
       disabled={inativo}
-      style={[styles.botao, inativo && styles.botaoInativo]}
+      style={({ pressed }) => [
+        styles.botao,
+        pressed && styles.botaoPressionado,
+        inativo && styles.botaoInativo,
+      ]}
     >
       {carregando ? (
         <ActivityIndicator color={cores.dark} />
@@ -132,8 +189,10 @@ const styles = StyleSheet.create({
     borderRadius: raio.card,
     borderWidth: 1,
     borderColor: cores.cardBorda,
-    backgroundColor: cores.cardFundo,
-    padding: 24,
+    // Mesma cor do fundo da tela: o cartão se destaca só pela borda teal.
+    backgroundColor: cores.dark,
+    paddingHorizontal: 16,
+    paddingVertical: 22,
     gap: 16,
   },
   campoBloco: { gap: 6 },
@@ -147,7 +206,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: cores.branco,
   },
-  senhaRotuloLinha: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  campoComAcessorio: { flexDirection: "row", alignItems: "center" },
+  campoInterno: { flex: 1, height: "100%", fontSize: 16, color: cores.branco, padding: 0 },
+  campoSenha: { paddingRight: 4 },
+  olho: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
+  pais: { flexDirection: "row", alignItems: "center", gap: 6, height: "100%" },
+  bandeira: { fontSize: 18 },
+  ddi: { fontSize: 16, color: cores.branco, fontWeight: "500" },
+  divisor: { width: 1, height: 22, backgroundColor: cores.campoBorda, marginHorizontal: 12 },
   aviso: {
     flexDirection: "row",
     gap: 10,
@@ -183,6 +249,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   botaoInativo: { opacity: 0.6 },
+  botaoPressionado: { opacity: 0.75, transform: [{ scale: 0.98 }] },
   botaoTexto: { color: cores.dark, fontSize: 16, fontWeight: "700" },
   link: { color: cores.slate400, fontSize: 14 },
   linkInativo: { opacity: 0.5 },
