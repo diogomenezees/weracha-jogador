@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Linking, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -15,6 +15,8 @@ import {
   removerJogador,
   transferirDono,
 } from "@/api/jogadores";
+import { obterConvite } from "@/api/grupos";
+import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { ModalConfirmar } from "@/grupo/modais";
@@ -33,6 +35,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldOff,
+  Share2,
   Star,
   Trash2,
   UserCog,
@@ -121,6 +124,27 @@ export default function GerenciarJogadores() {
       // mantém
     }
   }, [carregar]);
+
+  // Convite do grupo (sem partida), pro admin encaminhar direto daqui. Mesmo
+  // link do modal "Convidar jogadores" da tela do grupo.
+  async function compartilharConvite() {
+    if (!dados?.grupo) return;
+    let token: string;
+    try {
+      token = await obterConvite(chamarApi, id);
+    } catch (e) {
+      avisar("Não deu certo", mensagemDoErro(e));
+      return;
+    }
+    const msg =
+      `Bora jogar? Você foi convidado pro grupo ${dados.grupo.nome} no WeRacha.\n\n` +
+      `Entra no link pra fazer parte da turma:\n${PRODUCAO_URL}/convite/${token}`;
+    try {
+      await Share.share({ message: msg });
+    } catch {
+      // usuário cancelou
+    }
+  }
 
   async function acao(fn: () => Promise<unknown>) {
     try {
@@ -358,7 +382,20 @@ export default function GerenciarJogadores() {
         <View style={styles.cabecalho}>
           <View style={styles.tituloLinha}>
             <UserCog size={18} color={cores.branco} />
-            <Text style={styles.h1}>{souAdmin ? "Gerenciar jogadores" : "Jogadores do grupo"}</Text>
+            <Text style={[styles.h1, { flexShrink: 1 }]} numberOfLines={1}>
+              {souAdmin ? "Gerenciar jogadores" : "Jogadores do grupo"}
+            </Text>
+            {souAdmin && (
+              <Pressable
+                style={styles.compartilharConvite}
+                onPress={() => void compartilharConvite()}
+                hitSlop={6}
+                accessibilityRole="button"
+                accessibilityLabel="Compartilhar convite do grupo"
+              >
+                <Share2 size={18} color={cores.orange} />
+              </Pressable>
+            )}
           </View>
           <View style={styles.subLinha}>
             <Users size={12} color={cores.slate400} />
@@ -616,6 +653,14 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 120, gap: 12 },
   cabecalho: { gap: 4 },
   tituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  compartilharConvite: {
+    marginLeft: "auto",
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   h1: { fontSize: 23, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
   subNome: { flexShrink: 1, fontSize: 13, color: cores.slate400 },

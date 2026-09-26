@@ -12,6 +12,7 @@ import {
   buscarResultadoAtivo,
   cancelarGol,
   corrigirGols,
+  editarDescricaoPartida,
   migrarGol,
   reativarGol,
   refazerSorteio,
@@ -19,7 +20,8 @@ import {
 import { buscarComentariosEmLote } from "@/api/resenha";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
-import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
+import { PainelAdicionarJogador } from "@/partida/PainelAdicionarJogador";
+import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { CardsReplay } from "@/partida/CardsReplay";
 import { PainelGols } from "@/partida/PainelGols";
@@ -44,6 +46,7 @@ import {
   EllipsisVertical,
   Goal,
   MapPin,
+  NotebookPen,
   Plus,
   Radio,
   RotateCcw,
@@ -53,6 +56,7 @@ import {
   Shuffle,
   Star,
   TriangleAlert,
+  UserPlus,
   X,
 } from "@/ui/Icone";
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
@@ -109,7 +113,12 @@ export default function TelaResultado() {
   const [verScore, setVerScore] = useState(false);
   const [menuGol, setMenuGol] = useState<GolComVideos | null>(null);
   const [menuMais, setMenuMais] = useState(false);
+  const [adicionandoJogador, setAdicionandoJogador] = useState(false);
   const [confirmarRefazer, setConfirmarRefazer] = useState(false);
+  const [editandoDescricao, setEditandoDescricao] = useState(false);
+  const [textoDescricao, setTextoDescricao] = useState("");
+  const [salvandoDescricao, setSalvandoDescricao] = useState(false);
+  const [erroDescricao, setErroDescricao] = useState<string | null>(null);
   const [adicionarGol, setAdicionarGol] = useState(false);
   const [migrar, setMigrar] = useState<GolComVideos | null>(null);
   // Gol que o menu pediu pra cancelar: confirma antes (igual ao site).
@@ -184,6 +193,21 @@ export default function TelaResultado() {
       vivo = false;
     };
   }, [carregar, tentativa]);
+
+  async function salvarDescricao() {
+    if (!partida) return;
+    setSalvandoDescricao(true);
+    setErroDescricao(null);
+    try {
+      await editarDescricaoPartida(chamarApi, partida.id, textoDescricao);
+      setPartida({ ...partida, descricao: textoDescricao.trim() || null });
+      setEditandoDescricao(false);
+    } catch (e) {
+      setErroDescricao(mensagemDoErro(e));
+    } finally {
+      setSalvandoDescricao(false);
+    }
+  }
 
   async function recarregarGols() {
     try {
@@ -435,17 +459,18 @@ export default function TelaResultado() {
                     corHex={montado.coresTimes[i] ?? null}
                   />
                 ))}
-                {montado.proximos.length > 0 && (
+                {montado.timesDosProximos.map((time, i) => (
                   <CardTime
-                    numero={montado.times.length + 1}
-                    jogadores={montado.proximos}
+                    key={`proximo-${i}`}
+                    numero={montado.times.length + i + 1}
+                    jogadores={time}
                     mostrarScore={!!souAdmin && verScore}
                     badge="proximo"
                     comecaComABola={false}
                     escolheLado={false}
                     corHex={null}
                   />
-                )}
+                ))}
               </>
             )}
           </View>
@@ -574,6 +599,30 @@ export default function TelaResultado() {
         aberto={menuMais}
         titulo="Times"
         itens={[
+          ...(souAdmin
+            ? [
+                {
+                  rotulo: p.descricao ? "Editar descrição" : "Adicionar descrição",
+                  Icone: NotebookPen,
+                  onPress: () => {
+                    setTextoDescricao(p.descricao ?? "");
+                    setErroDescricao(null);
+                    setEditandoDescricao(true);
+                  },
+                } as ItemMenu,
+              ]
+            : []),
+          // Check-in de quem chegou com o jogo rolando, sem sair da tela; entra
+          // nos times dos próximos.
+          ...(souAdmin && !encerrada
+            ? [
+                {
+                  rotulo: "Adicionar jogador",
+                  Icone: UserPlus,
+                  onPress: () => setAdicionandoJogador(true),
+                } as ItemMenu,
+              ]
+            : []),
           {
             rotulo: "Compartilhar resultado",
             Icone: Share2,
@@ -592,6 +641,33 @@ export default function TelaResultado() {
             : []),
         ]}
         onFechar={() => setMenuMais(false)}
+      />
+
+      {souAdmin && !encerrada && (
+        <PainelAdicionarJogador
+          aberto={adicionandoJogador}
+          chamarApi={chamarApi}
+          grupoId={g.id}
+          esporte={g.esporte}
+          partidaId={partidaId}
+          onFechar={() => setAdicionandoJogador(false)}
+          onAdicionado={() => void carregar().catch(() => {})}
+        />
+      )}
+
+      <ModalTexto
+        aberto={editandoDescricao}
+        Icone={NotebookPen}
+        eyebrow="Descrição da partida"
+        titulo={p.descricao ? "Editar descrição" : "Adicionar descrição"}
+        descricao="Visível pra todo mundo do grupo."
+        placeholder="Ex.: hoje vamos de camiseta amarela."
+        valor={textoDescricao}
+        onChangeValor={setTextoDescricao}
+        ocupado={salvandoDescricao}
+        erro={erroDescricao}
+        onSalvar={() => void salvarDescricao()}
+        onFechar={() => setEditandoDescricao(false)}
       />
 
       <MenuAcoes

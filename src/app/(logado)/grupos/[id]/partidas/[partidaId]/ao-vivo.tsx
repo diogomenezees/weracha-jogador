@@ -6,6 +6,7 @@ import { Text } from "@/ui/Texto";
 import { Comemoracao } from "@/partida/Comemoracao";
 import {
   ArrowDownAZ,
+  EllipsisVertical,
   Goal,
   Pause,
   Play,
@@ -13,6 +14,7 @@ import {
   RotateCcw,
   Sparkles,
   Timer,
+  UserPlus,
   Video,
 } from "@/ui/Icone";
 
@@ -33,6 +35,8 @@ import {
 } from "@/api/partidas";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
+import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
+import { PainelAdicionarJogador } from "@/partida/PainelAdicionarJogador";
 import { ModalPerfil } from "@/jogadores/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { CardsReplay } from "@/partida/CardsReplay";
@@ -99,6 +103,8 @@ export default function TelaAoVivo() {
   const [desmarcar, setDesmarcar] = useState<JogadorEmPartida | null>(null);
   const [confirmarReset, setConfirmarReset] = useState(false);
   const [modalConfig, setModalConfig] = useState(false);
+  const [menuMais, setMenuMais] = useState(false);
+  const [adicionandoJogador, setAdicionandoJogador] = useState(false);
   const [perfilId, setPerfilId] = useState<string | null>(null);
 
   const [comemoracao, setComemoracao] = useState<{
@@ -342,10 +348,41 @@ export default function TelaAoVivo() {
     ...(mostrarAbaLances ? [{ chave: "LANCES" as Aba, rotulo: "Lances" }] : []),
   ];
 
+  // "Editar cronômetro" morava num link dentro do cartão do cronômetro; no menu
+  // a tela fica mais curta. Sem cronômetro, o convite "Incluir cronômetro na
+  // partida?" continua no corpo. Mesmo menu do site.
+  const souAdmin = g.meuPapel === "ADMIN";
+  const itensMenu: ItemMenu[] = [
+    ...(config.duracaoRodadaMin > 0
+      ? [{ rotulo: "Editar cronômetro", Icone: Timer, onPress: () => setModalConfig(true) }]
+      : []),
+    // Check-in de quem chegou com o jogo rolando, sem sair do placar; entra nos
+    // times dos próximos.
+    ...(souAdmin
+      ? [{ rotulo: "Adicionar jogador", Icone: UserPlus, onPress: () => setAdicionandoJogador(true) }]
+      : []),
+  ];
+
   return (
     <TelaPartida voltar="Times" onVoltar={irParaTimes}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Cabecalho titulo="Ao vivo" Icone={Radio} grupoNome={g.nome} descricao={p.descricao} />
+        <Cabecalho
+          titulo="Ao vivo"
+          Icone={Radio}
+          grupoNome={g.nome}
+          descricao={p.descricao}
+          direita={
+            itensMenu.length > 0 ? (
+              <Pressable
+                hitSlop={8}
+                accessibilityLabel="Mais opções do ao vivo"
+                onPress={() => setMenuMais(true)}
+              >
+                <EllipsisVertical size={20} color={cores.slate300} />
+              </Pressable>
+            ) : undefined
+          }
+        />
         {config.duracaoRodadaMin > 0 ? (
           <View
             style={[
@@ -395,9 +432,6 @@ export default function TelaAoVivo() {
                 <Text style={styles.cronBtnTexto}>+30s</Text>
               </Pressable>
             </View>
-            <Pressable onPress={() => setModalConfig(true)}>
-              <Text style={styles.cronEditar}>Editar cronômetro</Text>
-            </Pressable>
             {erroAcao && <Text style={styles.cronErro}>{erroAcao}</Text>}
           </View>
         ) : (
@@ -609,6 +643,25 @@ export default function TelaAoVivo() {
         onFechar={() => setConfirmarReset(false)}
       />
 
+      <MenuAcoes
+        aberto={menuMais}
+        titulo="Ao vivo"
+        itens={itensMenu}
+        onFechar={() => setMenuMais(false)}
+      />
+
+      {souAdmin && (
+        <PainelAdicionarJogador
+          aberto={adicionandoJogador}
+          chamarApi={chamarApi}
+          grupoId={g.id}
+          esporte={g.esporte}
+          partidaId={partidaId}
+          onFechar={() => setAdicionandoJogador(false)}
+          onAdicionado={() => setTentativa((t) => t + 1)}
+        />
+      )}
+
       {modalConfig && (
         <ModalEditarCronometro
           config={config}
@@ -735,7 +788,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cronEditar: { fontSize: 12, color: cores.teal, textDecorationLine: "underline" },
   cronErro: { fontSize: 12, color: cores.erroTexto },
   semCron: {
     borderRadius: raio.campo,

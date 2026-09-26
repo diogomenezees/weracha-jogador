@@ -108,9 +108,16 @@ guarda `MeuPerfil` e expõe `recarregarPerfil` / `marcarOnboardingConcluido`
   completa de `weracha-site/app/grupos/[id]/page.tsx` com **tudo de admin** —
   editar nome/descrição, cancelar (com justificativa) / reativar / excluir
   partida, adicionar partida avulsa, renovar mês, vincular/cadastrar quadra,
-  gerar/regenerar link de convite, sair do grupo. Menu "mais opções" virou
+  convidar jogadores (modal com o nome do grupo, "Link de convite" copia o link
+  do grupo sem partida, "Gerar novo convite" regenera com confirmação — igual
+  ao site), sair do grupo. Menu "mais opções" virou
   action sheet de baixo (`src/grupo/MenuAcoes.tsx` — `Alert.alert` do RN só
-  mostra 3 botões no Android). Modais reusáveis em `src/grupo/modais.tsx`.
+  mostra 3 botões no Android). Desde 2026-09-26 é um bottom sheet arrastável
+  (barrinha no topo, arrasta pra baixo pra fechar; gesture-handler + reanimated,
+  sem lib de sheet) — vale pra todos os menus do app. A folha em si é
+  `src/ui/FolhaArrastavel.tsx`, também usada pelo formulário "Adicionar
+  jogador" (arrasta só pelo topo; com teclado aberto o 1º puxão só fecha o
+  teclado; fechar descarta o digitado). Modais reusáveis em `src/grupo/modais.tsx`.
   Compartilhar convite = `Share` do RN (texto, sem a imagem que o site gera);
   copiar link = `expo-clipboard`. Helpers de janela de check-in / partida
   portados pra `src/partidas.ts` (sem o fuso SP explícito: o cliente é local).

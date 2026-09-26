@@ -23,6 +23,10 @@ export type JogadorNoTime = {
 export type ResultadoMontado = {
   times: JogadorNoTime[][];
   proximos: JogadorNoTime[];
+  // `proximos` em ordem de check-in, fatiado no tamanho do time do sorteio: quem
+  // chega depois forma os times seguintes (o último pode ficar incompleto) em vez
+  // de todo mundo cair num card só.
+  timesDosProximos: JogadorNoTime[][];
   comecaComABola: number | null;
   ladoDireito: number | null;
   coresTimes: (string | null)[];
@@ -59,11 +63,19 @@ export function montarResultado(
   const proximos = checkins
     .filter((c) => !idsAlocados.has(c.jogadorId))
     .filter((c) => jogadorPorId.has(c.jogadorId))
+    .sort((a, b) => a.checkinEm.localeCompare(b.checkinEm))
     .map((c) => resolver(c.jogadorId));
+
+  const porTime = Math.max(1, salvo.jogadoresPorTime);
+  const timesDosProximos: JogadorNoTime[][] = [];
+  for (let i = 0; i < proximos.length; i += porTime) {
+    timesDosProximos.push(proximos.slice(i, i + porTime));
+  }
 
   return {
     times,
     proximos,
+    timesDosProximos,
     comecaComABola: salvo.comecaComABola,
     ladoDireito: salvo.ladoDireito,
     coresTimes: salvo.coresTimes ?? [],

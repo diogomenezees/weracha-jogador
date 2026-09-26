@@ -11,7 +11,7 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
 import { Navbar } from "@/ui/Navbar";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
-import { X } from "@/ui/Icone";
+import { Users, X } from "@/ui/Icone";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 
@@ -109,7 +109,14 @@ export default function NovaEnquete() {
       <ScrollTeclado contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View>
           <Text style={styles.h1}>Criar enquete</Text>
-          {grupoNome ? <Text style={styles.sub}>{grupoNome}</Text> : null}
+          {grupoNome ? (
+            <View style={styles.subLinha}>
+              <Users size={12} color={cores.slate400} />
+              <Text style={styles.sub} numberOfLines={1}>
+                {grupoNome}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.campo}>
@@ -206,7 +213,8 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
-  sub: { fontSize: 14, color: cores.slate400, marginTop: 2 },
+  subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
   campo: { gap: 8 },
   label: { fontSize: 13, fontWeight: "600", color: cores.slate300 },
   dica: { fontSize: 12, color: cores.slate500 },

@@ -477,8 +477,9 @@ const styles = StyleSheet.create({
     color: cores.slate500,
     textTransform: "uppercase",
   },
+  // Mesmo tamanho do <Eyebrow> ("Não fique parado") e dos títulos teal do site.
   rotuloSecaoTeal: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "600",
     letterSpacing: 2,
     color: cores.teal,

@@ -40,6 +40,7 @@ import {
   BarChart3,
   Calendar,
   CalendarPlus,
+  Check,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -55,9 +56,9 @@ import {
   RefreshCw,
   RotateCcw,
   Share2,
-  Star,
   Trash2,
   Trophy,
+  UserPlus,
   Users,
 } from "@/ui/Icone";
 import { PRODUCAO_URL } from "@/config/links";
@@ -91,7 +92,7 @@ import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
 import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/tipos";
 
-type Aba = "detalhe" | "quadra" | "horarios" | "adicionar" | null;
+type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
 
 export default function TelaGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -110,7 +111,12 @@ export default function TelaGrupo() {
   const [verTodasPassadas, setVerTodasPassadas] = useState(false);
   const [partidaSel, setPartidaSel] = useState<PartidaResumo | null>(null);
   const [tokenConvite, setTokenConvite] = useState<string | null>(null);
-  const [menu, setMenu] = useState<{ titulo?: string; itens: ItemMenu[] } | null>(null);
+  const [linkGrupoCopiado, setLinkGrupoCopiado] = useState(false);
+  const [menu, setMenu] = useState<{
+    titulo?: string;
+    icone?: LucideIcon;
+    itens: ItemMenu[];
+  } | null>(null);
   const [verDescricaoGrupo, setVerDescricaoGrupo] = useState(false);
 
   // Edições de texto (nome / descrição do grupo / descrição da partida).
@@ -220,9 +226,10 @@ export default function TelaGrupo() {
   const souAdmin = grupo?.meuPapel === "ADMIN";
   const souDono = !!grupo && grupo.adminId === meuId;
 
-  // Token de convite: busca quando o admin abre o detalhe de uma partida.
+  // Token de convite: busca quando o admin abre o detalhe de uma partida ou o
+  // modal "Convidar jogadores" do menu.
   useEffect(() => {
-    if (aba !== "detalhe" || !souAdmin || !grupo || tokenConvite) return;
+    if ((aba !== "detalhe" && aba !== "convidar") || !souAdmin || !grupo || tokenConvite) return;
     obterConvite(chamarApi, grupo.id)
       .then(setTokenConvite)
       .catch(() => {});
@@ -270,9 +277,9 @@ export default function TelaGrupo() {
           onPress: () => iniciarEdicao({ tipo: "descGrupo" }, grupo.descricao ?? ""),
         },
         {
-          rotulo: "Gerar link de convite novo",
-          Icone: RefreshCw,
-          onPress: () => setConfirmando({ tipo: "novoLink" }),
+          rotulo: "Convidar jogadores",
+          Icone: UserPlus,
+          onPress: () => setAba("convidar"),
         }
       );
       if (dados && dados.idsComResultado.length === 0) {
@@ -292,11 +299,12 @@ export default function TelaGrupo() {
         souDono
           ? avisar(
               "Você é o dono",
-              "Pra sair, transfira o grupo pra outra pessoa admin primeiro (pelo site, em Gerenciar jogadores)."
+              "Pra sair, transfira o grupo pra outra pessoa admin primeiro (pelo site, em Gerenciar jogadores).",
+              { eyebrow: "Sair do grupo", Icone: LogOut }
             )
           : setConfirmando({ tipo: "sair" }),
     });
-    setMenu({ titulo: grupo.nome, itens });
+    setMenu({ titulo: grupo.nome, icone: Users, itens });
   }
 
   function abrirMenuPartida(p: PartidaResumo, temResultado: boolean) {
@@ -335,7 +343,7 @@ export default function TelaGrupo() {
         });
       }
     }
-    setMenu({ titulo: "Opções da partida", itens });
+    setMenu({ titulo: "Opções da partida", icone: Calendar, itens });
   }
 
   // ---- Edições -----------------------------------------------------------
@@ -391,7 +399,10 @@ export default function TelaGrupo() {
         router.replace("/painel");
       } else if (confirmando.tipo === "novoLink") {
         setTokenConvite(await regenerarConvite(chamarApi, grupo.id));
+        setLinkGrupoCopiado(false);
         setConfirmando(null);
+        // Volta pro modal de convite já com o link novo pronto pra copiar.
+        setAba("convidar");
       } else if (confirmando.tipo === "excluirPartida") {
         await excluirPartida(chamarApi, confirmando.partidaId);
         setConfirmando(null);
@@ -507,6 +518,16 @@ export default function TelaGrupo() {
     // nativa de "copiado pra área de transferência" sozinhos, o usuário já
     // conhece esse aviso — um aviso por cima seria feio e redundante.
     await Clipboard.setStringAsync(linkConvite(p));
+  }
+
+  // Link do grupo sem ?partida= — convite genérico, aberto pelo menu. Aqui o
+  // botão é grande e troca o texto (diferente do ícone do detalhe da partida,
+  // que só pisca a borda).
+  async function copiarLinkDoGrupo() {
+    if (!tokenConvite) return;
+    await Clipboard.setStringAsync(linkConvite(null));
+    setLinkGrupoCopiado(true);
+    setTimeout(() => setLinkGrupoCopiado(false), 2000);
   }
 
   async function chamarGalera() {
@@ -653,10 +674,6 @@ export default function TelaGrupo() {
               <Clock size={12} color={cores.branco} />
               <Text style={styles.pillTexto}>Horários</Text>
             </Pressable>
-            <View style={[styles.pill, styles.pillCinza]}>
-              <Star size={12} color={cores.zinc500} />
-              <Text style={[styles.pillTexto, styles.pillTextoCinza]}>Score {grupo.meuScore}</Text>
-            </View>
           </View>
         </View>
 
@@ -835,6 +852,44 @@ export default function TelaGrupo() {
         )}
       </ModalCartao>
 
+      {/* Modal: convidar jogadores (link do grupo, sem partida) */}
+      <ModalCartao aberto={aba === "convidar"} onFechar={() => setAba(null)}>
+        <View style={styles.modalEyebrowLinha}>
+          <UserPlus size={16} color={cores.teal} />
+          <Text style={styles.modalEyebrow}>Convidar jogadores</Text>
+        </View>
+        <View style={styles.convidarTituloLinha}>
+          <Users size={16} color={cores.branco} />
+          <Text style={[styles.modalTitulo, { flexShrink: 1 }]} numberOfLines={1}>
+            {grupo.nome}
+          </Text>
+        </View>
+        <Text style={styles.modalDesc}>Quem abrir o link entra direto no grupo.</Text>
+        <View style={styles.convidarAcoes}>
+          <Pressable
+            style={[styles.modalBotaoContorno, styles.convidarBotaoIcone]}
+            onPress={() => {
+              setAba(null);
+              setConfirmando({ tipo: "novoLink" });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Gerar novo convite"
+          >
+            <RefreshCw size={18} color={cores.branco} />
+          </Pressable>
+          <Pressable
+            style={[styles.modalBotao, styles.convidarBotaoLink, !tokenConvite && { opacity: 0.6 }]}
+            onPress={() => void copiarLinkDoGrupo()}
+            disabled={!tokenConvite}
+          >
+            {linkGrupoCopiado ? <Check size={16} color={cores.dark} /> : <Copy size={16} color={cores.dark} />}
+            <Text style={styles.modalBotaoTexto}>
+              {!tokenConvite ? "Carregando link..." : linkGrupoCopiado ? "Link copiado!" : "Link de convite"}
+            </Text>
+          </Pressable>
+        </View>
+      </ModalCartao>
+
       {/* Modal: quadra */}
       <ModalCartao aberto={aba === "quadra"} onFechar={() => setAba(null)}>
         <ModalQuadra
@@ -906,6 +961,7 @@ export default function TelaGrupo() {
       {/* Edição de texto (nome / descrições / justificativa de cancelamento) */}
       <ModalTexto
         aberto={editando?.tipo === "nome"}
+        Icone={Pencil}
         eyebrow="Grupo"
         titulo="Editar nome"
         valor={textoEdit}
@@ -918,6 +974,7 @@ export default function TelaGrupo() {
       />
       <ModalTexto
         aberto={editando?.tipo === "descGrupo"}
+        Icone={NotebookPen}
         eyebrow="Descrição do grupo"
         titulo={grupo.descricao ? "Editar descrição" : "Adicionar descrição"}
         descricao="Visível pra todo mundo do grupo."
@@ -958,6 +1015,7 @@ export default function TelaGrupo() {
       </ModalCartao>
       <ModalTexto
         aberto={editando?.tipo === "descPartida"}
+        Icone={NotebookPen}
         eyebrow="Descrição da partida"
         titulo="Descrição da partida"
         descricao="Visível pra todo mundo do grupo. Use pra avisos do dia."
@@ -971,6 +1029,7 @@ export default function TelaGrupo() {
       />
       <ModalTexto
         aberto={editando?.tipo === "cancelarPartida"}
+        Icone={Ban}
         eyebrow="Cancelar partida"
         titulo="Justificativa do cancelamento"
         descricao="Conta rapidinho por que a partida foi cancelada."
@@ -988,6 +1047,7 @@ export default function TelaGrupo() {
       <MenuAcoes
         aberto={menu !== null}
         titulo={menu?.titulo}
+        IconeTitulo={menu?.icone}
         itens={menu?.itens ?? []}
         onFechar={() => setMenu(null)}
       />
@@ -995,6 +1055,7 @@ export default function TelaGrupo() {
       {/* Confirmações */}
       <ModalConfirmar
         aberto={confirmando?.tipo === "excluirGrupo"}
+        Icone={Trash2}
         eyebrow="Ação irreversível"
         titulo="Excluir grupo?"
         descricao={`O grupo "${grupo.nome}" some do painel pra todo mundo.`}
@@ -1007,6 +1068,7 @@ export default function TelaGrupo() {
       />
       <ModalConfirmar
         aberto={confirmando?.tipo === "sair"}
+        Icone={LogOut}
         eyebrow="Sair do grupo"
         titulo="Tem certeza que quer sair?"
         descricao="Você sai do elenco e perde acesso a artilheiros, enquetes e resenha. Dá pra voltar por um convite novo."
@@ -1019,6 +1081,7 @@ export default function TelaGrupo() {
       />
       <ModalConfirmar
         aberto={confirmando?.tipo === "novoLink"}
+        Icone={RefreshCw}
         eyebrow="Convite"
         titulo="Gerar link de convite novo?"
         descricao="O link antigo para de funcionar na hora. Quem já entrou continua normalmente."
@@ -1026,10 +1089,11 @@ export default function TelaGrupo() {
         ocupado={confOcupado}
         erro={confErro}
         onConfirmar={() => void confirmar()}
-        onFechar={() => { setConfirmando(null); setConfErro(null); }}
+        onFechar={() => { setConfirmando(null); setConfErro(null); setAba("convidar"); }}
       />
       <ModalConfirmar
         aberto={confirmando?.tipo === "excluirPartida"}
+        Icone={Trash2}
         eyebrow="Ação irreversível"
         titulo="Excluir partida?"
         descricao="Essa partida some da lista do grupo."
@@ -1228,8 +1292,22 @@ function CardPartida({
             <View style={styles.partidaPendentePill}>
               <Text style={styles.partidaPendenteTexto}>Encerrada</Text>
             </View>
-          ) : (
+          ) : souAdmin ? null : (
             <ChevronRight size={18} color={cores.slate500} />
+          )}
+          {/* ⋮ dentro do cartão (e não ao lado) pra ele ocupar a largura toda,
+              alinhado com os banners. Pressable aninhado: o toque aqui não
+              chega no onAbrir do cartão. */}
+          {souAdmin && (
+            <Pressable
+              style={styles.cardMenu}
+              hitSlop={8}
+              onPress={onMenu}
+              accessibilityRole="button"
+              accessibilityLabel="Mais opções da partida"
+            >
+              <EllipsisVertical size={18} color={cores.slate400} />
+            </Pressable>
           )}
         </View>
         {/* Partida anterior não mostra a descrição no card (só na tela de resultado),
@@ -1240,11 +1318,6 @@ function CardPartida({
           </Text>
         ) : null}
       </Pressable>
-      {souAdmin && (
-        <Pressable style={styles.cardMenu} hitSlop={8} onPress={onMenu}>
-          <EllipsisVertical size={18} color={cores.slate400} />
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -1653,8 +1726,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   pillTexto: { fontSize: 12, fontWeight: "600", color: cores.branco },
-  pillCinza: { backgroundColor: "rgba(113, 113, 122, 0.15)" },
-  pillTextoCinza: { color: cores.zinc500 },
 
   banner: {
     flexDirection: "row",
@@ -1672,9 +1743,9 @@ const styles = StyleSheet.create({
   secao: { gap: 8 },
   secaoCabecalho: { gap: 4 },
   secaoTitulo: {
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 1.5,
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 2,
     color: cores.teal,
     textTransform: "uppercase",
   },
@@ -1753,7 +1824,7 @@ const styles = StyleSheet.create({
   concluidaTexto: { fontSize: 12, fontWeight: "600", color: "#6ee7b7" },
   partidaPendentePill: { backgroundColor: "rgba(100,116,139,0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   partidaPendenteTexto: { fontSize: 12, fontWeight: "600", color: cores.slate300 },
-  cardMenu: { padding: 6 },
+  cardMenu: { padding: 6, marginVertical: -6, marginRight: -8 },
 
   rodape: {
     position: "absolute",
@@ -1846,6 +1917,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  convidarTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  convidarAcoes: { flexDirection: "row", gap: 8, marginTop: 4 },
+  convidarBotaoIcone: { width: 48 },
+  convidarBotaoLink: { flex: 1, flexDirection: "row", gap: 8 },
   modalBotaoContornoTexto: { fontSize: 15, fontWeight: "600", color: cores.branco },
   modalLink: { fontSize: 14, fontWeight: "600", color: cores.teal },
 

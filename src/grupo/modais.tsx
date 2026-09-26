@@ -118,12 +118,14 @@ export function ModalConfirmar({
 // Aviso de um botão só (erro ou informação). Substitui o Alert.alert(titulo, texto).
 export function ModalAviso({
   aberto,
+  Icone,
   eyebrow = "Aviso",
   titulo,
   texto,
   onFechar,
 }: {
   aberto: boolean;
+  Icone?: LucideIcon;
   eyebrow?: string;
   titulo: string;
   texto: string;
@@ -131,7 +133,10 @@ export function ModalAviso({
 }) {
   return (
     <Base aberto={aberto} onFechar={onFechar}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      <View style={styles.eyebrowLinha}>
+        {Icone ? <Icone size={16} color={cores.teal} /> : null}
+        <Text style={styles.eyebrow}>{eyebrow}</Text>
+      </View>
       <Text style={styles.titulo}>{titulo}</Text>
       <Text style={styles.descricao}>{texto}</Text>
       <View style={styles.acoes}>
@@ -145,6 +150,7 @@ export function ModalAviso({
 
 export function ModalTexto({
   aberto,
+  Icone,
   eyebrow,
   titulo,
   descricao,
@@ -160,6 +166,7 @@ export function ModalTexto({
   onFechar,
 }: {
   aberto: boolean;
+  Icone?: LucideIcon;
   eyebrow: string;
   titulo: string;
   descricao?: string;
@@ -176,7 +183,10 @@ export function ModalTexto({
 }) {
   return (
     <Base aberto={aberto} onFechar={onFechar}>
-      <Text style={[styles.eyebrow, destrutivo && { color: cores.erroTexto }]}>{eyebrow}</Text>
+      <View style={styles.eyebrowLinha}>
+        {Icone ? <Icone size={16} color={destrutivo ? cores.erroTexto : cores.teal} /> : null}
+        <Text style={[styles.eyebrow, destrutivo && { color: cores.erroTexto }]}>{eyebrow}</Text>
+      </View>
       <Text style={styles.titulo}>{titulo}</Text>
       {descricao ? <Text style={styles.descricao}>{descricao}</Text> : null}
       <TextInput

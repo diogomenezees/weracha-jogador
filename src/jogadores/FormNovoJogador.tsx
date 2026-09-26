@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
-import { BlurView } from "expo-blur";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import { adicionarMembro, buscarJogadorPorTelefone, buscarSugestaoScore } from "@/api/jogadores";
@@ -9,7 +8,8 @@ import { formatarTelefoneBR, normalizarTelefone } from "@/contrato/telefone";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
 import { cores, raio } from "@/tema";
-import { useBlurTarget } from "@/ui/BlurTarget";
+import { FolhaArrastavel } from "@/ui/FolhaArrastavel";
+import { UserPlus } from "@/ui/Icone";
 import type { MembroGrupo } from "@/contrato/tipos";
 
 type ChamarApi = <T>(
@@ -20,11 +20,17 @@ type ChamarApi = <T>(
 // Adicionar jogador ao grupo. Espelha weracha-site/components/formulario-novo-jogador.tsx:
 // resolve o telefone (jogador existente trava o nome + traz score sugerido);
 // jogador novo precisa do admin confirmar que conhece o nível pra editar o score.
+// Folha de baixo arrastável só pelo topo (barrinha + título), pra não brigar
+// com os campos; fechar por qualquer caminho descarta o que foi digitado, a não
+// ser com `manterRascunho` (painel "Adicionar jogador" do Times/Ao vivo: se sair
+// um gol no meio do cadastro, o admin fecha, marca e reabre com tudo digitado).
 export function FormNovoJogador({
   aberto,
   chamarApi,
   grupoId,
   esporte,
+  descricao = "Cadastre pra facilitar o check-in nas próximas partidas.",
+  manterRascunho = false,
   onFechar,
   onAdicionado,
 }: {
@@ -32,10 +38,11 @@ export function FormNovoJogador({
   chamarApi: ChamarApi;
   grupoId: string;
   esporte: string;
+  descricao?: string;
+  manterRascunho?: boolean;
   onFechar: () => void;
   onAdicionado: (membro: MembroGrupo) => void;
 }) {
-  const blurTarget = useBlurTarget();
   const [telefone, setTelefone] = useState("");
   const [nome, setNome] = useState("");
   const [score, setScore] = useState(50);
@@ -96,7 +103,7 @@ export function FormNovoJogador({
     }
   }
 
-  async function salvar() {
+  async function salvar(fechar: (depois?: () => void) => void) {
     setErro(null);
     if (normalizarTelefone(telefone).length < 11) {
       setErro("Digite um telefone válido, com DDD.");
@@ -118,8 +125,11 @@ export function FormNovoJogador({
         score,
         origemScore: scoreConhecido ? "ADMIN" : "PADRAO",
       });
-      resetar();
-      onAdicionado(membro);
+      fechar(() => {
+        // Cadastro feito: o rascunho já foi usado, não reabre com ele.
+        if (manterRascunho) resetar();
+        onAdicionado(membro);
+      });
     } catch (e) {
       setErro(mensagemDoErro(e));
     } finally {
@@ -130,37 +140,25 @@ export function FormNovoJogador({
   const mostrarInputScore = scoreDefinido || scoreConhecido;
 
   return (
-    <Modal
-      visible={aberto}
-      transparent
-      animationType="fade"
-      onRequestClose={() => {
-        resetar();
+    <FolhaArrastavel
+      aberto={aberto}
+      arrastarPor="topo"
+      onFechar={() => {
+        if (!manterRascunho) resetar();
         onFechar();
       }}
+      topo={
+        <View style={styles.topo}>
+          <View style={styles.eyebrowLinha}>
+            <UserPlus size={16} color={cores.teal} />
+            <Text style={styles.eyebrow}>Adicionar jogador</Text>
+          </View>
+          <Text style={styles.desc}>{descricao}</Text>
+        </View>
+      }
     >
-      <BlurView
-        intensity={40}
-        tint="dark"
-        blurMethod="dimezisBlurView"
-        blurTarget={blurTarget}
-        style={styles.fundo}
-      >
-        <Pressable
-          style={styles.fundoToque}
-          onPress={() => {
-            resetar();
-            onFechar();
-          }}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.folha}
-        >
-          <Text style={styles.eyebrow}>Adicionar jogador</Text>
-          <Text style={styles.desc}>
-            Cadastre pra facilitar o check-in nas próximas partidas.
-          </Text>
+      {(fechar) => (
+        <View style={styles.corpo}>
 
           <TextInput
             style={[styles.input, existenteId !== null && styles.inputTravado]}
@@ -227,38 +225,23 @@ export function FormNovoJogador({
           {erro ? <CaixaErro>{erro}</CaixaErro> : null}
 
           <View style={styles.acoes}>
-            <Pressable
-              style={styles.btnSec}
-              onPress={() => {
-                resetar();
-                onFechar();
-              }}
-            >
+            <Pressable style={styles.btnSec} onPress={() => fechar()}>
               <Text style={styles.btnSecTexto}>Voltar</Text>
             </Pressable>
             <View style={{ flex: 1 }}>
-              <BotaoLaranja titulo="Salvar" onPress={() => void salvar()} carregando={enviando} />
+              <BotaoLaranja titulo="Salvar" onPress={() => void salvar(fechar)} carregando={enviando} />
             </View>
           </View>
-        </KeyboardAvoidingView>
-      </BlurView>
-    </Modal>
+        </View>
+      )}
+    </FolhaArrastavel>
   );
 }
 
 const styles = StyleSheet.create({
-  fundo: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
-  fundoToque: { flex: 1 },
-  folha: {
-    backgroundColor: "#12161f",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderTopWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    padding: 20,
-    paddingBottom: 30,
-    gap: 12,
-  },
+  topo: { gap: 6, paddingHorizontal: 4, paddingBottom: 14 },
+  corpo: { gap: 12, paddingHorizontal: 4 },
+  eyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   eyebrow: {
     fontSize: 11,
     fontWeight: "600",

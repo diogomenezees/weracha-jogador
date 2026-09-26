@@ -10,6 +10,7 @@ import type { LucideIcon } from "@/ui/Icone";
 //
 //   const { avisar, confirmar } = useDialogos();
 //   avisar("Não deu pra atualizar", mensagemDoErro(e));
+//   avisar("Você é o dono", "...", { eyebrow: "Sair do grupo", Icone: LogOut });
 //   confirmar({ eyebrow: "Convite", titulo: "Gerar link novo?", descricao: "...", onConfirmar });
 //
 // Um aviso e uma confirmação por vez (o provider guarda só o último). Fica no
@@ -25,10 +26,11 @@ type Confirmacao = {
   onConfirmar: () => void;
 };
 
-type Aviso = { titulo: string; texto: string };
+type OpcoesAviso = { eyebrow?: string; Icone?: LucideIcon };
+type Aviso = { titulo: string; texto: string } & OpcoesAviso;
 
 type Contexto = {
-  avisar: (titulo: string, texto: string) => void;
+  avisar: (titulo: string, texto: string, opcoes?: OpcoesAviso) => void;
   confirmar: (c: Confirmacao) => void;
 };
 
@@ -38,7 +40,10 @@ export function DialogosProvider({ children }: { children: ReactNode }) {
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [conf, setConf] = useState<Confirmacao | null>(null);
 
-  const avisar = useCallback((titulo: string, texto: string) => setAviso({ titulo, texto }), []);
+  const avisar = useCallback(
+    (titulo: string, texto: string, opcoes?: OpcoesAviso) => setAviso({ titulo, texto, ...opcoes }),
+    []
+  );
   const confirmar = useCallback((c: Confirmacao) => setConf(c), []);
   const valor = useMemo(() => ({ avisar, confirmar }), [avisar, confirmar]);
 
@@ -47,6 +52,8 @@ export function DialogosProvider({ children }: { children: ReactNode }) {
       {children}
       <ModalAviso
         aberto={aviso !== null}
+        Icone={aviso?.Icone}
+        eyebrow={aviso?.eyebrow}
         titulo={aviso?.titulo ?? ""}
         texto={aviso?.texto ?? ""}
         onFechar={() => setAviso(null)}

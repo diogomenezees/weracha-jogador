@@ -12,11 +12,12 @@ import {
   Star,
   Trash2,
   UserCheck,
+  UserPlus,
   Wallet,
   X,
 } from "@/ui/Icone";
 
-import { buscarDadosDoGrupo } from "@/api/grupos";
+import { buscarDadosDoGrupo, obterConvite } from "@/api/grupos";
 import {
   buscarApoioDaPartida,
   cancelarMeuCheckin,
@@ -305,13 +306,22 @@ export default function TelaCheckin() {
 
   const podeAvancar = confirmados.length >= 2;
 
-  // Compartilha o link direto do check-in, pra quem não está com o celular
-  // que passa de mão em mão dar entrada sozinho (espelha
+  // Compartilha o link de convite com ?partida=, pra quem não está com o
+  // celular que passa de mão em mão dar entrada sozinho (espelha
   // weracha-site/app/grupos/[id]/partidas/[partidaId]/checkin/page.tsx).
+  // Serve pra membro e pra quem ainda não é do grupo: o convite põe no grupo
+  // (se preciso) e manda direto pro check-in enquanto a janela está aberta.
+  // Se buscar o token falhar, cai no link direto do check-in (só pra membro).
   async function compartilhar() {
     if (!grupoAtual || !partidaAtual) return;
     const data = new Date(partidaAtual.data);
-    const link = `${PRODUCAO_URL}/grupos/${id}/partidas/${partidaId}/checkin`;
+    let link = `${PRODUCAO_URL}/grupos/${id}/partidas/${partidaId}/checkin`;
+    try {
+      const token = await obterConvite(chamarApi, id);
+      link = `${PRODUCAO_URL}/convite/${token}?partida=${partidaId}`;
+    } catch {
+      // mantém o link direto do check-in
+    }
     const texto =
       `Faz seu check-in pro racha do grupo *${grupoAtual.nome}*!\n` +
       `📅 ${formatarDiaSemanaData(data)} às ${formatarHora(data)}\n\n` +
@@ -514,16 +524,40 @@ export default function TelaCheckin() {
       <Rodape
         primario={
           resultado ? (
-            <BotaoPrimario
-              titulo="Mostrar os times"
-              onPress={() => router.replace(`/grupos/${id}/partidas/${partidaId}/resultado`)}
-            />
+            <>
+              {souAdmin && (
+                <Pressable
+                  style={styles.novoJogadorRodape}
+                  onPress={() => setFormNovo(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cadastrar novo jogador"
+                >
+                  <UserPlus size={20} color={cores.dark} />
+                </Pressable>
+              )}
+              <BotaoPrimario
+                titulo="Mostrar os times"
+                onPress={() => router.replace(`/grupos/${id}/partidas/${partidaId}/resultado`)}
+              />
+            </>
           ) : souAdmin ? (
-            <BotaoPrimario
-              titulo="Chegaram todos"
-              desativado={!podeAvancar}
-              onPress={() => router.push(`/grupos/${id}/partidas/${partidaId}/configurar`)}
-            />
+            <>
+              {/* Atalho pro mesmo formulário do "Cadastrar novo jogador" da
+                  busca (que só aparece quando a busca não acha ninguém). */}
+              <Pressable
+                style={styles.novoJogadorRodape}
+                onPress={() => setFormNovo(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Cadastrar novo jogador"
+              >
+                <UserPlus size={20} color={cores.dark} />
+              </Pressable>
+              <BotaoPrimario
+                titulo="Chegaram todos"
+                desativado={!podeAvancar}
+                onPress={() => router.push(`/grupos/${id}/partidas/${partidaId}/configurar`)}
+              />
+            </>
           ) : (
             <View style={styles.contagemRodape}>
               <Text style={styles.contagemRodapeTexto}>{contagem}</Text>
@@ -651,6 +685,14 @@ export default function TelaCheckin() {
 }
 
 const styles = StyleSheet.create({
+  novoJogadorRodape: {
+    width: 48,
+    height: 48,
+    borderRadius: raio.campo,
+    backgroundColor: cores.teal,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 14 },
   input: {
     height: 44,
