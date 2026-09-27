@@ -71,6 +71,7 @@ function RootLayout() {
             screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.dark } }}
           >
             <Stack.Screen name="index" />
+            <Stack.Screen name="intro" options={{ animation: "fade" }} />
             <Stack.Screen name="login" />
             <Stack.Screen name="convite/[token]" />
             <Stack.Screen name="(logado)" />

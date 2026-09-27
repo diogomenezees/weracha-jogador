@@ -22,7 +22,7 @@
 As fases 1, 2 e 3 andam em paralelo. A 2 é a que tem relógio correndo, então é a que se abre
 primeiro.
 
-## Andamento (atualizado em 2026-09-25)
+## Andamento (atualizado em 2026-09-27)
 
 **Já feito** (o detalhe de cada item está na fase correspondente):
 
@@ -86,6 +86,10 @@ primeiro.
 - **Diálogos no padrão do app.** Os alertas brancos nativos (`Alert.alert`) foram trocados por
   modais escuros com blur (`useDialogos()`, `src/ui/Dialogos.tsx`; o servidor do login virou um
   menu de baixo).
+
+- **Fase 0 concluída (2026-09-27):** intro antes do login no app de jogador e no Cam, onboarding
+  pós-login enxugado (app e site), login do Cam no visual do app com o logo novo do Cam e a tela
+  "Entrar por convite" refeita. Detalhes na fase 0.
 
 **Pendências que surgiram no caminho:**
 
@@ -151,41 +155,50 @@ Sem isso não dá pra fechar o plano:
 5. **Crash reporting: Sentry ou Firebase Crashlytics?** Recomendo Sentry pro app de jogador
    (React Native, funciona bem com EAS). No Cam, decidir separado.
 6. **Analytics de uso: entra ou não?** Muda o que se declara nas lojas. Doc 10 §6.
-7. **Mini onboarding: o texto e a quantidade de telas** (proposta na fase 0).
+7. ~~**Mini onboarding: o texto e a quantidade de telas**~~ **Decidido e feito em 2026-09-27** (fase 0).
 
 ---
 
 ## Fase 0. Mini onboarding antes do login (jogador e Cam)
 
-**Problema:** os dois apps abrem direto na tela de login. Quem instala sem contexto não sabe o
-que é o app nem se era esse que queria. Pior no Cam: o jogador comum pode instalar o Cam
-achando que é o app do grupo.
+**Concluída em 2026-09-27.** Os dois apps abriam direto no login: quem instalava sem contexto
+não sabia o que era o app, e o jogador comum podia instalar o Cam achando que era o app do grupo.
 
-**Fato do código:**
-- **Jogador** ([`src/app/index.tsx`](../src/app/index.tsx)): sem sessão, redireciona pra `/login`.
-  Já existe um carrossel de onboarding, mas é **depois** do login e só pra quem ainda não tem grupo
-  (`src/app/(logado)/onboarding.tsx`). Não serve como intro
-  pré-login, mas o componente de slides pode ser reaproveitado.
-- **Cam** ([`WeRachaCamNavHost.kt`](../../weracha-cam/app/src/main/java/com/weracha/cam/ui/navigation/WeRachaCamNavHost.kt)):
-  `startDestination = if (isLoggedIn) MatchList else Login`. Sem nenhuma tela antes.
+**Linguagem visual comum ("palco animado").** Intro e onboarding usam o mesmo molde: barras de
+progresso no topo, pager horizontal e um palco com peças de UI de mentira (cards, chips) espalhadas
+e inclinadas, que entram com mola quando o slide fica ativo e depois flutuam devagar, com um brilho
+teal ou laranja atrás. No app de jogador as peças vivem em `src/ui/PalcoAnimado.tsx`; no site, em
+CSS dentro de `app/painel/onboarding/page.tsx` (paradas com `prefers-reduced-motion`); no Cam, em
+Compose (`ui/intro/IntroScreen.kt`).
 
-**Proposta (pra validar amanhã):**
-
-- [ ] **Jogador:** 2 a 3 slides, mostrados **uma vez** (flag guardada no aparelho), antes do login.
-      Sugestão de conteúdo: (1) o que é o We Racha (organiza a pelada); (2) o que dá pra fazer
-      (check-in, times sorteados, artilheiros, replays dos gols); (3) "entre com seu telefone".
-      Botão "Pular" sempre visível. Depois da intro vai pro `/login` e não volta a aparecer.
-      Ponto técnico: hoje só o `SecureStore` é usado no app; uma flag simples cabe nele, ou
-      adicionar `@react-native-async-storage/async-storage`.
-- [ ] **Cam:** 2 telas, mostradas uma vez, com a mensagem principal **"este app é a câmera do
-      tripé, não é o app do jogador"** (com o link/nome do app certo). Sugestão: (1) pra que
-      serve o Cam e que só uma pessoa por partida precisa dele; (2) como usar: login, escolher a
-      partida, apoiar o celular no tripé, pode bloquear a tela, permissões de câmera, microfone e
-      notificação. Combina com o `PermissionsGate` que já existe.
-- [ ] Decidir se o mesmo texto/visual vale nos dois (tokens de cor já são os mesmos, `cores.dark`
-      e laranja).
-- [ ] Depois de pronto: reapontar o item "onboarding pós-login" do jogador pra não repetir
-      conteúdo da intro.
+- [x] **Jogador, intro antes do login** (`/intro`, `src/intro/`). 3 slides sobre o app inteiro:
+      "O seu racha num lugar só" (check-in, times, placar ao vivo), "O jogo continua depois do
+      apito" (replays, artilheiros, resenha) e "Entre com seu telefone" (link de convite ou criar
+      grupo). Uma vez só: flag `weracha.introVista` no SecureStore, que não sai no logout; qualquer
+      login marca; link de convite abre direto e pula a intro. Auto-avanço de 8s, sem fechar
+      sozinho no último slide.
+- [x] **Jogador e site, onboarding pós-login enxugado.** Era 3 slides que repetiam a intro (ao vivo,
+      resenha, recorrente x avulso). Virou 2 slides só sobre a escolha de como começar:
+      **Sorteio rápido** ("Times na hora, sem cadastro") e **Grupo** ("Pra quem joga sempre
+      junto"), terminando com a própria escolha: "Criar um grupo" ou "Fazer um sorteio rápido".
+      Mesmo desenho no app (`(logado)/onboarding.tsx`) e no site (`/painel/onboarding`, spec 01
+      atualizada). O rodapé do painel virou "Veja os dois jeitos de começar." e ganhou os selos
+      Artilheiros e Replays.
+- [x] **Cam, intro antes do login** (`Route.Intro`, flag em `IntroStore`). 3 slides: "A câmera do
+      seu racha" (só grava; times e placar ficam no app WeRacha), "Gol marcado, replay pronto" (o
+      GOL no app vira o recorte no Cam, salvo na Galeria e no grupo) e "Pronto pro tripé"
+      (checklist, tela bloqueada segue gravando, permissões que vai pedir). Space Grotesk e Geist
+      Mono embutidas em `res/font`.
+- [x] **Cam, login no visual do app de jogador**: logo novo do Cam (coroa com selo de câmera,
+      `ic_weracha_cam_logo.png`, usado em todas as telas do Cam pra fixar a marca), cartão com
+      borda, telefone com 🇧🇷 +55, "Esqueci minha senha" e "Fale com a gente" abrindo o site, e um
+      lembrete fixo "Procurando o app pra confirmar presença? É o WeRacha, outro app". O seletor
+      Local/Produção saiu da tela; só um "Servidor: ..." discreto no rodapé em build de debug.
+- [x] **Jogador, "Entrar por convite" como plano B do link**: dois cards lado a lado ("Toque no
+      link" / "Abriu no navegador?"), campo aceita link ou código e vem preenchido sozinho se houver
+      um link de convite copiado.
+- [ ] **Validar no aparelho pelo AAB/loja** (a intro, o onboarding e o convite só foram vistos no
+      Expo Go; o Cam foi visto no celular de teste pelo build de debug).
 
 ---
 
@@ -392,7 +405,7 @@ Nada aqui bloqueia a loja. Ordem sugerida por valor:
 
 ## Checklist de "pronto pra apertar publicar"
 
-- [ ] Intro pré-login nos dois apps (fase 0)
+- [x] Intro pré-login nos dois apps (fase 0): app e Cam feitos em 2026-09-27
 - [ ] Checklist de device do doc 10 todo riscado
 - [~] Sem seletor de servidor no login de produção (feito no app); Cam com `BASE_URL` real (falta)
 - [~] Crash reporting nos dois apps, recebendo evento de teste (app configurado, sem evento ainda; Cam não)

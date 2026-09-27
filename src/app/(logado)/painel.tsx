@@ -235,7 +235,9 @@ function HeroSemOnboarding({ nome }: { nome: string }) {
         <View style={styles.selos}>
           <Selo texto="Score 0 a 100" cor="teal" />
           <Selo texto="Enquete" cor="teal" />
+          <Selo texto="Artilheiros" cor="teal" />
           <Selo texto="Modo ao vivo" cor="orange" />
+          <Selo texto="Replays" cor="orange" />
           <Selo texto="Resenha" cor="orange" />
         </View>
       </View>
@@ -265,8 +267,8 @@ function HeroSemGrupo({ nome }: { nome: string }) {
           <CartaoCaminho
             Icone={LogIn}
             titulo="Já te chamaram"
-            texto="Peça o link pra quem organiza e entre no grupo."
-            chamada="Entrar por convite"
+            texto="Toque no link de convite que te mandaram: ele abre direto no app. Se não abrir, cole o link aqui."
+            chamada="Colar o convite"
             cor="teal"
             onPress={() => router.push("/entrar-por-convite")}
           />
@@ -441,7 +443,7 @@ function Rodape({
       />
     );
   } else if (!onboardingConcluido && !temGrupo) {
-    nota = "Veja como funciona em 3 passos.";
+    nota = "Veja os dois jeitos de começar.";
     botao = <BotaoLaranja titulo="Começar" onPress={onComecar} />;
   } else if (temGrupo) {
     nota = "Crie outro grupo pra organizar os jogos.";

@@ -29,6 +29,7 @@ import {
   limparSessao,
 } from "@/sessao/armazenamento";
 import type { JogadorSessao, MeuPerfil } from "@/contrato/tipos";
+import { marcarIntroVista } from "@/intro/vista";
 
 type Estado =
   | { fase: "carregando" }
@@ -133,6 +134,9 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
       }
       credenciais.current = { token: resp.token, telefone, senha, jogador };
       await guardarSessao({ token: resp.token, telefone, senha, jogador });
+      // Quem já entrou (inclusive por convite, sem passar pela intro) não vê a
+      // intro de novo depois de um logout.
+      void marcarIntroVista();
       setEstado({ fase: "logado", jogador });
     },
     [urlBase]

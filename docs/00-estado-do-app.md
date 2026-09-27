@@ -80,9 +80,24 @@ renomeado de `grupos.tsx`), visual portado de `weracha-site/app/painel/page.tsx`
   "Aguardando novo jogo" com `CardGrupo` (badge de papel, próxima partida,
   indicador de check-in quando a partida está em andamento).
 
-Carrossel de onboarding em `src/app/(logado)/onboarding.tsx` (3 slides, swipe +
-auto-avanço de 20s + "Pular"/"Vamos lá!"), porta de `app/painel/onboarding`.
+Carrossel de onboarding em `src/app/(logado)/onboarding.tsx` (swipe + auto-avanço
++ "Pular"), porta de `app/painel/onboarding`.
 Concluir/pular → `POST /api/v1/perfil/onboarding-concluido` → volta pro painel.
+Em 2026-09-27 foi enxugado pra 2 slides, só sobre a escolha de como começar (Sorteio
+rápido x Grupo; o resto do app já está na intro de antes do login), com o palco animado da
+intro (`src/ui/PalcoAnimado.tsx`). Termina com a escolha: "Criar um grupo" (`/criar-grupo`) ou
+"Fazer um sorteio rápido" (`/sorteio`); "Pular" volta pro painel. Sem auto-concluir.
+
+**Intro antes do login (2026-09-27, fase 0 do roteiro 11):** `/intro` (`src/intro/TelaIntro.tsx`),
+3 slides sobre o app como um todo (o racha num lugar só, replays e artilheiros, entrar com
+telefone ou convite), no mesmo molde visual do onboarding, com peças de UI espalhadas que
+entram animadas e flutuam. Só pra app novo: o `index` manda pra `/intro` quem está deslogado e
+nunca viu (flag `weracha.introVista` no SecureStore, que não sai no logout); qualquer login marca
+a flag, e o link de convite abre direto `convite/[token]`, sem passar por ela. Auto-avanço de 8s,
+sem auto-concluir no último slide ("Começar" leva pro `/login`). O onboarding pós-login segue
+focado em quem vai organizar o grupo e usa o mesmo palco animado (`src/ui/PalcoAnimado.tsx`).
+Pra rever as duas no Expo Go sem mexer em conta: `exp://<IP-do-PC>:8081/--/intro` e
+`.../--/onboarding` (o onboarding marca a conta como concluída ao sair, sem efeito prático).
 
 Banner "conta marcada para exclusão" + "Reativar minha conta" no painel
 (`GET`/`DELETE /api/v1/conta/exclusao`).
@@ -362,6 +377,11 @@ do painel sem grupo) e o item "mapear o `destino`" da seção 3.
   grupo"). O painel (`HeroSemGrupo`) aponta o card "Já te chamaram" pra cá em vez
   do stub. No site esse card é só texto informativo; o app tem o formulário de
   verdade porque o deep link `https://` só resolve depois do EAS Build.
+  Desde 2026-09-27 é explicitamente o plano B do link (o caminho normal é tocar no link
+  e o app abrir): o texto manda tocar no link primeiro, o campo aceita "link ou código"
+  e vem preenchido sozinho se a área de transferência tiver um link com `convite/` (ao
+  abrir a tela e ao voltar pro app, só com o campo vazio). O card do painel virou
+  "Colar o convite".
 - **`destino` do convite** (`rotaDoConvite` em `src/convites.ts`): o
   `POST /api/v1/convites/{token}` devolve `destino` como caminho do site
   (`/grupos/{id}`, `.../partidas/{id}/checkin`, `.../enquetes?enquete={id}`) e as
