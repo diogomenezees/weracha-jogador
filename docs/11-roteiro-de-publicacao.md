@@ -287,9 +287,12 @@ Compose (`ui/intro/IntroScreen.kt`).
       é Monitorar e aprimorar, Política e programas, Conteúdo do app, Segurança dos dados (ou a
       busca do topo). Se entrar analytics, reabrir. *Privacy nutrition labels* da Apple só se for
       pro iOS.
-- [ ] **Exclusão de conta:** o fluxo dentro do app já existe (perfil, "Excluir meus dados"). A Play
-      também pede uma **URL web** pra solicitar exclusão de dados fora do app **(conferir)**.
-      Verificar se `weracha.app/contato` ou uma página dedicada serve.
+- [x] **Exclusão de conta:** o fluxo dentro do app já existe (perfil, "Excluir meus dados"). A Play
+      também pede uma **URL web** pra solicitar exclusão de dados fora do app: página pública
+      **`https://weracha.app/excluir-conta`** no ar desde 2026-09-27 (três jeitos de pedir, como
+      funciona, o que é apagado x mantido e por quanto tempo) e **URL colada na Play Console**
+      (Segurança dos dados) no mesmo dia. Caminho no layout novo: Monitorar e aprimorar, Política
+      e programas, Conteúdo do app, Segurança dos dados.
 - [x] **Conteúdo gerado por usuário (resenha e comentários dos replays):** a Play e a Apple exigem
       um jeito de **denunciar** conteúdo e **bloquear** usuário **(conferir)**. **Feito em 2026-09-23:**
       cada comentário tem um menu ⋯ (Denunciar pra todo mundo menos o autor, Apagar pro autor na
@@ -411,7 +414,7 @@ Nada aqui bloqueia a loja. Ordem sugerida por valor:
 - [~] Crash reporting nos dois apps, recebendo evento de teste (app configurado, sem evento ainda; Cam não)
 - [x] Gate de versão mínima no site e no app (falta só validar em device)
 - [x] Fluxo de denúncia/bloqueio de comentário (migration 0066 já em produção; falta validar em device)
-- [ ] Política de privacidade e URL de exclusão conferidas
+- [x] Política de privacidade e URL de exclusão conferidas (`/excluir-conta`, 2026-09-27)
 - [x] Declarações da loja preenchidas na Play Console (relato do dono em 2026-09-25)
 - [ ] **Falta:** AAB de produção gerado (`eas build --profile production`) e subido no teste interno
 - [x] Ficha da loja preenchida (textos, ícone, imagem de destaque, screenshots)
