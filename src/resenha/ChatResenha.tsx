@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { BlurView } from "expo-blur";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ActivityIndicator, AppState, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
@@ -71,6 +72,7 @@ export function ChatResenha({
   onComentarios: (lista: ComentarioResenha[]) => void;
 }) {
   const blurTarget = useBlurTarget();
+  const insets = useSafeAreaInsets();
   const [comentarios, setComentarios] = useState<ComentarioResenha[]>(comentariosIniciais);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -231,7 +233,16 @@ export function ChatResenha({
   return (
     // "fade" como o MenuAcoes: com "slide" o BlurView do fundo sobe junto com a
     // folha e parece uma imagem embaçada subindo.
-    <Modal visible={aberto} transparent animationType="fade" onRequestClose={onFechar}>
+    // Até a borda (translucent) + inset embaixo: no build da loja (edge-to-edge)
+    // o composer ficava atrás dos botões do Android. Ver src/ui/FolhaArrastavel.tsx.
+    <Modal
+      visible={aberto}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onFechar}
+    >
       <BlurView
         intensity={40}
         tint="dark"
@@ -242,7 +253,7 @@ export function ChatResenha({
         <Pressable style={styles.fundoToque} onPress={onFechar} />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.folha}
+          style={[styles.folha, { paddingBottom: 24 + insets.bottom }]}
         >
           <View style={styles.cabecalho}>
             <View style={styles.tituloLinha}>
@@ -413,7 +424,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     borderTopWidth: 1,
     borderColor: "rgba(255,255,255,0.1)",
-    paddingBottom: 24,
   },
   cabecalho: {
     flexDirection: "row",

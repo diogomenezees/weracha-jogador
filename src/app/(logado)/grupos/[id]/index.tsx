@@ -52,7 +52,6 @@ import {
   MessageCircle,
   NotebookPen,
   Pencil,
-  Plus,
   RefreshCw,
   RotateCcw,
   Share2,
@@ -791,8 +790,13 @@ export default function TelaGrupo() {
       <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
         <View style={styles.rodapeLinha}>
           {grupo.tipo === "AVULSO" && souAdmin && (
-            <Pressable style={styles.rodapeIcone} onPress={() => abrirAdicionarPartida()}>
-              <Plus size={18} color={cores.branco} />
+            <Pressable
+              style={styles.rodapeIcone}
+              onPress={() => abrirAdicionarPartida()}
+              accessibilityRole="button"
+              accessibilityLabel="Adicionar horário"
+            >
+              <CalendarPlus size={18} color={cores.branco} />
             </Pressable>
           )}
           <Pressable
@@ -991,7 +995,10 @@ export default function TelaGrupo() {
           <NotebookPen size={16} color={cores.teal} />
           <Text style={styles.descricaoModalEyebrow}>Descrição do grupo</Text>
         </View>
-        <Text style={styles.descricaoModalTitulo}>{grupo.nome}</Text>
+        <View style={styles.descricaoModalTituloLinha}>
+          <Users size={16} color={cores.branco} />
+          <Text style={styles.descricaoModalTitulo}>{grupo.nome}</Text>
+        </View>
         <Text style={styles.descricaoModalTexto}>{grupo.descricao}</Text>
         <View style={styles.descricaoModalAcoes}>
           {souAdmin && (
@@ -1531,6 +1538,15 @@ function DescricaoGrupoResumo({ texto }: { texto: string }) {
   );
 }
 
+// Selo do esporte, igual ao EsportePill do site (components/info-pill.tsx).
+function EsportePill({ esporte }: { esporte: string }) {
+  return (
+    <View style={[styles.pill, { alignSelf: "flex-start" }]}>
+      <Text style={styles.pillTexto}>{esporte}</Text>
+    </View>
+  );
+}
+
 function ModalQuadra({
   grupo,
   quadra,
@@ -1566,6 +1582,7 @@ function ModalQuadra({
           <Text style={styles.modalEyebrow}>Quadra</Text>
         </View>
         <Text style={styles.modalTitulo}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
+        <EsportePill esporte={grupo.esporte} />
         {quadra && quadra.status !== "VALIDADA" && (
           <View style={styles.pendentePill}>
             <Text style={styles.pendenteTexto}>Pendente de conferência</Text>
@@ -1583,6 +1600,7 @@ function ModalQuadra({
           <Text style={styles.modalEyebrow}>Quadra</Text>
         </View>
         <Text style={styles.modalTitulo}>Sem quadra vinculada</Text>
+        <EsportePill esporte={grupo.esporte} />
         <Text style={styles.modalDesc}>O admin do grupo ainda não cadastrou uma quadra.</Text>
       </>
     );
@@ -1595,6 +1613,7 @@ function ModalQuadra({
           <Text style={styles.modalEyebrow}>Quadra</Text>
         </View>
         <Text style={styles.modalTitulo}>Cadastrar quadra</Text>
+        <EsportePill esporte={grupo.esporte} />
         <Text style={styles.modalDesc}>
           Fica disponível pra todo mundo com a marca &quot;Pendente&quot; até ser conferida.
         </Text>
@@ -1623,6 +1642,7 @@ function ModalQuadra({
         <Text style={styles.modalEyebrow}>Quadra</Text>
       </View>
       <Text style={styles.modalTitulo}>Vincular quadra</Text>
+      <EsportePill esporte={grupo.esporte} />
       <Text style={styles.modalDesc}>Busque uma quadra ou cadastre uma nova pra esse grupo.</Text>
       <ModalInput placeholder="Buscar quadra..." valor={termo} onChange={onTermo} />
       <View style={{ gap: 4, maxHeight: 200 }}>
@@ -1692,7 +1712,8 @@ const styles = StyleSheet.create({
     color: cores.teal,
     textTransform: "uppercase",
   },
-  descricaoModalTitulo: { fontSize: 18, fontWeight: "600", color: cores.branco, marginTop: 4 },
+  descricaoModalTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  descricaoModalTitulo: { flexShrink: 1, fontSize: 18, fontWeight: "600", color: cores.branco },
   descricaoModalTexto: { fontSize: 14, lineHeight: 20, color: cores.slate300, marginTop: 8 },
   descricaoModalAcoes: { flexDirection: "row", gap: 10, marginTop: 14 },
   descricaoModalBtnSecundario: {

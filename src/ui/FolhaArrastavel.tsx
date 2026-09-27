@@ -63,10 +63,12 @@ export function FolhaArrastavel({
 }) {
   const blurTarget = useBlurTarget();
   const insets = useSafeAreaInsets();
-  // No Android o Modal (sem navigationBarTranslucent) já termina acima da
-  // barra de navegação; somar o inset de novo dobrava o espaço embaixo. No
-  // iOS o Modal vai até a borda e precisa desviar do indicador de gesto.
-  const folgaInferior = Platform.OS === "ios" ? insets.bottom : 0;
+  // O Modal vai até a borda da tela (navigationBarTranslucent) nas duas
+  // plataformas, então a folha sempre desvia da barra de navegação / indicador
+  // de gesto. Sem o translucent, o Expo Go terminava o Modal acima da barra mas
+  // o build da loja (edge-to-edge, obrigatório no Android 15+) não: os últimos
+  // itens do menu ficavam atrás dos botões do Android.
+  const folgaInferior = insets.bottom;
   // Posição da folha = quanto falta abrir (altura × (1 − progresso)) + arrasto.
   // Separados pra abertura não depender da ordem entre o efeito abaixo e o
   // onLayout da folha: antes da medida, `altura` é a da tela (fora de vista) e
@@ -174,7 +176,14 @@ export function FolhaArrastavel({
   );
 
   return (
-    <Modal visible={aberto} transparent animationType="none" onRequestClose={() => fechar()}>
+    <Modal
+      visible={aberto}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={() => fechar()}
+    >
       <GestureHandlerRootView style={styles.raiz}>
         <Animated.View style={[StyleSheet.absoluteFill, estiloFundo]}>
           <BlurView

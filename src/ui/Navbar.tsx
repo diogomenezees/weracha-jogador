@@ -187,7 +187,14 @@ function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void })
   }
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onFechar}>
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onFechar}
+    >
       <View style={styles.gavetaRaiz}>
         <AnimatedBlurView
           intensity={40}

@@ -15,7 +15,7 @@ import {
   proximaPartidaInfo,
 } from "@/grupos";
 import { mensagemDoErro } from "@/mensagens-erro";
-import { Calendar, ChevronRight, LogIn, Plus } from "@/ui/Icone";
+import { Calendar, ChevronRight, LogIn, Plus, Users } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import {
   BotaoLaranja,
@@ -29,6 +29,7 @@ import {
 } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { useDialogos } from "@/ui/Dialogos";
+import { SeloPapel } from "@/ui/SeloPapel";
 import { cores, raio } from "@/tema";
 import type { Grupo } from "@/contrato/tipos";
 
@@ -352,14 +353,13 @@ function CardGrupo({
     <>
       <View style={styles.cardConteudo}>
         <View style={styles.cardTopo}>
-          <Text style={styles.cardNome} numberOfLines={1}>
-            {grupo.nome}
-          </Text>
-          {papel !== "MEMBRO" && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeTexto}>{papel === "DONO" ? "Dono" : "Admin"}</Text>
-            </View>
-          )}
+          <View style={styles.cardNomeLinha}>
+            <Users size={14} color={cores.branco} />
+            <Text style={styles.cardNome} numberOfLines={1}>
+              {grupo.nome}
+            </Text>
+          </View>
+          {papel !== "MEMBRO" && <SeloPapel papel={papel} />}
         </View>
         <Text style={styles.cardSub}>
           {grupo.esporte} · {grupo.tipo === "RECORRENTE" ? "Semanal" : "Avulso"}
@@ -555,14 +555,9 @@ const styles = StyleSheet.create({
   cardBloqueado: { opacity: 0.5 },
   cardAtencaoBorda: { borderLeftColor: cores.ambar },
   cardTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  // Ícone de grupo + nome, igual ao card do site (app/painel/page.tsx).
+  cardNomeLinha: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1, minWidth: 0 },
   cardNome: { fontSize: 16, fontWeight: "700", color: cores.branco, flexShrink: 1 },
-  badge: {
-    backgroundColor: cores.avisoFundo,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  badgeTexto: { fontSize: 11, fontWeight: "700", color: cores.teal },
   cardSub: { fontSize: 13, color: cores.slate400, textTransform: "capitalize" },
   cardRodape: {
     flexDirection: "row",

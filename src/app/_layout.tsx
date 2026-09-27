@@ -63,7 +63,9 @@ function RootLayout() {
     <BlurTargetProvider>
       <SessaoProvider>
         <DialogosProvider>
-        <StatusBar style="auto" />
+        {/* Sempre ícones claros: o app é todo escuro. Com "auto", celular em modo
+            claro deixava hora/bateria escuras sobre o fundo escuro. */}
+        <StatusBar style="light" />
         <PortaoDeVersao>
           <Stack
             screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.dark } }}

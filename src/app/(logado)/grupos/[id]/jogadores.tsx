@@ -45,6 +45,7 @@ import {
 import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { useDialogos } from "@/ui/Dialogos";
+import { SeloPapel } from "@/ui/SeloPapel";
 import { cores, raio } from "@/tema";
 import type { DadosDaTelaJogadoresDoGrupo, JogadorDoGrupo, MembroGrupo } from "@/contrato/tipos";
 
@@ -501,11 +502,7 @@ export default function GerenciarJogadores() {
                     <Text style={styles.linhaNome} numberOfLines={1}>
                       {j.nome}
                     </Text>
-                    {(ehDono || m.papel === "ADMIN") && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeTexto}>{ehDono ? "Dono" : "Admin"}</Text>
-                      </View>
-                    )}
+                    {(ehDono || m.papel === "ADMIN") && <SeloPapel papel={ehDono ? "DONO" : "ADMIN"} />}
                   </View>
                   {detalhes.length > 0 && (
                     <View style={styles.linhaDetalhes}>
@@ -726,13 +723,6 @@ const styles = StyleSheet.create({
   linhaNomes: { flex: 1 },
   linhaNomeTopo: { flexDirection: "row", alignItems: "center", gap: 6 },
   linhaNome: { fontSize: 15, fontWeight: "600", color: cores.branco, flexShrink: 1 },
-  badge: {
-    backgroundColor: cores.avisoFundo,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  badgeTexto: { fontSize: 10, fontWeight: "700", color: cores.teal },
   linhaDetalhes: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", marginTop: 2, gap: 4 },
   linhaDetalhesItem: { flexDirection: "row", alignItems: "center", gap: 3 },
   linhaDetalhesTexto: { fontSize: 12, color: cores.slate400 },
