@@ -827,11 +827,11 @@ export default function TelaGrupo() {
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.rodapeAtalho, styles.rodapeAtalhoTeal]}
+            style={styles.rodapeAtalho}
             onPress={() => router.push(`/grupos/${grupo.id}/resenha`)}
           >
-            <MessageCircle size={16} color={cores.dark} />
-            <Text style={[styles.rodapeAtalhoTexto, { color: cores.dark }]} numberOfLines={1}>
+            <MessageCircle size={16} color={cores.teal} />
+            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
               Resenha
             </Text>
           </Pressable>
@@ -1894,7 +1894,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeAtalhoTeal: { borderColor: cores.teal, backgroundColor: cores.teal },
   rodapeAtalhoTexto: { flexShrink: 1, fontSize: 14, fontWeight: "600", color: cores.branco },
   rodapeBotaoLaranja: {
     height: 48,
