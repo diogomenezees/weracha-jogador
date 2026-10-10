@@ -83,7 +83,15 @@ tipos em `src/contrato/tipos.ts`); o painel não usa mais `/api/v1/grupos` nem
 - Tela do grupo mostra 5 partidas finalizadas antes do "Ver todas".
 - Criar grupo: validação aponta o campo (rola até ele, borda vermelha,
   mensagem embaixo, abre o teclado); `ScrollTeclado` ganhou `rolagemRef`.
-- **Não validado em device ainda** (o celular perdeu a rede com o PC no teste).
+- Destaques (6 cards): Artilheiro, Melhor média, Mais presente (presença = check-in
+  em partida com resultado), Noite histórica, Resenheiro e Gol mais comentado; o
+  card abre o perfil (`ModalPerfil`) ou o vídeo na resenha.
+- Próximo jogo com folhinha de calendário + contagem regressiva; botão "Grupo" ao
+  lado e rodapé (confirmados + botão) só com o check-in aberto.
+- Tela do grupo: rodapé com Enquetes/Artilheiros/Resenha (ícone ao lado do texto),
+  "Adicionar partida" (avulso) no menu; pílulas do grupo e do resultado numa linha
+  só com rolagem lateral. `BotaoLaranja` com 48 px (h-12 do site).
+- Validado no celular via Expo Go (2026-10-10), com o site local por `adb reverse`.
 
 ## Feito: `/painel` + onboarding (2026-09-10)
 

@@ -278,20 +278,20 @@ export default function TelaGrupo() {
           Icone: NotebookPen,
           onPress: () => iniciarEdicao({ tipo: "descGrupo" }, grupo.descricao ?? ""),
         },
-        {
-          rotulo: "Convidar jogadores",
-          Icone: UserPlus,
-          onPress: () => setAba("convidar"),
-        }
       );
-      if (dados && dados.idsComResultado.length === 0) {
+      // Só grupo avulso cria partida na mão (recorrente gera pela renovação).
+      if (grupo.tipo === "AVULSO") {
         itens.push({
-          rotulo: "Excluir grupo",
-          Icone: Trash2,
-          destrutivo: true,
-          onPress: () => setConfirmando({ tipo: "excluirGrupo" }),
+          rotulo: "Adicionar partida",
+          Icone: CalendarPlus,
+          onPress: () => abrirAdicionarPartida(),
         });
       }
+      itens.push({
+        rotulo: "Convidar jogadores",
+        Icone: UserPlus,
+        onPress: () => setAba("convidar"),
+      });
     }
     itens.push({
       rotulo: "Sair do grupo",
@@ -306,6 +306,14 @@ export default function TelaGrupo() {
             )
           : setConfirmando({ tipo: "sair" }),
     });
+    if (souAdmin && dados && dados.idsComResultado.length === 0) {
+      itens.push({
+        rotulo: "Excluir grupo",
+        Icone: Trash2,
+        destrutivo: true,
+        onPress: () => setConfirmando({ tipo: "excluirGrupo" }),
+      });
+    }
     setMenu({ titulo: grupo.nome, icone: Users, itens });
   }
 
@@ -657,7 +665,12 @@ export default function TelaGrupo() {
             ) : null}
           </View>
 
-          <View style={styles.pills}>
+          {/* Pílulas numa linha só: o que não couber rola pro lado. */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsLinha}
+          >
             <Pressable
               style={styles.pill}
               onPress={() => {
@@ -676,7 +689,7 @@ export default function TelaGrupo() {
               <Clock size={12} color={cores.branco} />
               <Text style={styles.pillTexto}>Horários</Text>
             </Pressable>
-          </View>
+          </ScrollView>
         </View>
 
         {souAdmin && !grupo.quadraId && (
@@ -791,48 +804,47 @@ export default function TelaGrupo() {
       </ScrollView>
 
       <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
+        {/* Mesmo rodapé do site: 3 atalhos com o texto em destaque e o ícone à
+            esquerda + "Gerenciar jogadores" em laranja. "Adicionar partida"
+            (grupo avulso) mora no menu ⋮ do topo. */}
         <View style={styles.rodapeLinha}>
-          {grupo.tipo === "AVULSO" && souAdmin && (
-            <Pressable
-              style={styles.rodapeIcone}
-              onPress={() => abrirAdicionarPartida()}
-              accessibilityRole="button"
-              accessibilityLabel="Adicionar horário"
-            >
-              <CalendarPlus size={18} color={cores.branco} />
-            </Pressable>
-          )}
           <Pressable
-            style={styles.rodapeIcone}
+            style={styles.rodapeAtalho}
             onPress={() => router.push(`/grupos/${grupo.id}/enquetes`)}
           >
-            <BarChart3 size={18} color={cores.branco} />
+            <BarChart3 size={16} color={cores.teal} />
+            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
+              Enquetes
+            </Text>
           </Pressable>
           <Pressable
-            style={styles.rodapeBotao}
+            style={styles.rodapeAtalho}
             onPress={() => router.push(`/grupos/${grupo.id}/artilheiros`)}
           >
-            <Trophy size={16} color={cores.branco} />
-            <Text style={styles.rodapeBotaoTexto}>Artilheiros</Text>
+            <Trophy size={16} color={cores.teal} />
+            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
+              Artilheiros
+            </Text>
           </Pressable>
-        </View>
-        <View style={styles.rodapeLinha}>
           <Pressable
-            style={styles.rodapeIconeTeal}
+            style={[styles.rodapeAtalho, styles.rodapeAtalhoTeal]}
             onPress={() => router.push(`/grupos/${grupo.id}/resenha`)}
           >
-            <MessageCircle size={18} color={cores.branco} />
-          </Pressable>
-          <Pressable
-            style={styles.rodapeBotaoLaranja}
-            onPress={() => router.push(`/grupos/${grupo.id}/jogadores`)}
-          >
-            <Users size={16} color={cores.dark} />
-            <Text style={styles.rodapeBotaoLaranjaTexto}>
-              {souAdmin ? "Gerenciar jogadores" : "Ver jogadores"} · {dados.totalMembros}
+            <MessageCircle size={16} color={cores.dark} />
+            <Text style={[styles.rodapeAtalhoTexto, { color: cores.dark }]} numberOfLines={1}>
+              Resenha
             </Text>
           </Pressable>
         </View>
+        <Pressable
+          style={styles.rodapeBotaoLaranja}
+          onPress={() => router.push(`/grupos/${grupo.id}/jogadores`)}
+        >
+          <Users size={16} color={cores.dark} />
+          <Text style={styles.rodapeBotaoLaranjaTexto}>
+            {souAdmin ? "Gerenciar jogadores" : "Ver jogadores"} · {dados.totalMembros}
+          </Text>
+        </Pressable>
       </View>
 
       {/* Modal: detalhe da partida */}
@@ -1740,6 +1752,7 @@ const styles = StyleSheet.create({
   descricaoModalBtnPrimarioTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
 
   pills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  pillsLinha: { flexDirection: "row", gap: 6 },
   pill: {
     flexDirection: "row",
     alignItems: "center",
@@ -1863,37 +1876,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rodapeLinha: { flexDirection: "row", gap: 8 },
-  rodapeIcone: {
-    width: 48,
-    height: 48,
+  // Três partes iguais, como o `flex-1` do site: base 0 explícita, senão a
+  // largura de cada botão acompanha o tamanho do texto e o "Resenha" corta.
+  rodapeAtalho: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+    height: 44,
+    paddingHorizontal: 8,
     borderRadius: raio.campo,
     borderWidth: 1,
-    borderColor: cores.avisoBorda,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rodapeIconeTeal: {
-    width: 48,
-    height: 48,
-    borderRadius: raio.campo,
-    backgroundColor: cores.teal,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rodapeBotao: {
-    flex: 1,
-    height: 48,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.avisoBorda,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: cores.cardFundo,
     flexDirection: "row",
-    gap: 8,
+    gap: 6,
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeBotaoTexto: { fontSize: 14, fontWeight: "600", color: cores.branco },
+  rodapeAtalhoTeal: { borderColor: cores.teal, backgroundColor: cores.teal },
+  rodapeAtalhoTexto: { flexShrink: 1, fontSize: 14, fontWeight: "600", color: cores.branco },
   rodapeBotaoLaranja: {
-    flex: 1,
     height: 48,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,

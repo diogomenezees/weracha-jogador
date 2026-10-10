@@ -412,7 +412,12 @@ export default function TelaResultado() {
             </Pressable>
           }
         />
-        <View style={styles.bridges}>
+        {/* Pílulas numa linha só: o que não couber rola pro lado. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.bridges}
+        >
           {g.quadraId ? (
             <Pressable style={[styles.esportePill, styles.quadraPill]} onPress={() => setModalQuadra(true)}>
               <MapPin size={12} color={cores.branco} />
@@ -435,7 +440,7 @@ export default function TelaResultado() {
             <IconeModoSorteio size={12} color={cores.zinc500} />
             <Text style={styles.infoPillTexto}>{rotuloModoSorteio}</Text>
           </View>
-        </View>
+        </ScrollView>
         {/* Só no resultado de partida finalizada e com mais de uma pra navegar.
             replace: o "Grupo" do topo continua indo pro grupo, sem passar por cada
             resultado visto. */}
@@ -1060,7 +1065,7 @@ function ModalMigrarGol({
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
-  bridges: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  bridges: { flexDirection: "row", gap: 6 },
   esportePill: {
     borderRadius: 999,
     paddingHorizontal: 10,

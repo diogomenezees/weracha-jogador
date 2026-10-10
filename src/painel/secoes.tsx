@@ -4,6 +4,8 @@ import { router } from "expo-router";
 
 import { Text, FAMILIA_MONO } from "@/ui/Texto";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { ModalPerfil } from "@/jogadores/modais";
+import { useSessao } from "@/sessao/contexto";
 import { SeloPapel } from "@/ui/SeloPapel";
 import {
   ArrowRight,
@@ -14,10 +16,12 @@ import {
   Check,
   ChevronRight,
   Clock,
+  Flame,
   Goal,
   MapPin,
   Medal,
   MessageCircle,
+  MessageSquareText,
   Shuffle,
   Star,
   Target,
@@ -29,11 +33,17 @@ import {
   type LucideIcon,
 } from "@/ui/Icone";
 import { ehHoje, formatarDataPartida } from "@/formato";
-import { abreviarDiaSemana, formatarDiaSemanaData, formatarHora } from "@/partidas";
+import {
+  abreviarDiaSemana,
+  formatarContagemRegressiva,
+  formatarDiaSemanaData,
+  formatarHora,
+  nomeDoMes,
+} from "@/partidas";
 import { cores, raio } from "@/tema";
 import type {
   AtividadeRecentePainel,
-  DestaquePainel,
+  JogadorEmPartida,
   DestaquesPainel,
   GrupoPainel,
   ProximoJogoPainel,
@@ -130,86 +140,92 @@ export function ProximoJogo({ jogo, agora }: { jogo: ProximoJogoPainel; agora: n
   return (
     <View>
       <TituloSecao Icone={CalendarDays} titulo="Próximo jogo" lateral={selo} />
+      {/* O card fala do JOGO (quando, onde, check-in); nome/esporte/tipo do grupo
+          ficam com "Seus grupos". Mesmo layout do site. */}
       <View style={styles.destaque}>
-        <Pressable style={styles.linhaGrupo} onPress={() => router.push(`/grupos/${jogo.grupoId}`)}>
+        <View style={styles.linhaJogo}>
+          {/* Folhinha de calendário (laranja quando é hoje). */}
+          <View style={[styles.folhinha, hoje && styles.folhinhaHoje]}>
+            <Text style={[styles.folhinhaRotulo, { color: hoje ? cores.orange : cores.teal }]}>
+              {hoje ? "Hoje" : abreviarDiaSemana(data.getDay())}
+            </Text>
+            <Text style={styles.folhinhaDia}>{data.getDate()}</Text>
+            <Text style={[styles.folhinhaRotulo, { color: hoje ? cores.orange : cores.teal }]}>
+              {nomeDoMes(data.getMonth()).slice(0, 3)}
+            </Text>
+          </View>
           <View style={styles.flex1}>
-            <Text style={styles.destaqueNome} numberOfLines={1}>
-              {jogo.grupoNome}
+            <Text style={styles.jogoTitulo} numberOfLines={1}>
+              {hoje ? "Hoje" : formatarDiaSemanaData(data).split(",")[0]} às {formatarHora(data)}
             </Text>
-            <Text style={styles.destaqueSub}>
-              {jogo.esporte} · {jogo.tipo === "RECORRENTE" ? "Semanal" : "Avulso"}
-            </Text>
-          </View>
-          <ChevronRight size={20} color={cores.slate500} />
-        </Pressable>
-
-        <View style={styles.infos}>
-          <View style={styles.info}>
-            <Calendar size={16} color={hoje ? cores.orange : cores.slate400} />
-            <Text style={hoje ? styles.infoHoje : styles.infoTexto}>
-              {hoje ? "Hoje" : formatarDiaSemanaData(data)}
-            </Text>
-          </View>
-          <View style={styles.info}>
-            <Clock size={16} color={cores.slate400} />
-            <Text style={styles.infoTexto}>{formatarHora(data)}</Text>
-          </View>
-          {jogo.quadraNome && (
-            <View style={[styles.info, styles.encolhe]}>
-              <MapPin size={16} color={cores.slate400} />
-              <Text style={[styles.infoTexto, styles.encolhe]} numberOfLines={1}>
-                {jogo.quadraNome}
+            {jogo.quadraNome && (
+              <View style={[styles.info, styles.margemLinha]}>
+                <MapPin size={14} color={cores.slate400} />
+                <Text style={[styles.infoTexto, styles.encolhe]} numberOfLines={1}>
+                  {jogo.quadraNome}
+                </Text>
+              </View>
+            )}
+            <View style={[styles.info, styles.margemLinha]}>
+              <Clock size={14} color={hoje ? cores.orange : cores.teal} />
+              <Text style={[styles.contagem, { color: hoje ? cores.orange : cores.teal }]}>
+                {formatarContagemRegressiva(data, new Date(agora))}
               </Text>
             </View>
-          )}
-        </View>
-
-        <View style={styles.destaqueRodape}>
-          {checkinAberto ? (
-            <>
-              <View style={styles.info}>
-                <Users size={16} color={cores.teal} />
+            {/* Confirmados só com o check-in aberto (antes disso é sempre 0). */}
+            {checkinAberto && (
+              <View style={[styles.info, styles.margemLinha]}>
+                <Users size={14} color={cores.teal} />
                 <Text style={styles.confirmados}>
                   {plural(jogo.confirmados, "confirmado", "confirmados")}
                 </Text>
               </View>
-              {!jogo.euConfirmado ? (
-                <Pressable
-                  style={[styles.botao, { backgroundColor: cores.orange }]}
-                  onPress={() => router.push(`/grupos/${jogo.grupoId}/partidas/${jogo.partidaId}/checkin`)}
-                >
-                  <Check size={16} color={cores.dark} />
-                  <Text style={[styles.botaoTexto, { color: cores.dark }]}>Fazer check-in</Text>
-                </Pressable>
-              ) : jogo.temResultado ? (
-                <Pressable
-                  style={[styles.botao, { backgroundColor: "#ef4444" }]}
-                  onPress={() => router.push(`/grupos/${jogo.grupoId}/partidas/${jogo.partidaId}/ao-vivo`)}
-                >
-                  <View style={styles.pontoBranco} />
-                  <Text style={[styles.botaoTexto, { color: cores.branco }]}>Ao vivo</Text>
-                </Pressable>
-              ) : (
-                <Pressable
-                  style={[styles.botao, { backgroundColor: "#10b981" }]}
-                  onPress={() => router.push(`/grupos/${jogo.grupoId}/partidas/${jogo.partidaId}/checkin`)}
-                >
-                  <Check size={16} color={cores.dark} />
-                  <Text style={[styles.botaoTexto, { color: cores.dark }]}>Presença confirmada</Text>
-                  <ArrowRight size={16} color={cores.dark} />
-                </Pressable>
-              )}
-            </>
-          ) : (
+            )}
+          </View>
+          {!checkinAberto && (
+            // Teal preenchido: chama atenção sem usar o laranja, que fica
+            // reservado pro "Fazer check-in" (a troca de cor avisa que abriu).
             <Pressable
-              style={[styles.botao, styles.botaoContorno]}
+              style={styles.botaoGrupo}
               onPress={() => router.push(`/grupos/${jogo.grupoId}`)}
             >
-              <Text style={[styles.botaoTexto, styles.botaoContornoTexto]}>Ver grupo</Text>
-              <ArrowRight size={16} color={cores.branco} />
+              <Text style={styles.botaoGrupoTexto}>Grupo</Text>
+              <ChevronRight size={14} color={cores.dark} />
             </Pressable>
           )}
         </View>
+
+        {/* Com o check-in aberto o card ganha o rodapé com o botão de 3 estados. */}
+        {checkinAberto && (
+          <View style={styles.destaqueRodape}>
+            {!jogo.euConfirmado ? (
+              <Pressable
+                style={[styles.botao, { backgroundColor: cores.orange }]}
+                onPress={() => router.push(`/grupos/${jogo.grupoId}/partidas/${jogo.partidaId}/checkin`)}
+              >
+                <Check size={16} color={cores.dark} />
+                <Text style={[styles.botaoTexto, { color: cores.dark }]}>Fazer check-in</Text>
+              </Pressable>
+            ) : jogo.temResultado ? (
+              <Pressable
+                style={[styles.botao, { backgroundColor: "#ef4444" }]}
+                onPress={() => router.push(`/grupos/${jogo.grupoId}/partidas/${jogo.partidaId}/ao-vivo`)}
+              >
+                <View style={styles.pontoBranco} />
+                <Text style={[styles.botaoTexto, { color: cores.branco }]}>Ao vivo</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                style={[styles.botao, { backgroundColor: "#10b981" }]}
+                onPress={() => router.push(`/grupos/${jogo.grupoId}/partidas/${jogo.partidaId}/checkin`)}
+              >
+                <Check size={16} color={cores.dark} />
+                <Text style={[styles.botaoTexto, { color: cores.dark }]}>Presença confirmada</Text>
+                <ArrowRight size={16} color={cores.dark} />
+              </Pressable>
+            )}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -265,23 +281,28 @@ export function AcoesRapidas({ ultimoResultado }: { ultimoResultado: UltimoResul
 type CardDestaque = {
   rotulo: string;
   Icone: LucideIcon;
-  destaque: DestaquePainel;
+  jogador: JogadorEmPartida;
   valor: string;
   detalhe: string;
+  // Toque: perfil do jogador (modal, pelo grupo onde ele mais aparece) ou, no
+  // "Gol mais comentado", o vídeo na resenha do grupo.
+  acao: { tipo: "perfil"; grupoId: string } | { tipo: "video"; grupoId: string; pedidoReplayId: string };
 };
 
 // Um jogador por métrica, somando todos os grupos (cálculo no servidor).
 // Métrica sem ninguém qualificado some; sem nenhuma, a seção inteira some.
 export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }) {
   const cards: CardDestaque[] = [];
+  const perfil = (grupoId: string) => ({ tipo: "perfil" as const, grupoId });
   if (destaques.artilheiro) {
     const d = destaques.artilheiro;
     cards.push({
       rotulo: "Artilheiro",
       Icone: Goal,
-      destaque: d,
+      jogador: d.jogador,
       valor: plural(d.gols, "gol", "gols"),
       detalhe: `em ${plural(d.jogos, "jogo", "jogos")}`,
+      acao: perfil(d.grupoId),
     });
   }
   if (destaques.melhorConversao) {
@@ -289,9 +310,10 @@ export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }
     cards.push({
       rotulo: "Melhor média",
       Icone: Target,
-      destaque: d,
+      jogador: d.jogador,
       valor: `${(d.gols / d.jogos).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} gol/jogo`,
       detalhe: `${plural(d.gols, "gol", "gols")} em ${plural(d.jogos, "jogo", "jogos")}`,
+      acao: perfil(d.grupoId),
     });
   }
   if (destaques.maisPresente) {
@@ -299,39 +321,93 @@ export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }
     cards.push({
       rotulo: "Mais presente",
       Icone: CalendarCheck,
-      destaque: d,
+      jogador: d.jogador,
       valor: plural(d.jogos, "jogo", "jogos"),
       detalhe: plural(d.gols, "gol", "gols"),
+      acao: perfil(d.grupoId),
     });
   }
+  if (destaques.noiteHistorica) {
+    const d = destaques.noiteHistorica;
+    cards.push({
+      rotulo: "Noite histórica",
+      Icone: Flame,
+      jogador: d.jogador,
+      valor: plural(d.gols, "gol", "gols"),
+      detalhe: `em ${formatarDiaMes(new Date(d.data))}`,
+      acao: perfil(d.grupoId),
+    });
+  }
+  if (destaques.resenheiro) {
+    const d = destaques.resenheiro;
+    cards.push({
+      rotulo: "Resenheiro",
+      Icone: MessageSquareText,
+      jogador: d.jogador,
+      valor: plural(d.comentarios, "comentário", "comentários"),
+      detalhe: "na resenha",
+      acao: perfil(d.grupoId),
+    });
+  }
+  if (destaques.golMaisComentado) {
+    const d = destaques.golMaisComentado;
+    cards.push({
+      rotulo: "Gol mais comentado",
+      Icone: MessageCircle,
+      jogador: d.jogador,
+      valor: plural(d.comentarios, "comentário", "comentários"),
+      detalhe: `gol de ${formatarDiaMes(new Date(d.data))}`,
+      acao: { tipo: "video", grupoId: d.grupoId, pedidoReplayId: d.pedidoReplayId },
+    });
+  }
+
+  // Toque no card de jogador abre o mesmo modal de perfil das telas do grupo
+  // (grupos, partidas e gols).
+  const { chamarApi } = useSessao();
+  const [aberto, setAberto] = useState<{ grupoId: string; jogadorId: string } | null>(null);
+
   if (cards.length === 0) return null;
 
   return (
     <View>
       <TituloSecao Icone={Star} titulo="Destaques dos grupos" />
       <Carrossel>
-        {cards.map(({ rotulo, Icone, destaque, valor, detalhe }) => {
-          const j = destaque.jogador;
-          return (
-            <View key={rotulo} style={[styles.card, styles.cardDestaque]}>
-              <View style={styles.info}>
-                <Icone size={14} color={cores.teal} />
-                <Text style={styles.destaqueRotulo}>{rotulo}</Text>
-              </View>
-              <View style={styles.linhaAvatar}>
-                <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={44} />
-                <View style={styles.flex1}>
-                  <Text style={styles.destaqueJogador} numberOfLines={1}>
-                    {j.apelido ?? j.nome}
-                  </Text>
-                  <Text style={styles.destaqueValor}>{valor}</Text>
-                  <Text style={styles.destaqueDetalhe}>{detalhe}</Text>
-                </View>
+        {cards.map(({ rotulo, Icone, jogador: j, valor, detalhe, acao }) => (
+          <Pressable
+            key={rotulo}
+            style={[styles.card, styles.cardDestaque]}
+            onPress={() =>
+              acao.tipo === "perfil"
+                ? setAberto({ grupoId: acao.grupoId, jogadorId: j.id })
+                : router.push(`/grupos/${acao.grupoId}/resenha?video=${acao.pedidoReplayId}`)
+            }
+          >
+            <View style={styles.info}>
+              <Icone size={14} color={cores.teal} />
+              <Text style={styles.destaqueRotulo}>{rotulo}</Text>
+            </View>
+            <View style={styles.linhaAvatar}>
+              <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={44} />
+              <View style={styles.flex1}>
+                <Text style={styles.destaqueJogador} numberOfLines={1}>
+                  {j.nome}
+                </Text>
+                <Text style={styles.destaqueValor}>{valor}</Text>
+                <Text style={styles.destaqueDetalhe}>{detalhe}</Text>
               </View>
             </View>
-          );
-        })}
+          </Pressable>
+        ))}
       </Carrossel>
+      {/* key: remonta a cada jogador, pro modal nascer limpo (ver ModalPerfil). */}
+      <ModalPerfil
+        key={aberto?.jogadorId ?? "fechado"}
+        aberto={aberto !== null}
+        chamarApi={chamarApi}
+        grupoId={aberto?.grupoId ?? ""}
+        jogadorId={aberto?.jogadorId ?? null}
+        onFechar={() => setAberto(null)}
+      />
     </View>
   );
 }
@@ -599,12 +675,33 @@ const styles = StyleSheet.create({
     backgroundColor: cores.cardFundo,
     padding: 16,
   },
-  linhaGrupo: { flexDirection: "row", alignItems: "center", gap: 8 },
-  destaqueNome: { fontSize: 19, fontWeight: "700", color: cores.branco },
-  destaqueSub: { fontSize: 14, color: cores.slate400 },
-  infos: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 16, rowGap: 6, marginTop: 12 },
+  linhaJogo: { flexDirection: "row", alignItems: "center", gap: 12 },
+  folhinha: {
+    width: 64,
+    alignItems: "center",
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(31, 179, 163, 0.3)",
+    backgroundColor: "rgba(31, 179, 163, 0.08)",
+  },
+  folhinhaHoje: { borderColor: "rgba(242, 140, 30, 0.5)", backgroundColor: "rgba(242, 140, 30, 0.1)" },
+  folhinhaRotulo: { fontFamily: FAMILIA_MONO, fontSize: 10, letterSpacing: 1, textTransform: "uppercase" },
+  folhinhaDia: { fontSize: 26, lineHeight: 30, fontWeight: "700", color: cores.branco },
+  jogoTitulo: { fontSize: 16, fontWeight: "700", color: cores.branco },
+  margemLinha: { marginTop: 4 },
   infoTexto: { fontSize: 14, color: cores.slate300 },
-  infoHoje: { fontSize: 14, fontWeight: "600", color: cores.orange },
+  contagem: { fontSize: 12, fontWeight: "500" },
+  botaoGrupo: {
+    height: 36,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: cores.teal,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  botaoGrupoTexto: { fontSize: 12, fontWeight: "600", color: cores.dark },
   destaqueRodape: {
     marginTop: 14,
     paddingTop: 14,
@@ -612,7 +709,7 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255, 255, 255, 0.1)",
     gap: 12,
   },
-  confirmados: { fontSize: 14, fontWeight: "600", color: cores.teal },
+  confirmados: { fontSize: 12, fontWeight: "600", color: cores.teal },
   botao: {
     height: 44,
     borderRadius: 8,
@@ -622,8 +719,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   botaoTexto: { fontSize: 14, fontWeight: "600" },
-  botaoContorno: { borderWidth: 1, borderColor: "rgba(31, 179, 163, 0.3)" },
-  botaoContornoTexto: { color: cores.branco, fontWeight: "500" },
 
   // Ações rápidas
   acao: { width: 104, alignItems: "center", gap: 6, paddingHorizontal: 8, paddingVertical: 12 },

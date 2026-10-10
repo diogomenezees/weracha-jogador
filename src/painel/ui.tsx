@@ -163,8 +163,9 @@ const styles = StyleSheet.create({
     color: cores.teal,
     textTransform: "uppercase",
   },
+  // 48 = h-12 do site (mesma altura do "Gerenciar jogadores" da tela do grupo).
   botaoLaranja: {
-    height: 52,
+    height: 48,
     paddingHorizontal: 28,
     flexDirection: "row",
     gap: 8,

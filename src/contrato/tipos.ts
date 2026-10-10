@@ -606,6 +606,8 @@ export type AtividadeRecentePainel = {
 
 export type DestaquePainel = {
   jogador: JogadorEmPartida;
+  /** Grupo onde ele mais jogou: o card abre o perfil por esse grupo. */
+  grupoId: string;
   gols: number;
   jogos: number;
 };
@@ -614,6 +616,24 @@ export type DestaquesPainel = {
   artilheiro: DestaquePainel | null;
   maisPresente: DestaquePainel | null;
   melhorConversao: DestaquePainel | null;
+  /** Mais gols de um jogador numa única partida. */
+  noiteHistorica: {
+    jogador: JogadorEmPartida;
+    grupoId: string;
+    gols: number;
+    partidaId: string;
+    data: string;
+  } | null;
+  /** Quem mais comentou nas resenhas dos grupos. */
+  resenheiro: { jogador: JogadorEmPartida; grupoId: string; comentarios: number } | null;
+  /** Replay de gol com mais comentários; abre a resenha em `?video=`. */
+  golMaisComentado: {
+    jogador: JogadorEmPartida;
+    grupoId: string;
+    pedidoReplayId: string;
+    comentarios: number;
+    data: string;
+  } | null;
 };
 
 export type DadosDoPainel = {
