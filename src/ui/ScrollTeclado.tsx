@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -21,7 +21,14 @@ import {
 //
 // Use no lugar de `ScrollView` em toda tela logada que tenha `TextInput` no meio da rolagem
 // (os modais já se ajustam sozinhos no Android). Aceita as mesmas props da ScrollView.
-export function ScrollTeclado({ children, onScroll, ...props }: ScrollViewProps) {
+// `rolagemRef` (opcional) expõe a ScrollView de dentro pra tela rolar por conta própria
+// (ex.: levar até o campo com erro de validação).
+export function ScrollTeclado({
+  children,
+  onScroll,
+  rolagemRef,
+  ...props
+}: ScrollViewProps & { rolagemRef?: RefObject<ScrollView | null> }) {
   const scrollRef = useRef<ScrollView>(null);
   // A ScrollView em si não mede posição na janela; o View que a envolve ocupa o mesmo espaço.
   const areaRef = useRef<View>(null);
@@ -59,7 +66,10 @@ export function ScrollTeclado({ children, onScroll, ...props }: ScrollViewProps)
     <KeyboardAvoidingView style={styles.flex} behavior="padding">
       <View ref={areaRef} style={styles.flex} collapsable={false}>
         <ScrollView
-          ref={scrollRef}
+          ref={(no) => {
+            scrollRef.current = no;
+            if (rolagemRef) rolagemRef.current = no;
+          }}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           {...props}

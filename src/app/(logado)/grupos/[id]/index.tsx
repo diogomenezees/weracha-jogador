@@ -93,6 +93,9 @@ import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/
 
 type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
 
+// Quantas partidas finalizadas aparecem antes do "Ver todas" (mesmo valor do site).
+const PARTIDAS_PASSADAS_VISIVEIS = 5;
+
 export default function TelaGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { estado, chamarApi } = useSessao();
@@ -755,7 +758,7 @@ export default function TelaGrupo() {
               <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
               <Text style={styles.secaoSub}>Confira o histórico das partidas já realizadas.</Text>
             </View>
-            {(verTodasPassadas ? passadas : passadas.slice(0, 3)).map((p) => (
+            {(verTodasPassadas ? passadas : passadas.slice(0, PARTIDAS_PASSADAS_VISIVEIS)).map((p) => (
               <CardPartida
                 key={p.id}
                 partida={p}
@@ -771,7 +774,7 @@ export default function TelaGrupo() {
                 onAoVivo={() => {}}
               />
             ))}
-            {!verTodasPassadas && passadas.length > 3 && (
+            {!verTodasPassadas && passadas.length > PARTIDAS_PASSADAS_VISIVEIS && (
               <Pressable style={styles.verMaisBotao} onPress={() => setVerTodasPassadas(true)}>
                 <Text style={styles.verMaisTexto}>
                   Ver mais {passadas.length - 3} {passadas.length - 3 === 1 ? "partida" : "partidas"}

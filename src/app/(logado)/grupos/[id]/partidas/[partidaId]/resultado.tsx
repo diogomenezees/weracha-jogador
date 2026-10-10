@@ -59,7 +59,8 @@ import {
   UserPlus,
   X,
 } from "@/ui/Icone";
-import { buscarPartida, duracaoDaPartida } from "@/grupos";
+import { buscarPartida, duracaoDaPartida, partidasPassadas } from "@/grupos";
+import { FileiraDeDatas } from "@/partida/FileiraDeDatas";
 import {
   dentroDoPrazoDeEdicaoDeGols,
   formatarDiaSemanaData,
@@ -95,6 +96,9 @@ export default function TelaResultado() {
   // Quadra vinculada ao grupo (já vem na mesma chamada dos dados do grupo). A pílula da
   // quadra abre o modal com nome e endereço, igual ao site.
   const [quadra, setQuadra] = useState<Quadra | null>(null);
+  // Partidas do grupo com resultado ativo (vem em GET /api/v1/grupos/{id}): base da
+  // fileira de datas que navega entre resultados.
+  const [idsComResultado, setIdsComResultado] = useState<string[]>([]);
   const [modalQuadra, setModalQuadra] = useState(false);
   const [montado, setMontado] = useState<ResultadoMontado | null>(null);
   const [gols, setGols] = useState<GolComVideos[]>([]);
@@ -158,6 +162,7 @@ export default function TelaResultado() {
     setGrupo(g);
     setPartida(p);
     setQuadra(dados.quadra ?? null);
+    setIdsComResultado(dados.idsComResultado);
     setGols(gs);
     setLances(ls);
 
@@ -227,6 +232,16 @@ export default function TelaResultado() {
     dentroDoPrazoDeEdicaoDeGols(new Date(partida.data), duracaoDaPartida(grupo, partida));
 
   const golsAtivos = useMemo(() => gols.filter((g) => !g.cancelado), [gols]);
+  // Finalizadas (mesma regra da lista do grupo), com resultado, não canceladas, da
+  // mais antiga pra mais recente. Mesmo critério do site (dadosDaTelaResultado).
+  const partidasComResultado = useMemo(() => {
+    if (!grupo) return [];
+    const comResultado = new Set(idsComResultado);
+    return partidasPassadas(grupo)
+      .filter((x) => !x.cancelada && comResultado.has(x.id))
+      .reverse()
+      .map((x) => ({ id: x.id, data: x.data }));
+  }, [grupo, idsComResultado]);
   const golsPorJogador = useMemo(() => {
     const m: Record<string, number> = {};
     for (const g of golsAtivos) if (g.jogador) m[g.jogador.id] = (m[g.jogador.id] ?? 0) + 1;
@@ -421,6 +436,16 @@ export default function TelaResultado() {
             <Text style={styles.infoPillTexto}>{rotuloModoSorteio}</Text>
           </View>
         </View>
+        {/* Só no resultado de partida finalizada e com mais de uma pra navegar.
+            replace: o "Grupo" do topo continua indo pro grupo, sem passar por cada
+            resultado visto. */}
+        {encerrada && partidasComResultado.length > 1 && (
+          <FileiraDeDatas
+            partidas={partidasComResultado}
+            partidaAtualId={partidaId}
+            onTrocar={(outra) => router.replace(`/grupos/${id}/partidas/${outra}/resultado`)}
+          />
+        )}
         {abas.length > 1 && (
           <Abas
             opcoes={abas}

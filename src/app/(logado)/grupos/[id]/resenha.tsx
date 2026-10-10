@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -17,7 +17,11 @@ import { cores, raio } from "@/tema";
 import type { BlocoFeedResenha, FeedResenha } from "@/contrato/tipos";
 
 export default function ResenhaDoGrupo() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // ?video={pedidoReplayId}: abre já rolada até esse replay (link das
+  // "Atividades recentes" do painel), com a borda dele destacada.
+  const { id, video } = useLocalSearchParams<{ id: string; video?: string }>();
+  const listaRef = useRef<FlatList<BlocoFeedResenha>>(null);
+  const rolouAteAlvo = useRef(false);
   // Sem folga embaixo, a barra de botões do Android fica em cima do último card.
   const insets = useSafeAreaInsets();
   const { chamarApi } = useSessao();
@@ -94,6 +98,21 @@ export default function ResenhaDoGrupo() {
     }
   }
 
+  // Rola até o ?video= uma vez só. Se ele ainda não está nas páginas
+  // carregadas (o feed vem de 3 em 3), puxa a próxima até achar ou acabar.
+  useEffect(() => {
+    if (!video || rolouAteAlvo.current || blocos.length === 0) return;
+    const indice = blocos.findIndex((b) => b.pedidoReplayId === video);
+    if (indice >= 0) {
+      rolouAteAlvo.current = true;
+      setTimeout(() => listaRef.current?.scrollToIndex({ index: indice, animated: true }), 300);
+    } else if (feed?.temMais && !carregandoMais) {
+      const t = setTimeout(() => void carregarMais(), 0);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocos, video, feed?.temMais, carregandoMais]);
+
   const voltar = <Navbar voltar="Grupo" />;
 
   if (erro && !feed) {
@@ -117,7 +136,14 @@ export default function ResenhaDoGrupo() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
       <FlatList
+        ref={listaRef}
         data={blocos}
+        // Os cards têm altura variável: sem getItemLayout o scrollToIndex pode
+        // falhar pra um item ainda não medido. Rola perto e tenta de novo.
+        onScrollToIndexFailed={({ index, averageItemLength }) => {
+          listaRef.current?.scrollToOffset({ offset: index * averageItemLength, animated: false });
+          setTimeout(() => listaRef.current?.scrollToIndex({ index, animated: true }), 250);
+        }}
         keyExtractor={(b) => b.pedidoReplayId}
         contentContainerStyle={[styles.lista, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
@@ -169,6 +195,7 @@ export default function ResenhaDoGrupo() {
             podeModerar={feed.podeModerar}
             meuJogadorId={feed.meuJogadorId}
             podeComentar={feed.podeComentar}
+            destacado={item.pedidoReplayId === video}
           />
         )}
         ListFooterComponent={

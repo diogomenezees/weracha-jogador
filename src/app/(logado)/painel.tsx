@@ -1,21 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
-import { buscarStatusExclusao, cancelarExclusao } from "@/api/conta";
-import { listarMeusGrupos } from "@/api/grupos";
-import { ehHoje, formatarDataPartida, rotuloDoDia } from "@/formato";
-import {
-  aguardandoRenovacao,
-  avulsoAguardandoNovoJogo,
-  meuPapelNoGrupo,
-  ordenarPorProximaPartida,
-  proximaPartidaInfo,
-} from "@/grupos";
+import { cancelarExclusao } from "@/api/conta";
+import { buscarPainel } from "@/api/painel";
+import { rotuloDoDia } from "@/formato";
 import { mensagemDoErro } from "@/mensagens-erro";
-import { Calendar, ChevronRight, LogIn, Plus, Users } from "@/ui/Icone";
+import { LogIn, Plus } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import {
   BotaoLaranja,
@@ -29,9 +22,15 @@ import {
 } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { useDialogos } from "@/ui/Dialogos";
-import { SeloPapel } from "@/ui/SeloPapel";
+import {
+  AcoesRapidas,
+  AtividadesRecentes,
+  DestaquesDosGrupos,
+  ProximoJogo,
+  SeusGrupos,
+} from "@/painel/secoes";
 import { cores, raio } from "@/tema";
-import type { Grupo } from "@/contrato/tipos";
+import type { DadosDoPainel } from "@/contrato/tipos";
 
 export default function Painel() {
   const { estado, chamarApi, recarregarPerfil } = useSessao();
@@ -39,21 +38,20 @@ export default function Painel() {
   const jogador = estado.fase === "logado" ? estado.jogador : null;
   const primeiroNome = jogador?.nome.split(" ")[0] ?? "";
 
-  const [grupos, setGrupos] = useState<Grupo[] | null>(null);
-  const [exclusaoPendente, setExclusaoPendente] = useState(false);
+  const [dados, setDados] = useState<DadosDoPainel | null>(null);
+  // "Agora" das seções (check-in aberto, "há 5 min"): fixado a cada carga.
+  const [carregadoEm, setCarregadoEm] = useState(0);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
   const [reativando, setReativando] = useState(false);
 
+  // Uma chamada traz tudo do painel (GET /api/v1/painel), inclusive se a
+  // conta está com exclusão pendente.
   const carregar = useCallback(async () => {
-    const [, status, lista] = await Promise.all([
-      recarregarPerfil(),
-      buscarStatusExclusao(chamarApi),
-      listarMeusGrupos(chamarApi),
-    ]);
-    setExclusaoPendente(status.solicitacaoPendente != null);
-    setGrupos(ordenarPorProximaPartida(lista));
+    const [, painel] = await Promise.all([recarregarPerfil(), buscarPainel(chamarApi)]);
+    setDados(painel);
+    setCarregadoEm(Date.now());
   }, [chamarApi, recarregarPerfil]);
 
   useEffect(() => {
@@ -93,7 +91,8 @@ export default function Painel() {
     setReativando(true);
     try {
       await cancelarExclusao(chamarApi);
-      setExclusaoPendente(false);
+      // Com a exclusão pendente o servidor não manda as outras seções; recarrega.
+      await carregar();
     } catch (e) {
       avisar("Não deu pra reativar", mensagemDoErro(e));
     } finally {
@@ -101,7 +100,7 @@ export default function Painel() {
     }
   }
 
-  if (!jogador || (carregando && grupos === null)) {
+  if (!jogador || (carregando && dados === null)) {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         <Navbar />
@@ -110,7 +109,7 @@ export default function Painel() {
     );
   }
 
-  if (erro && grupos === null) {
+  if (erro && dados === null) {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         <Navbar />
@@ -119,13 +118,10 @@ export default function Painel() {
     );
   }
 
-  const lista = grupos ?? [];
-  const temGrupo = lista.length > 0;
+  const grupos = dados?.grupos ?? [];
+  const temGrupo = grupos.length > 0;
+  const exclusaoPendente = dados?.exclusaoPendente ?? false;
   const onboardingConcluido = !!jogador.onboardingConcluidoEm;
-
-  const paraRenovar = lista.filter(aguardandoRenovacao);
-  const aguardandoNovoJogo = lista.filter(avulsoAguardandoNovoJogo);
-  const emDia = lista.filter((g) => !aguardandoRenovacao(g) && !avulsoAguardandoNovoJogo(g));
 
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
@@ -150,38 +146,20 @@ export default function Painel() {
           </View>
         )}
 
-        {exclusaoPendente && temGrupo && <BannerExclusao />}
-
-        {temGrupo && emDia.length === 0 && !exclusaoPendente && (
-          <View style={styles.avisoBox}>
-            <Eyebrow>Não fique parado</Eyebrow>
-            <Text style={styles.paragrafo}>
-              Renove, marque um novo jogo ou crie um grupo pra continuar jogando.
-            </Text>
-          </View>
+        {temGrupo && exclusaoPendente && <BannerExclusao />}
+        {temGrupo && dados && !exclusaoPendente && dados.proximoJogo && (
+          <ProximoJogo jogo={dados.proximoJogo} agora={carregadoEm} />
         )}
-
-        <SecaoGrupos
-          titulo="Seus grupos"
-          sub="Grupos que você ama fazer parte"
-          grupos={emDia}
-          meuId={jogador.id}
-          bloqueado={exclusaoPendente}
-        />
-        <SecaoGrupos
-          titulo="Aguardando renovação"
-          sub="Incentive o grupo a continuar jogando no próximo mês."
-          grupos={paraRenovar}
-          meuId={jogador.id}
-          bloqueado={exclusaoPendente}
-        />
-        <SecaoGrupos
-          titulo="Aguardando novo jogo"
-          sub="Que tal combinar a próxima com essa galera?"
-          grupos={aguardandoNovoJogo}
-          meuId={jogador.id}
-          bloqueado={exclusaoPendente}
-        />
+        {temGrupo && dados && !exclusaoPendente && (
+          <AcoesRapidas ultimoResultado={dados.ultimoResultado} />
+        )}
+        {temGrupo && dados && !exclusaoPendente && (
+          <DestaquesDosGrupos destaques={dados.destaques} />
+        )}
+        {temGrupo && <SeusGrupos grupos={grupos} bloqueado={exclusaoPendente} />}
+        {temGrupo && dados && !exclusaoPendente && dados.atividadesRecentes.length > 0 && (
+          <AtividadesRecentes atividades={dados.atividadesRecentes} agora={carregadoEm} />
+        )}
       </ScrollView>
 
       <Rodape
@@ -310,109 +288,6 @@ function BannerExclusao() {
   );
 }
 
-function SecaoGrupos({
-  titulo,
-  sub,
-  grupos,
-  meuId,
-  bloqueado,
-}: {
-  titulo: string;
-  sub: string;
-  grupos: Grupo[];
-  meuId: string;
-  bloqueado: boolean;
-}) {
-  if (grupos.length === 0) return null;
-  return (
-    <View style={styles.bloco}>
-      <Text style={styles.rotuloSecaoTeal}>{titulo}</Text>
-      <Text style={styles.paragrafo}>{sub}</Text>
-      <View style={styles.listaGrupos}>
-        {grupos.map((g) => (
-          <CardGrupo key={g.id} grupo={g} meuId={meuId} bloqueado={bloqueado} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function CardGrupo({
-  grupo,
-  meuId,
-  bloqueado,
-}: {
-  grupo: Grupo;
-  meuId: string;
-  bloqueado: boolean;
-}) {
-  const papel = meuPapelNoGrupo(grupo, meuId);
-  const info = proximaPartidaInfo(grupo);
-  const hoje = info ? ehHoje(info.data) : false;
-  const precisaAtencao = aguardandoRenovacao(grupo) || avulsoAguardandoNovoJogo(grupo);
-
-  const corpo = (
-    <>
-      <View style={styles.cardConteudo}>
-        <View style={styles.cardTopo}>
-          <View style={styles.cardNomeLinha}>
-            <Users size={14} color={cores.branco} />
-            <Text style={styles.cardNome} numberOfLines={1}>
-              {grupo.nome}
-            </Text>
-          </View>
-          {papel !== "MEMBRO" && <SeloPapel papel={papel} />}
-        </View>
-        <Text style={styles.cardSub}>
-          {grupo.esporte} · {grupo.tipo === "RECORRENTE" ? "Semanal" : "Avulso"}
-        </Text>
-        <View style={styles.cardRodape}>
-          {info ? (
-            <>
-              {hoje ? (
-                <View style={styles.hojePill}>
-                  <Text style={styles.hojePillTexto}>hoje</Text>
-                </View>
-              ) : (
-                <>
-                  <Calendar size={16} color={cores.orange} />
-                  <Text style={styles.cardData}>Próxima: {formatarDataPartida(info.data.toISOString())}</Text>
-                </>
-              )}
-              {hoje && (
-                <Text style={styles.cardDataHoje}>{formatarDataPartida(info.data.toISOString())}</Text>
-              )}
-              {info.checkinDisponivel && (
-                <View style={styles.checkin}>
-                  <View style={styles.checkinPonto} />
-                  <Text style={styles.checkinTexto}>Check-in</Text>
-                </View>
-              )}
-            </>
-          ) : (
-            <Text style={styles.cardAtencao}>
-              {grupo.tipo === "RECORRENTE" ? "Aguardando renovação" : "Aguardando novo jogo"}
-            </Text>
-          )}
-        </View>
-      </View>
-      <ChevronRight size={20} color={cores.slate500} />
-    </>
-  );
-
-  if (bloqueado) {
-    return <View style={[styles.card, styles.cardBloqueado, precisaAtencao && styles.cardAtencaoBorda]}>{corpo}</View>;
-  }
-  return (
-    <Pressable
-      style={[styles.card, precisaAtencao && styles.cardAtencaoBorda]}
-      onPress={() => router.push(`/grupos/${grupo.id}`)}
-    >
-      {corpo}
-    </Pressable>
-  );
-}
-
 function Rodape({
   exclusaoPendente,
   reativando,
@@ -465,7 +340,7 @@ function Rodape({
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 170, gap: 24 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 170, gap: 28 },
 
   bloco: { gap: 4 },
   heroBloco: { gap: 10, borderBottomWidth: 1, borderBottomColor: cores.linhaSutil, paddingBottom: 20 },
@@ -477,14 +352,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 2,
     color: cores.slate500,
-    textTransform: "uppercase",
-  },
-  // Mesmo tamanho do <Eyebrow> ("Não fique parado") e dos títulos teal do site.
-  rotuloSecaoTeal: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 2,
-    color: cores.teal,
     textTransform: "uppercase",
   },
   passos: { marginTop: 4 },
@@ -518,16 +385,6 @@ const styles = StyleSheet.create({
   divisor: { height: 1, backgroundColor: cores.linhaSutil },
   notaCentral: { fontSize: 12, lineHeight: 18, color: cores.slate500, textAlign: "center", marginTop: 4 },
 
-  avisoBox: {
-    borderRadius: raio.card,
-    borderWidth: 1,
-    borderColor: cores.cardBorda,
-    backgroundColor: cores.cardFundo,
-    padding: 18,
-    gap: 6,
-    alignItems: "center",
-  },
-
   bannerExclusao: {
     borderRadius: raio.card,
     borderWidth: 1,
@@ -538,58 +395,6 @@ const styles = StyleSheet.create({
   },
   bannerExclusaoTitulo: { fontSize: 14, fontWeight: "700", color: cores.ambar },
   bannerExclusaoTexto: { fontSize: 13, lineHeight: 19, color: cores.slate300 },
-
-  listaGrupos: { gap: 12, marginTop: 4 },
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderTopRightRadius: raio.card,
-    borderBottomRightRadius: raio.card,
-    borderWidth: 1,
-    borderColor: cores.cardBorda,
-    borderLeftWidth: 3,
-    borderLeftColor: cores.teal,
-    backgroundColor: cores.cardFundo,
-    padding: 14,
-  },
-  cardConteudo: { flex: 1, gap: 4 },
-  cardBloqueado: { opacity: 0.5 },
-  cardAtencaoBorda: { borderLeftColor: cores.ambar },
-  cardTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  // Ícone de grupo + nome, igual ao card do site (app/painel/page.tsx).
-  cardNomeLinha: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1, minWidth: 0 },
-  cardNome: { fontSize: 16, fontWeight: "700", color: cores.branco, flexShrink: 1 },
-  cardSub: { fontSize: 13, color: cores.slate400, textTransform: "capitalize" },
-  cardRodape: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: cores.linhaSutil,
-    paddingTop: 8,
-    flexWrap: "wrap",
-  },
-  cardData: { fontSize: 13, color: cores.slate400 },
-  cardDataHoje: { fontSize: 13, fontWeight: "700", color: cores.branco },
-  cardAtencao: { fontSize: 13, fontWeight: "600", color: cores.ambar },
-  hojePill: {
-    backgroundColor: cores.orange,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  hojePillTexto: { fontSize: 11, fontWeight: "600", color: cores.dark },
-  checkin: { flexDirection: "row", alignItems: "center", gap: 5, marginLeft: "auto" },
-  checkinPonto: { width: 6, height: 6, borderRadius: 3, backgroundColor: cores.teal },
-  checkinTexto: {
-    fontSize: 10,
-    fontWeight: "600",
-    letterSpacing: 1,
-    color: cores.teal,
-    textTransform: "uppercase",
-  },
 
   rodape: {
     position: "absolute",

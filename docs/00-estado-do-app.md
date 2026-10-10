@@ -66,6 +66,25 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: painel com seções + navegação entre resultados (2026-10-10)
+
+Painel de quem tem grupo (`src/app/(logado)/painel.tsx`, seções em
+`src/painel/secoes.tsx`) espelha o `/painel` do site: Próximo jogo (selo de
+check-in, confirmados, botão Check-in/Confirmado/Ao vivo), Ações rápidas e
+Destaques dos grupos (carrosséis), Seus grupos (abas Ativos/Aguardando, nome da
+quadra) e Atividades recentes (últimos replays comentados, abre a resenha com
+`?video=`). Tudo numa chamada: `GET /api/v1/painel` (`src/api/painel.ts`,
+tipos em `src/contrato/tipos.ts`); o painel não usa mais `/api/v1/grupos` nem
+`/conta/exclusao`.
+- Resenha do grupo aceita `?video=`: rola até o vídeo (carrega páginas se
+  preciso) e destaca o card (`BlocoCard destacado`).
+- Resultado de partida finalizada: fileira de datas (`src/partida/FileiraDeDatas.tsx`)
+  acima das abas pra pular entre os resultados do grupo (`router.replace`).
+- Tela do grupo mostra 5 partidas finalizadas antes do "Ver todas".
+- Criar grupo: validação aponta o campo (rola até ele, borda vermelha,
+  mensagem embaixo, abre o teclado); `ScrollTeclado` ganhou `rolagemRef`.
+- **Não validado em device ainda** (o celular perdeu a rede com o PC no teste).
+
 ## Feito: `/painel` + onboarding (2026-09-10)
 
 Área logada agora abre no **`/painel`** (`src/app/(logado)/painel.tsx`,

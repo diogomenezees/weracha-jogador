@@ -105,5 +105,10 @@ export {
   MonitorPlay,
   Smartphone,
   PenLine,
+  // painel (ações rápidas / destaques)
+  Zap,
+  Medal,
+  Target,
+  CalendarCheck,
   Goal as Bola,
 } from "lucide-react-native";

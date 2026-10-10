@@ -551,3 +551,76 @@ export type GolComVideos = {
   migracao?: { deNome: string; porNome: string; em: string };
   cancelado?: { porNome: string; em: string };
 };
+
+// ── Painel (GET /api/v1/painel) ────────────────────────────────────────────
+// Cópia de weracha-site/lib/services/painel.ts (`DadosDoPainel` e tipos).
+
+/** Grupo da lista "Seus grupos", já resolvido no servidor (sem histórico de partidas). */
+export type GrupoPainel = {
+  id: string;
+  nome: string;
+  esporte: string;
+  tipo: TipoGrupo;
+  papel: "DONO" | "ADMIN" | "MEMBRO";
+  quadraNome: string | null;
+  situacao: "ATIVO" | "AGUARDANDO_RENOVACAO" | "AGUARDANDO_NOVO_JOGO";
+  proximaPartida: { data: string; checkinDisponivel: boolean } | null;
+};
+
+export type ProximoJogoPainel = {
+  grupoId: string;
+  grupoNome: string;
+  esporte: string;
+  tipo: TipoGrupo;
+  partidaId: string;
+  data: string;
+  checkinAbreEm: string;
+  checkinFechaEm: string;
+  quadraNome: string | null;
+  confirmados: number;
+  euConfirmado: boolean;
+  temResultado: boolean;
+};
+
+export type UltimoResultadoPainel = {
+  grupoId: string;
+  partidaId: string;
+  data: string;
+};
+
+export type AtividadeRecentePainel = {
+  grupoId: string;
+  grupoNome: string;
+  pedidoReplayId: string;
+  tipo: "GOL" | "LANCE";
+  jogadorNome: string | null;
+  totalComentarios: number;
+  ultimoComentario: {
+    autorNome: string;
+    autorFotoUrl: string | null;
+    texto: string;
+    bloqueado: boolean;
+    criadoEm: string;
+  };
+};
+
+export type DestaquePainel = {
+  jogador: JogadorEmPartida;
+  gols: number;
+  jogos: number;
+};
+
+export type DestaquesPainel = {
+  artilheiro: DestaquePainel | null;
+  maisPresente: DestaquePainel | null;
+  melhorConversao: DestaquePainel | null;
+};
+
+export type DadosDoPainel = {
+  exclusaoPendente: boolean;
+  grupos: GrupoPainel[];
+  proximoJogo: ProximoJogoPainel | null;
+  ultimoResultado: UltimoResultadoPainel | null;
+  atividadesRecentes: AtividadeRecentePainel[];
+  destaques: DestaquesPainel;
+};

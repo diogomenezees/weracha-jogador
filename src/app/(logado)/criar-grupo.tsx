@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -9,7 +9,7 @@ import { CaixaErro } from "@/acesso/ui";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { hojeISO, partidaEncerrada } from "@/partidas";
 import { BotaoLaranja } from "@/painel/ui";
-import { MapPin } from "@/ui/Icone";
+import { MapPin, TriangleAlert } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
 import { SeletorData, SeletorDiaSemana, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
@@ -22,6 +22,11 @@ type LinhaAvulsa = { data: string; horaInicio: string; duracaoMin: number };
 
 const HORARIO_PADRAO: LinhaHorario = { diaSemana: 1, horaInicio: "12:00", duracaoMin: 60 };
 const avulsaPadrao = (): LinhaAvulsa => ({ data: hojeISO(), horaInicio: "12:00", duracaoMin: 60 });
+
+// Campo que a validação apontou: recebe borda vermelha + mensagem embaixo, e a
+// tela rola até ele (e abre o teclado, se for de texto). Mesmo efeito do
+// `required` + mensagem do site (weracha-site/app/grupos/novo/page.tsx).
+type CampoComErro = "nome" | "datas" | "esporte";
 
 function dataHoraJaPassou(data: string, hora: string, duracaoMin: number): boolean {
   const [a, m, d] = data.split("-").map(Number);
@@ -44,7 +49,32 @@ export default function CriarGrupo() {
   const [termoEsporte, setTermoEsporte] = useState("");
 
   const [erro, setErro] = useState<string | null>(null);
+  const [erroCampo, setErroCampo] = useState<{ campo: CampoComErro; mensagem: string } | null>(
+    null
+  );
   const [salvando, setSalvando] = useState(false);
+
+  const rolagemRef = useRef<ScrollView | null>(null);
+  const nomeRef = useRef<TextInput>(null);
+  const esporteRef = useRef<TextInput>(null);
+  // Posição (y) de cada campo dentro da rolagem, medida no onLayout.
+  const posicaoDoCampo = useRef<Partial<Record<CampoComErro, number>>>({});
+
+  function apontarCampo(campo: CampoComErro, mensagem: string) {
+    setErroCampo({ campo, mensagem });
+    const y = posicaoDoCampo.current[campo] ?? 0;
+    rolagemRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+    // Depois da rolagem, abre o teclado no campo de texto (o ScrollTeclado
+    // ajusta a posição quando o teclado sobe).
+    setTimeout(() => {
+      if (campo === "nome") nomeRef.current?.focus();
+      if (campo === "esporte") esporteRef.current?.focus();
+    }, 350);
+  }
+
+  function limparErroDo(campo: CampoComErro) {
+    setErroCampo((atual) => (atual?.campo === campo ? null : atual));
+  }
 
   // Sem setState síncrono aqui: só nos callbacks da promise (regra
   // react-hooks/set-state-in-effect). O retry religa via `tentarEsportes`.
@@ -75,26 +105,28 @@ export default function CriarGrupo() {
   }
   function setAvulsa(i: number, patch: Partial<LinhaAvulsa>) {
     setAvulsas((prev) => prev.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
+    limparErroDo("datas");
   }
 
   async function salvar() {
     setErro(null);
+    setErroCampo(null);
     if (!nome.trim()) {
-      setErro("Dê um nome para o grupo.");
+      apontarCampo("nome", "Dê um nome para o grupo.");
       return;
     }
     if (tipo === "AVULSO") {
       if (avulsas.length === 0) {
-        setErro("Adicione pelo menos uma data.");
+        apontarCampo("datas", "Adicione pelo menos uma data.");
         return;
       }
       if (avulsas.some((d) => dataHoraJaPassou(d.data, d.horaInicio, d.duracaoMin))) {
-        setErro("Uma das datas escolhidas já passou. Escolha datas e horários futuros.");
+        apontarCampo("datas", "Uma das datas escolhidas já passou. Escolha datas e horários futuros.");
         return;
       }
     }
     if (!esporte) {
-      setErro("Escolha o esporte.");
+      apontarCampo("esporte", "Escolha o esporte.");
       return;
     }
 
@@ -111,6 +143,9 @@ export default function CriarGrupo() {
     } catch (e) {
       setErro(mensagemDoErro(e));
       setSalvando(false);
+      // A caixa de erro fica no fim do formulário: rola até ela pra não parecer
+      // que o botão não fez nada.
+      setTimeout(() => rolagemRef.current?.scrollToEnd({ animated: true }), 50);
     }
   }
 
@@ -118,18 +153,30 @@ export default function CriarGrupo() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Painel" />
 
-      <ScrollTeclado contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollTeclado
+        rolagemRef={rolagemRef}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.h1}>Criar grupo</Text>
 
-        <View style={styles.campo}>
+        <View
+          style={styles.campo}
+          onLayout={(e) => (posicaoDoCampo.current.nome = e.nativeEvent.layout.y)}
+        >
           <Text style={styles.label}>Nome do grupo</Text>
           <TextInput
+            ref={nomeRef}
             value={nome}
-            onChangeText={setNome}
+            onChangeText={(v) => {
+              setNome(v);
+              limparErroDo("nome");
+            }}
             placeholder="Futebol da segunda"
             placeholderTextColor={cores.slate500}
-            style={styles.input}
+            style={[styles.input, erroCampo?.campo === "nome" && styles.inputErro]}
           />
+          {erroCampo?.campo === "nome" && <MensagemCampo texto={erroCampo.mensagem} />}
         </View>
 
         <View style={styles.campo}>
@@ -169,10 +216,21 @@ export default function CriarGrupo() {
             </Pressable>
           </View>
         ) : (
-          <View style={styles.campo}>
+          <View
+            style={styles.campo}
+            onLayout={(e) => (posicaoDoCampo.current.datas = e.nativeEvent.layout.y)}
+          >
             <Text style={styles.label}>Datas</Text>
             {avulsas.map((d, i) => (
-              <View key={i} style={styles.linha}>
+              <View
+                key={i}
+                style={[
+                  styles.linha,
+                  erroCampo?.campo === "datas" &&
+                    dataHoraJaPassou(d.data, d.horaInicio, d.duracaoMin) &&
+                    styles.linhaErro,
+                ]}
+              >
                 <SeletorData iso={d.data} onChange={(v) => setAvulsa(i, { data: v })} minIso={hojeISO()} />
                 <SeletorHora hhmm={d.horaInicio} onChange={(v) => setAvulsa(i, { horaInicio: v })} />
                 <SeletorDuracao min={d.duracaoMin} onChange={(v) => setAvulsa(i, { duracaoMin: v })} />
@@ -183,13 +241,22 @@ export default function CriarGrupo() {
                 )}
               </View>
             ))}
-            <Pressable onPress={() => setAvulsas((p) => [...p, avulsaPadrao()])}>
+            {erroCampo?.campo === "datas" && <MensagemCampo texto={erroCampo.mensagem} />}
+            <Pressable
+              onPress={() => {
+                setAvulsas((p) => [...p, avulsaPadrao()]);
+                limparErroDo("datas");
+              }}
+            >
               <Text style={styles.adicionar}>+ Adicionar data</Text>
             </Pressable>
           </View>
         )}
 
-        <View style={styles.campo}>
+        <View
+          style={styles.campo}
+          onLayout={(e) => (posicaoDoCampo.current.esporte = e.nativeEvent.layout.y)}
+        >
           <Text style={styles.label}>Esporte</Text>
           {esporte ? (
             <View style={styles.esporteEscolhido}>
@@ -208,13 +275,15 @@ export default function CriarGrupo() {
           ) : (
             <>
               <TextInput
+                ref={esporteRef}
                 value={termoEsporte}
                 onChangeText={setTermoEsporte}
                 placeholder={esportes.length ? "Buscar esporte..." : "Carregando esportes..."}
                 placeholderTextColor={cores.slate500}
                 editable={esportes.length > 0}
-                style={styles.input}
+                style={[styles.input, erroCampo?.campo === "esporte" && styles.inputErro]}
               />
+              {erroCampo?.campo === "esporte" && <MensagemCampo texto={erroCampo.mensagem} />}
               <View style={styles.dropdown}>
                 {esportesFiltrados.map((e) => (
                   <Pressable
@@ -224,6 +293,7 @@ export default function CriarGrupo() {
                       setEsporte(e.nome);
                       setTermoEsporte("");
                       setErro(null);
+                      limparErroDo("esporte");
                     }}
                   >
                     <Text style={styles.opcaoTexto}>{e.nome}</Text>
@@ -252,6 +322,15 @@ export default function CriarGrupo() {
   );
 }
 
+function MensagemCampo({ texto }: { texto: string }) {
+  return (
+    <View style={styles.mensagemCampo}>
+      <TriangleAlert size={14} color={cores.erroTexto} />
+      <Text style={styles.mensagemCampoTexto}>{texto}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 140, gap: 20 },
@@ -268,6 +347,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: cores.branco,
   },
+  inputErro: { borderColor: cores.erroTexto },
+  mensagemCampo: { flexDirection: "row", alignItems: "center", gap: 6 },
+  mensagemCampoTexto: { flex: 1, fontSize: 13, color: cores.erroTexto },
   toggle: { flexDirection: "row", gap: 8 },
   toggleBtn: {
     flex: 1,
@@ -288,6 +370,7 @@ const styles = StyleSheet.create({
     borderRadius: raio.card,
     padding: 12,
   },
+  linhaErro: { borderColor: cores.erroTexto },
   remover: { fontSize: 13, color: cores.erroTexto },
   adicionar: { fontSize: 14, fontWeight: "600", color: cores.teal },
   esporteEscolhido: {

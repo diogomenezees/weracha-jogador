@@ -42,6 +42,7 @@ export function BlocoCard({
   meuJogadorId,
   podeComentar,
   meus,
+  destacado = false,
 }: {
   bloco: BlocoFeedResenha;
   grupoId: string;
@@ -50,6 +51,9 @@ export function BlocoCard({
   meuJogadorId: string | null;
   podeComentar: PodeComentar;
   meus?: { grupoNome: string; grupoRemovido: boolean };
+  // Borda teal: o bloco que a tela abriu de propósito (?video=, vindo das
+  // "Atividades recentes" do painel).
+  destacado?: boolean;
 }) {
   const { avisar } = useDialogos();
   const ehLance = bloco.tipo === "LANCE";
@@ -121,7 +125,7 @@ export function BlocoCard({
   }
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, destacado && styles.cardDestacado]}>
       <View style={styles.cabecalho}>
         <View style={styles.cabecalhoEsq}>
           {ehLance ? (
@@ -253,6 +257,7 @@ const styles = StyleSheet.create({
     backgroundColor: cores.cardFundo,
     overflow: "hidden",
   },
+  cardDestacado: { borderColor: cores.teal },
   cabecalho: {
     flexDirection: "row",
     alignItems: "flex-start",
