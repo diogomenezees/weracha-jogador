@@ -66,6 +66,23 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: correção de gol no Ao vivo + card de time com escudo (2026-10-11)
+
+Espelha o site (spec `10-ao-vivo.md`, RN73/RN78):
+- Ao vivo: o admin corrige gol **durante o jogo** pelo menu ⋮ de cada gol no
+  Histórico (migrar, cancelar, reativar), igual ao Resultado. O Histórico passa a
+  trazer os cancelados (`incluirCancelados`). Menu + confirmação + modal de migrar
+  viraram `src/partida/CorrecaoDeGols.tsx` (`useCorrecaoDeGols`), usado pelo
+  Resultado e pelo Ao vivo.
+- Ao vivo: o "−" da lista de artilheiros saiu (fica só "Gol"); `desmarcarGol`
+  saiu de `src/api/partidas.ts` (o endpoint segue no site pra builds antigos).
+- Resultado: card de time neutro, camiseta pequena ao lado de "TIME X", escudo
+  grande à direita preenchido com a cor do colete (contorno cinza sem cor) e
+  "Começa com a bola"/"Escolhe o lado da quadra" no rodapé com ícone.
+- Painel: "Criar grupo" virou card no fim de "Seus grupos" (sem rodapé fixo com
+  grupo); quadra e contagem do Próximo jogo quebram linha.
+- Ainda não validado no celular.
+
 ## Feito: painel com seções + navegação entre resultados (2026-10-10)
 
 Painel de quem tem grupo (`src/app/(logado)/painel.tsx`, seções em

@@ -35,6 +35,7 @@ import type { DadosDoPainel } from "@/contrato/tipos";
 export default function Painel() {
   const { estado, chamarApi, recarregarPerfil } = useSessao();
   const { avisar } = useDialogos();
+  const insets = useSafeAreaInsets();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
   const primeiroNome = jogador?.nome.split(" ")[0] ?? "";
 
@@ -122,12 +123,18 @@ export default function Painel() {
   const temGrupo = grupos.length > 0;
   const exclusaoPendente = dados?.exclusaoPendente ?? false;
   const onboardingConcluido = !!jogador.onboardingConcluidoEm;
+  // Com grupo, "Criar grupo" fica no fim de "Seus grupos" e o rodapé fixo
+  // some — ele só volta pra reativar a conta.
+  const comRodape = exclusaoPendente || !temGrupo;
 
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar />
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: comRodape ? 170 : 32 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -162,15 +169,16 @@ export default function Painel() {
         )}
       </ScrollView>
 
-      <Rodape
-        exclusaoPendente={exclusaoPendente}
-        reativando={reativando}
-        onReativar={() => void reativarConta()}
-        onboardingConcluido={onboardingConcluido}
-        temGrupo={temGrupo}
-        onComecar={() => router.push("/onboarding")}
-        onCriarGrupo={() => router.push("/criar-grupo")}
-      />
+      {comRodape && (
+        <Rodape
+          exclusaoPendente={exclusaoPendente}
+          reativando={reativando}
+          onReativar={() => void reativarConta()}
+          onboardingConcluido={onboardingConcluido}
+          onComecar={() => router.push("/onboarding")}
+          onCriarGrupo={() => router.push("/criar-grupo")}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -293,7 +301,6 @@ function Rodape({
   reativando,
   onReativar,
   onboardingConcluido,
-  temGrupo,
   onComecar,
   onCriarGrupo,
 }: {
@@ -301,7 +308,6 @@ function Rodape({
   reativando: boolean;
   onReativar: () => void;
   onboardingConcluido: boolean;
-  temGrupo: boolean;
   onComecar: () => void;
   onCriarGrupo: () => void;
 }) {
@@ -317,12 +323,9 @@ function Rodape({
         carregando={reativando}
       />
     );
-  } else if (!onboardingConcluido && !temGrupo) {
+  } else if (!onboardingConcluido) {
     nota = "Veja os dois jeitos de começar.";
     botao = <BotaoLaranja titulo="Começar" onPress={onComecar} />;
-  } else if (temGrupo) {
-    nota = "Crie outro grupo pra organizar os jogos.";
-    botao = <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />;
   } else {
     nota = "Crie um grupo pra organizar os jogos e chamar a galera.";
     botao = <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />;
@@ -340,7 +343,7 @@ function Rodape({
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 170, gap: 28 },
+  scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 28 },
 
   bloco: { gap: 4 },
   heroBloco: { gap: 10, borderBottomWidth: 1, borderBottomColor: cores.linhaSutil, paddingBottom: 20 },

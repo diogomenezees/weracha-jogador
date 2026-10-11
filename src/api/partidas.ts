@@ -230,15 +230,6 @@ export function marcarGol(chamarApi: ChamarApi, partidaId: string, jogadorId: st
   });
 }
 
-// DELETE /api/v1/partidas/{partidaId}/gols?jogadorId=<id> — desfaz o gol mais
-// recente do jogador (idempotente).
-export function desmarcarGol(chamarApi: ChamarApi, partidaId: string, jogadorId: string) {
-  return chamarApi<{ ok: true }>(
-    `/api/v1/partidas/${partidaId}/gols?jogadorId=${encodeURIComponent(jogadorId)}`,
-    { metodo: "DELETE" }
-  );
-}
-
 // POST /api/v1/partidas/{partidaId}/lances — pedido de replay de um lance
 // importante. 422 se "lances importantes" está desativado no site.
 export function marcarLance(chamarApi: ChamarApi, partidaId: string) {

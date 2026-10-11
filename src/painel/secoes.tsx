@@ -22,6 +22,7 @@ import {
   Medal,
   MessageCircle,
   MessageSquareText,
+  Plus,
   Shuffle,
   Star,
   Target,
@@ -159,16 +160,29 @@ export function ProximoJogo({ jogo, agora }: { jogo: ProximoJogoPainel; agora: n
               {hoje ? "Hoje" : formatarDiaSemanaData(data).split(",")[0]} às {formatarHora(data)}
             </Text>
             {jogo.quadraNome && (
-              <View style={[styles.info, styles.margemLinha]}>
-                <MapPin size={14} color={cores.slate400} />
-                <Text style={[styles.infoTexto, styles.encolhe]} numberOfLines={1}>
+              <View style={[styles.infoQuebra, styles.margemLinha]}>
+                <MapPin size={14} color={cores.slate400} style={styles.iconeLinha20} />
+                <Text style={[styles.infoTexto, styles.linha20, styles.encolhe]}>
                   {jogo.quadraNome}
                 </Text>
               </View>
             )}
-            <View style={[styles.info, styles.margemLinha]}>
-              <Clock size={14} color={hoje ? cores.orange : cores.teal} />
-              <Text style={[styles.contagem, { color: hoje ? cores.orange : cores.teal }]}>
+            {/* Quadra e contagem quebram a linha (encolhe) num celular estreito em
+                vez de passar por baixo do botão "Grupo"; o ícone fica na 1ª linha. */}
+            <View style={[styles.infoQuebra, styles.margemLinha]}>
+              <Clock
+                size={14}
+                color={hoje ? cores.orange : cores.teal}
+                style={styles.iconeLinha16}
+              />
+              <Text
+                style={[
+                  styles.contagem,
+                  styles.linha16,
+                  styles.encolhe,
+                  { color: hoje ? cores.orange : cores.teal },
+                ]}
+              >
                 {formatarContagemRegressiva(data, new Date(agora))}
               </Text>
             </View>
@@ -537,15 +551,30 @@ export function SeusGrupos({ grupos, bloqueado }: { grupos: GrupoPainel[]; bloqu
           })}
         </View>
       )}
+      {abaEfetiva === "aguardando" && !bloqueado && (
+        <Text style={styles.aviso}>Renove ou crie uma nova partida pra continuar jogando.</Text>
+      )}
       <View style={styles.listaGrupos}>
         {lista.map((g) => (
           <CardGrupo key={g.id} grupo={g} bloqueado={bloqueado} />
         ))}
       </View>
-      {abaEfetiva === "aguardando" && !bloqueado && (
-        <Text style={styles.aviso}>
-          Renove ou marque um novo jogo pra continuar jogando com essa galera.
-        </Text>
+      {/* Quem já tem grupo raramente cria outro: o atalho mora aqui, embaixo
+          da lista, em vez de ocupar o rodapé fixo (ver Rodape em painel.tsx). */}
+      {!bloqueado && (
+        <Pressable
+          style={({ pressed }) => [styles.criarGrupo, pressed && styles.criarGrupoPressionado]}
+          onPress={() => router.push("/criar-grupo")}
+        >
+          <View style={styles.criarGrupoIcone}>
+            <Plus size={16} color={cores.orange} />
+          </View>
+          <View style={styles.flex1}>
+            <Text style={styles.criarGrupoTitulo}>Criar grupo</Text>
+            <Text style={styles.criarGrupoTexto}>Organize outro racha e chame a galera.</Text>
+          </View>
+          <ChevronRight size={16} color={cores.orange} />
+        </Pressable>
       )}
     </View>
   );
@@ -692,6 +721,12 @@ const styles = StyleSheet.create({
   margemLinha: { marginTop: 4 },
   infoTexto: { fontSize: 14, color: cores.slate300 },
   contagem: { fontSize: 12, fontWeight: "500" },
+  // Linha de info que pode quebrar: ícone alinhado ao centro da 1ª linha.
+  infoQuebra: { flexDirection: "row", alignItems: "flex-start", gap: 6 },
+  linha20: { lineHeight: 20 },
+  iconeLinha20: { marginTop: 3 },
+  linha16: { lineHeight: 16 },
+  iconeLinha16: { marginTop: 1 },
   botaoGrupo: {
     height: 36,
     paddingHorizontal: 12,
@@ -758,7 +793,31 @@ const styles = StyleSheet.create({
   abaContador: { borderRadius: 999, paddingHorizontal: 6, backgroundColor: "rgba(255, 255, 255, 0.1)" },
   abaContadorTexto: { fontSize: 10, color: cores.slate300 },
   listaGrupos: { gap: 12 },
-  aviso: { marginTop: 12, fontSize: 12, color: cores.slate400 },
+  aviso: { marginBottom: 12, fontSize: 12, color: cores.slate400 },
+  criarGrupo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: raio.card,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "rgba(242, 140, 30, 0.4)",
+    backgroundColor: "rgba(242, 140, 30, 0.05)",
+  },
+  criarGrupoPressionado: { backgroundColor: cores.laranjaFundo },
+  criarGrupoIcone: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(242, 140, 30, 0.15)",
+  },
+  criarGrupoTitulo: { fontSize: 14, fontWeight: "600", color: cores.branco },
+  criarGrupoTexto: { fontSize: 12, color: cores.slate400 },
   cardGrupo: {
     flexDirection: "row",
     alignItems: "center",

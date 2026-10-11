@@ -27,7 +27,6 @@ import {
   buscarGols,
   buscarLances,
   buscarResultadoAtivo,
-  desmarcarGol,
   marcarGol,
   marcarLance,
   resetarCronometro,
@@ -56,6 +55,8 @@ import { formatarMMSS, podeResetarRodada, segundosRestantesAgora } from "@/aoViv
 import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import { partidaEncerrada } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
+import { useDialogos } from "@/ui/Dialogos";
+import { useCorrecaoDeGols } from "@/partida/CorrecaoDeGols";
 import { cores, raio } from "@/tema";
 import { useVoltarDoCelular } from "@/ui/useVoltarDoCelular";
 import type {
@@ -100,7 +101,9 @@ export default function TelaAoVivo() {
 
   const [emCooldown, setEmCooldown] = useState<Set<string>>(new Set());
   const [cooldownLance, setCooldownLance] = useState(false);
-  const [desmarcar, setDesmarcar] = useState<JogadorEmPartida | null>(null);
+  // Migrar / cancelar / reativar gol pelo menu do Histórico (só admin).
+  const correcaoDeGols = useCorrecaoDeGols();
+  const { avisar } = useDialogos();
   const [confirmarReset, setConfirmarReset] = useState(false);
   const [modalConfig, setModalConfig] = useState(false);
   const [menuMais, setMenuMais] = useState(false);
@@ -195,7 +198,7 @@ export default function TelaAoVivo() {
     const chave = `${totMarcados}:${totGravados}:${totLances}:${totLancesGrav}:${totNuvem}`;
     if (chaveBuscada.current === chave) return;
     Promise.all([
-      buscarGols(chamarApi, partidaId),
+      buscarGols(chamarApi, partidaId, { incluirCancelados: true }),
       buscarLances(chamarApi, partidaId),
     ])
       .then(([gs, ls]) => {
@@ -250,6 +253,14 @@ export default function TelaAoVivo() {
     await comErroAcao(() => marcarGol(chamarApi, partidaId, j.id));
   }
 
+  // Depois de migrar/cancelar/reativar: a lista do Histórico (a migração não
+  // muda os totais, então o cache por contagem não buscaria de novo) e os
+  // contadores do ao vivo.
+  async function recarregarGols() {
+    setGols(await buscarGols(chamarApi, partidaId, { incluirCancelados: true }));
+    await carregarAoVivo();
+  }
+
   async function handleLance() {
     if (cooldownLance) return;
     setCooldownLance(true);
@@ -290,8 +301,7 @@ export default function TelaAoVivo() {
     );
   }
 
-  const { estado, config, golsPorJogador, golsGravadosPorJogador, ultimoGolTemVideoPorJogador } =
-    aoVivo;
+  const { estado, config, golsPorJogador, golsGravadosPorJogador } = aoVivo;
   const restante = segundosRestantesAgora(estado, agora);
   const zerado = restante <= 0;
   const rodando = estado.status === "RODANDO";
@@ -505,13 +515,6 @@ export default function TelaAoVivo() {
                   direita={
                     <View style={styles.golDireita}>
                       <View style={styles.golLinha}>
-                        <Pressable
-                          style={styles.golMenos}
-                          disabled={n === 0}
-                          onPress={() => setDesmarcar(j)}
-                        >
-                          <Text style={[styles.golMenosTexto, n === 0 && { opacity: 0.3 }]}>−</Text>
-                        </Pressable>
                         <Text style={styles.golN}>{n}</Text>
                         <Pressable
                           style={[styles.golBtn, emCooldown.has(j.id) && styles.golBtnOff]}
@@ -565,6 +568,16 @@ export default function TelaAoVivo() {
                 meuId={meuId}
                 dataPartida={new Date(p.data)}
                 mostrarStatusGravacao={aoVivo.cameraAtiva}
+                // Admin corrige gol durante o jogo (migrar/cancelar/reativar), sem
+                // precisar anotar pra fazer depois no Resultado.
+                podeEditarGols={souAdmin}
+                onMenuGol={(gol) =>
+                  correcaoDeGols.abrirMenu(gol, {
+                    jogadores: presentes.map((j) => ({ id: j.id, nome: j.nome })),
+                    aoAlterar: recarregarGols,
+                    aoErro: (m) => avisar("Não deu pra corrigir o gol", m),
+                  })
+                }
                 onAbrirReplayJogador={(jogadorId) => setReplayInline({ jogadorId })}
                 onAbrirReplayGol={(golId) => {
                   const gol = gols.find((x) => x.golId === golId);
@@ -594,28 +607,7 @@ export default function TelaAoVivo() {
         />
       )}
 
-      <ModalConfirmar
-        aberto={desmarcar !== null}
-        eyebrow="Reduzir gol"
-        titulo={desmarcar ? `Remover gol de ${desmarcar.nome}?` : ""}
-        descricao={
-          desmarcar && ultimoGolTemVideoPorJogador[desmarcar.id]
-            ? "Esse gol já tem um replay gravado. Remover agora apaga esse vídeo também."
-            : "Isso tira o último gol marcado desse jogador nessa partida."
-        }
-        destrutivo
-        confirmarLabel="Sim, remover"
-        onConfirmar={async () => {
-          const j = desmarcar;
-          setDesmarcar(null);
-          if (!j) return;
-          await comErroAcao(async () => {
-            await desmarcarGol(chamarApi, partidaId, j.id);
-            await carregarAoVivo();
-          });
-        }}
-        onFechar={() => setDesmarcar(null)}
-      />
+      {correcaoDeGols.elementos}
 
       <ModalConfirmar
         aberto={confirmarReset}
@@ -815,16 +807,6 @@ const styles = StyleSheet.create({
   vazio: { fontSize: 13, color: cores.slate400 },
   golDireita: { alignItems: "flex-end", gap: 3 },
   golLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
-  golMenos: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  golMenosTexto: { fontSize: 16, color: cores.slate300 },
   golN: { minWidth: 20, textAlign: "center", fontSize: 18, fontWeight: "800", color: cores.branco },
   golBtn: {
     height: 32,

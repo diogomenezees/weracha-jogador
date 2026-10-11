@@ -10,11 +10,8 @@ import {
   buscarGols,
   buscarLances,
   buscarResultadoAtivo,
-  cancelarGol,
   corrigirGols,
   editarDescricaoPartida,
-  migrarGol,
-  reativarGol,
   refazerSorteio,
 } from "@/api/partidas";
 import { buscarComentariosEmLote } from "@/api/resenha";
@@ -41,7 +38,6 @@ import {
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import {
   ArrowLeftRight,
-  Ban,
   Clock,
   EllipsisVertical,
   Goal,
@@ -49,13 +45,13 @@ import {
   NotebookPen,
   Plus,
   Radio,
-  RotateCcw,
   Share2,
   Shield,
   Shirt,
   Shuffle,
   Star,
   TriangleAlert,
+  Volleyball,
   UserPlus,
   X,
 } from "@/ui/Icone";
@@ -72,6 +68,7 @@ import {
   PRAZO_EDICAO_GOLS_HORAS,
 } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
+import { useCorrecaoDeGols } from "@/partida/CorrecaoDeGols";
 import { cores, raio } from "@/tema";
 import { useVoltarDoCelular } from "@/ui/useVoltarDoCelular";
 import type {
@@ -115,7 +112,8 @@ export default function TelaResultado() {
 
   const [aba, setAba] = useState<Aba>("TIMES");
   const [verScore, setVerScore] = useState(false);
-  const [menuGol, setMenuGol] = useState<GolComVideos | null>(null);
+  // Migrar / cancelar / reativar gol pelo menu da linha do tempo.
+  const correcaoDeGols = useCorrecaoDeGols();
   const [menuMais, setMenuMais] = useState(false);
   const [adicionandoJogador, setAdicionandoJogador] = useState(false);
   const [confirmarRefazer, setConfirmarRefazer] = useState(false);
@@ -124,10 +122,6 @@ export default function TelaResultado() {
   const [salvandoDescricao, setSalvandoDescricao] = useState(false);
   const [erroDescricao, setErroDescricao] = useState<string | null>(null);
   const [adicionarGol, setAdicionarGol] = useState(false);
-  const [migrar, setMigrar] = useState<GolComVideos | null>(null);
-  // Gol que o menu pediu pra cancelar: confirma antes (igual ao site).
-  const [golParaCancelar, setGolParaCancelar] = useState<GolComVideos | null>(null);
-  const [cancelandoGol, setCancelandoGol] = useState(false);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   // Só em memória de propósito (igual ao site): some ao sair da tela.
   const [avisoGolsFechado, setAvisoGolsFechado] = useState(false);
@@ -547,7 +541,13 @@ export default function TelaResultado() {
                   souAdmin ? <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} /> : undefined
                 }
                 podeEditarGols={podeEditarGols}
-                onMenuGol={setMenuGol}
+                onMenuGol={(gol) =>
+                  correcaoDeGols.abrirMenu(gol, {
+                    jogadores: todosDaPartida,
+                    aoAlterar: recarregarGols,
+                    aoErro: setErroAcao,
+                  })
+                }
                 onAbrirReplayJogador={(jogadorId) => setReplayInline({ jogadorId })}
                 onAbrirReplayGol={(golId) => {
                   const g = gols.find((x) => x.golId === golId);
@@ -700,63 +700,8 @@ export default function TelaResultado() {
         onFechar={() => setEditandoDescricao(false)}
       />
 
-      <MenuAcoes
-        aberto={menuGol !== null}
-        titulo={menuGol?.jogador ? `Gol de ${menuGol.jogador.nome}` : "Gol"}
-        itens={
-          menuGol
-            ? // Cancelar é a última opção (a mais destrutiva), igual o site.
-              menuGol.cancelado
-              ? ([
-                  {
-                    rotulo: "Reativar gol",
-                    Icone: RotateCcw,
-                    onPress: () => void acaoGol(() => reativarGol(chamarApi, menuGol.golId)),
-                  },
-                ] as ItemMenu[])
-              : ([
-                  {
-                    rotulo: "Migrar pra outro jogador",
-                    Icone: ArrowLeftRight,
-                    onPress: () => setMigrar(menuGol),
-                  },
-                  {
-                    rotulo: "Cancelar gol",
-                    Icone: Ban,
-                    destrutivo: true,
-                    onPress: () => setGolParaCancelar(menuGol),
-                  },
-                ] as ItemMenu[])
-            : []
-        }
-        onFechar={() => setMenuGol(null)}
-      />
 
-      <ModalConfirmar
-        aberto={golParaCancelar !== null}
-        Icone={Ban}
-        eyebrow="Cancelar gol"
-        titulo={`Cancelar esse gol de ${golParaCancelar?.jogador?.nome ?? ""}?`}
-        descricao={
-          golParaCancelar && golParaCancelar.videos.length > 0
-            ? "O gol sai do ranking de artilheiros, da contagem e da resenha. Fica na linha do tempo marcado como cancelado, e o replay continua disponível ali como registro. Dá pra reativar o gol depois."
-            : "O gol sai do ranking de artilheiros e da contagem. Fica registrado na linha do tempo que foi cancelado, e dá pra reativar depois."
-        }
-        destrutivo
-        confirmarLabel="Sim, cancelar"
-        ocupado={cancelandoGol}
-        onConfirmar={async () => {
-          const gol = golParaCancelar;
-          if (!gol) return;
-          setCancelandoGol(true);
-          await acaoGol(() => cancelarGol(chamarApi, gol.golId));
-          setCancelandoGol(false);
-          setGolParaCancelar(null);
-        }}
-        onFechar={() => {
-          if (!cancelandoGol) setGolParaCancelar(null);
-        }}
-      />
+      {correcaoDeGols.elementos}
 
       <ModalConfirmar
         aberto={confirmarRefazer}
@@ -789,18 +734,6 @@ export default function TelaResultado() {
         />
       )}
 
-      {migrar && (
-        <ModalMigrarGol
-          nome={migrar.jogador?.nome ?? ""}
-          jogadores={todosDaPartida.filter((j) => j.id !== migrar.jogador?.id)}
-          onFechar={() => setMigrar(null)}
-          onSalvar={async (novoJogadorId) => {
-            const golId = migrar.golId;
-            setMigrar(null);
-            await acaoGol(() => migrarGol(chamarApi, golId, novoJogadorId));
-          }}
-        />
-      )}
     </TelaPartida>
   );
 }
@@ -826,10 +759,10 @@ const ESTILO_BADGE_TIME: Record<
 };
 
 /** Card de um time no resultado: porte de `TimeCard` de
- * weracha-site/.../resultado/page.tsx. Cor do colete vira fundo bem sutil
- * (mesma técnica do site: hex + "12" ≈ 7% de opacidade) + borda cheia, em vez
- * de só borda — sem cor cadastrada, cinza neutro (ver comentário no site
- * sobre não ter default bonito de propósito). */
+ * weracha-site/.../resultado/page.tsx. O card é neutro e quem mostra a cor do
+ * colete é o escudo grande à direita dos jogadores, preenchido com a cor do
+ * time. Sem cor cadastrada o escudo fica só no contorno cinza, de propósito
+ * (ver comentário no site sobre não ter default bonito). */
 function CardTime({
   numero,
   jogadores,
@@ -848,23 +781,13 @@ function CardTime({
   corHex: string | null;
 }) {
   return (
-    <View
-      style={[
-        styles.timeCard,
-        corHex ? { borderColor: corHex, backgroundColor: `${corHex}12` } : styles.timeCardCinza,
-      ]}
-    >
+    <View style={[styles.timeCard, styles.timeCardCinza]}>
       <View style={styles.timeCabecalho}>
         <View style={{ flex: 1 }}>
           <View style={styles.timeNomeLinha}>
-            <Shirt size={16} color={corHex ?? cores.branco} />
+            <Shirt size={16} color={cores.branco} />
             <Text style={styles.timeNome}>Time {numero}</Text>
           </View>
-          {(comecaComABola || escolheLado) && (
-            <Text style={styles.timeSub}>
-              {comecaComABola ? "Começa com a bola" : "Escolhe o lado da quadra"}
-            </Text>
-          )}
         </View>
         {badge && (
           <View
@@ -882,11 +805,33 @@ function CardTime({
           </View>
         )}
       </View>
-      <View style={{ gap: 12 }}>
-        {jogadores.map((j) => (
-          <LinhaJogadorTime key={j.jogadorId} jogador={j} mostrarScore={mostrarScore} />
-        ))}
+      {/* Jogadores à esquerda; escudo grande na cor do time à direita,
+          centralizado na altura da lista. */}
+      <View style={styles.timeCorpo}>
+        <View style={styles.timeJogadores}>
+          {jogadores.map((j) => (
+            <LinhaJogadorTime key={j.jogadorId} jogador={j} mostrarScore={mostrarScore} />
+          ))}
+        </View>
+        <Shield
+          size={64}
+          strokeWidth={1.25}
+          color={corHex ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.15)"}
+          fill={corHex ?? "none"}
+        />
       </View>
+      {(comecaComABola || escolheLado) && (
+        <View style={styles.timeRodape}>
+          {comecaComABola ? (
+            <Volleyball size={16} color={cores.orange} />
+          ) : (
+            <ArrowLeftRight size={16} color={cores.teal} />
+          )}
+          <Text style={styles.timeRodapeTexto}>
+            {comecaComABola ? "Começa com a bola" : "Escolhe o lado da quadra"}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -1015,54 +960,6 @@ function ModalAdicionarGol({
   );
 }
 
-function ModalMigrarGol({
-  nome,
-  jogadores,
-  onFechar,
-  onSalvar,
-}: {
-  nome: string;
-  jogadores: { id: string; nome: string }[];
-  onFechar: () => void;
-  onSalvar: (novoJogadorId: string) => void;
-}) {
-  const [sel, setSel] = useState<string | null>(jogadores[0]?.id ?? null);
-  return (
-    <ModalCartao aberto onFechar={onFechar}>
-      <Eyebrow>Migrar gol</Eyebrow>
-      <Text style={styles.modalTitulo}>Migrar o gol de {nome} pra quem?</Text>
-      <Text style={styles.modalDesc}>
-        Use quando o gol foi marcado no jogador errado. Fica registrado que {nome} era o dono
-        original.
-      </Text>
-      {jogadores.length === 0 ? (
-        <Text style={styles.modalDesc}>Não há outro jogador nessa partida.</Text>
-      ) : (
-        <>
-          <ScrollView style={{ maxHeight: 220 }}>
-            {jogadores.map((j) => (
-              <Pressable
-                key={j.id}
-                style={[styles.opcao, sel === j.id && styles.opcaoAtiva]}
-                onPress={() => setSel(j.id)}
-              >
-                <Text style={styles.opcaoTexto}>{j.nome}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-          <Pressable
-            style={styles.modalBotao}
-            disabled={!sel}
-            onPress={() => sel && onSalvar(sel)}
-          >
-            <Text style={styles.modalBotaoTexto}>Migrar gol</Text>
-          </Pressable>
-        </>
-      )}
-    </ModalCartao>
-  );
-}
-
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
   bridges: { flexDirection: "row", gap: 6 },
@@ -1121,7 +1018,17 @@ const styles = StyleSheet.create({
   },
   timeNomeLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   timeNome: { fontSize: 13, fontWeight: "800", color: cores.branco, textTransform: "uppercase", letterSpacing: 1 },
-  timeSub: { marginTop: 2, fontSize: 13, fontWeight: "500", color: cores.slate400 },
+  timeCorpo: { flexDirection: "row", alignItems: "center", gap: 12 },
+  timeJogadores: { flex: 1, minWidth: 0, gap: 12 },
+  timeRodape: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+    paddingTop: 12,
+  },
+  timeRodapeTexto: { fontSize: 14, fontWeight: "500", color: cores.slate200 },
   timeBadgePill: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 3 },
   timeBadgeTexto: {
     fontSize: 10,
