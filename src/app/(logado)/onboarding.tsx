@@ -173,6 +173,16 @@ export default function Onboarding() {
                     <Shuffle size={16} color={cores.teal} />
                     <Text style={styles.botaoSecundarioTexto}>Fazer um sorteio rápido</Text>
                   </Pressable>
+                  {/* Saída sem escolher: quem já entrou num grupo por convite não
+                      quer criar grupo nem sortear, só voltar pro painel. */}
+                  <Pressable
+                    style={styles.irPainel}
+                    onPress={() => concluir()}
+                    hitSlop={8}
+                    disabled={concluindo}
+                  >
+                    <Text style={styles.pular}>Ir para o painel</Text>
+                  </Pressable>
                 </View>
               ) : (
                 <View style={styles.acoes}>
@@ -375,6 +385,7 @@ const styles = StyleSheet.create({
   },
   botaoSecundarioTexto: { fontSize: 15, fontWeight: "700", color: cores.teal },
   acoes: { marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  irPainel: { alignSelf: "center", paddingVertical: 6 },
   pular: {
     fontSize: 12,
     fontWeight: "600",

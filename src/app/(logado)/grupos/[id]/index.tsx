@@ -810,15 +810,6 @@ export default function TelaGrupo() {
         <View style={styles.rodapeLinha}>
           <Pressable
             style={styles.rodapeAtalho}
-            onPress={() => router.push(`/grupos/${grupo.id}/enquetes`)}
-          >
-            <BarChart3 size={16} color={cores.teal} />
-            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
-              Enquetes
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.rodapeAtalho}
             onPress={() => router.push(`/grupos/${grupo.id}/artilheiros`)}
           >
             <Trophy size={16} color={cores.teal} />
@@ -833,6 +824,15 @@ export default function TelaGrupo() {
             <MessageCircle size={16} color={cores.teal} />
             <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
               Resenha
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.rodapeAtalho}
+            onPress={() => router.push(`/grupos/${grupo.id}/enquetes`)}
+          >
+            <BarChart3 size={16} color={cores.teal} />
+            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
+              Enquetes
             </Text>
           </Pressable>
         </View>

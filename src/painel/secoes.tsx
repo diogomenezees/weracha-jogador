@@ -504,7 +504,15 @@ function CardGrupo({ grupo, bloqueado }: { grupo: GrupoPainel; bloqueado: boolea
 
 // Cards separados, em abas "Ativos" e "Aguardando". Quando só uma das abas
 // tem grupo (o caso comum), as abas somem e a lista aparece direto.
-export function SeusGrupos({ grupos, bloqueado }: { grupos: GrupoPainel[]; bloqueado: boolean }) {
+export function SeusGrupos({
+  grupos,
+  bloqueado,
+  onboardingConcluido,
+}: {
+  grupos: GrupoPainel[];
+  bloqueado: boolean;
+  onboardingConcluido: boolean;
+}) {
   const ativos = grupos.filter((g) => g.situacao === "ATIVO");
   const aguardando = grupos.filter((g) => g.situacao !== "ATIVO");
   const comAbas = ativos.length > 0 && aguardando.length > 0;
@@ -560,18 +568,26 @@ export function SeusGrupos({ grupos, bloqueado }: { grupos: GrupoPainel[]; bloqu
         ))}
       </View>
       {/* Quem já tem grupo raramente cria outro: o atalho mora aqui, embaixo
-          da lista, em vez de ocupar o rodapé fixo (ver Rodape em painel.tsx). */}
+          da lista, em vez de ocupar o rodapé fixo (ver Rodape em painel.tsx).
+          Quem entrou num grupo por convite e ainda não viu o tour ganha o
+          "Começar" (o tour termina na escolha de criar grupo ou sortear). */}
       {!bloqueado && (
         <Pressable
           style={({ pressed }) => [styles.criarGrupo, pressed && styles.criarGrupoPressionado]}
-          onPress={() => router.push("/criar-grupo")}
+          onPress={() => router.push(onboardingConcluido ? "/criar-grupo" : "/onboarding")}
         >
           <View style={styles.criarGrupoIcone}>
             <Plus size={16} color={cores.orange} />
           </View>
           <View style={styles.flex1}>
-            <Text style={styles.criarGrupoTitulo}>Criar grupo</Text>
-            <Text style={styles.criarGrupoTexto}>Organize outro racha e chame a galera.</Text>
+            <Text style={styles.criarGrupoTitulo}>
+              {onboardingConcluido ? "Criar grupo" : "Começar"}
+            </Text>
+            <Text style={styles.criarGrupoTexto}>
+              {onboardingConcluido
+                ? "Organize outro racha e chame a galera."
+                : "Veja os dois jeitos de começar o seu racha."}
+            </Text>
           </View>
           <ChevronRight size={16} color={cores.orange} />
         </Pressable>

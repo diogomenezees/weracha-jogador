@@ -11,6 +11,7 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { LogIn, Plus } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import {
+  BotaoContorno,
   BotaoLaranja,
   CartaoCaminho,
   Eyebrow,
@@ -133,7 +134,7 @@ export default function Painel() {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: comRodape ? 170 : 32 + insets.bottom },
+          { paddingBottom: comRodape ? 230 + insets.bottom : 32 + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -163,7 +164,13 @@ export default function Painel() {
         {temGrupo && dados && !exclusaoPendente && (
           <DestaquesDosGrupos destaques={dados.destaques} />
         )}
-        {temGrupo && <SeusGrupos grupos={grupos} bloqueado={exclusaoPendente} />}
+        {temGrupo && (
+          <SeusGrupos
+            grupos={grupos}
+            bloqueado={exclusaoPendente}
+            onboardingConcluido={onboardingConcluido}
+          />
+        )}
         {temGrupo && dados && !exclusaoPendente && dados.atividadesRecentes.length > 0 && (
           <AtividadesRecentes atividades={dados.atividadesRecentes} agora={carregadoEm} />
         )}
@@ -176,6 +183,7 @@ export default function Painel() {
           onReativar={() => void reativarConta()}
           onboardingConcluido={onboardingConcluido}
           onComecar={() => router.push("/onboarding")}
+          onSorteio={() => router.push("/sorteio")}
           onCriarGrupo={() => router.push("/criar-grupo")}
         />
       )}
@@ -302,6 +310,7 @@ function Rodape({
   onReativar,
   onboardingConcluido,
   onComecar,
+  onSorteio,
   onCriarGrupo,
 }: {
   exclusaoPendente: boolean;
@@ -309,6 +318,7 @@ function Rodape({
   onReativar: () => void;
   onboardingConcluido: boolean;
   onComecar: () => void;
+  onSorteio: () => void;
   onCriarGrupo: () => void;
 }) {
   let nota: string;
@@ -327,8 +337,14 @@ function Rodape({
     nota = "Veja os dois jeitos de começar.";
     botao = <BotaoLaranja titulo="Começar" onPress={onComecar} />;
   } else {
+    // Tour feito e sem grupo: sorteio avulso ou grupo, igual o rodapé do site.
     nota = "Crie um grupo pra organizar os jogos e chamar a galera.";
-    botao = <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />;
+    botao = (
+      <>
+        <BotaoContorno titulo="Sorteio rápido" onPress={onSorteio} />
+        <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />
+      </>
+    );
   }
 
   const insets = useSafeAreaInsets();
