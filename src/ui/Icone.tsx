@@ -83,6 +83,7 @@ export {
   Calendar,
   CalendarDays,
   CalendarClock,
+  History,
   CalendarPlus,
   MapPin,
   MapPinPlus,

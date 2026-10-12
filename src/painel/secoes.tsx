@@ -319,7 +319,7 @@ export function MeusIndicadores({ indicadores }: { indicadores: MeusIndicadoresP
     <View>
       <TituloSecao
         Icone={Activity}
-        titulo="Meus indicadores"
+        titulo="Minha Performance"
         lateral={
           <Pressable
             hitSlop={8}
@@ -697,7 +697,7 @@ export function SeusGrupos({
       {/* Quem já tem grupo raramente cria outro: o atalho mora aqui, embaixo
           da lista, em vez de ocupar o rodapé fixo (ver Rodape em painel.tsx).
           Quem entrou num grupo por convite e ainda não viu o tour ganha o
-          "Começar" (o tour termina na escolha de criar grupo ou sortear). */}
+          "Organizar meu racha" (o tour termina na escolha de criar grupo ou sortear). */}
       {!bloqueado && (
         <Pressable
           style={({ pressed }) => [styles.criarGrupo, pressed && styles.criarGrupoPressionado]}
@@ -708,12 +708,12 @@ export function SeusGrupos({
           </View>
           <View style={styles.flex1}>
             <Text style={styles.criarGrupoTitulo}>
-              {onboardingConcluido ? "Criar grupo" : "Começar"}
+              {onboardingConcluido ? "Criar grupo" : "Organizar meu racha"}
             </Text>
             <Text style={styles.criarGrupoTexto}>
               {onboardingConcluido
                 ? "Organize outro racha e chame a galera."
-                : "Veja os dois jeitos de começar o seu racha."}
+                : "Crie um grupo ou faça um sorteio rápido."}
             </Text>
           </View>
           <ChevronRight size={16} color={cores.orange} />
@@ -919,7 +919,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   numeroLinha: { flexDirection: "row", alignItems: "baseline", gap: 6 },
-  numeroGrande: { fontSize: 48, lineHeight: 52, fontWeight: "700", color: cores.branco },
+  numeroGrande: { fontSize: 36, lineHeight: 40, fontWeight: "700", color: cores.branco },
   numeroUnidade: { fontSize: 14, fontWeight: "600", color: cores.orange },
   indicadoresSub: { marginTop: 4, fontSize: 12, color: cores.slate400 },
   miniBarras: { flexDirection: "row", alignItems: "flex-end", gap: 3 },

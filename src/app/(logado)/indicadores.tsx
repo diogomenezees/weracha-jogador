@@ -97,7 +97,7 @@ export default function Estatisticas() {
         }
       >
         <View style={styles.cabecalho}>
-          <TituloTela Icone={Activity}>Meus indicadores</TituloTela>
+          <TituloTela Icone={Activity}>Minha performance</TituloTela>
           <Text style={styles.sub}>Seus números nos grupos que você joga.</Text>
         </View>
 

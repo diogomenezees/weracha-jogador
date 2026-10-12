@@ -5,6 +5,7 @@ import { Text, FAMILIA_MONO } from "@/ui/Texto";
 import {
   Activity,
   BarChart3,
+  CalendarPlus,
   LayoutGrid,
   MessageCircle,
   Trophy,
@@ -15,8 +16,9 @@ import { cores } from "@/tema";
 import { Carrossel } from "@/ui/Carrossel";
 
 // "Funções do grupo": os atalhos das sub-telas do grupo em carrossel, no mesmo
-// formato das "Ações rápidas" do painel, todos com a mesma cor. "Convidar" só
-// pra admin (só admin gera o link de convite). Espelha
+// formato das "Ações rápidas" do painel, todos com a mesma cor. "Convidar" pra
+// qualquer membro. "Partida" (adicionar) só quando a tela passa
+// `onAdicionarPartida` (admin de grupo avulso). Espelha
 // weracha-site/components/funcoes-do-grupo.tsx.
 
 type Funcao = {
@@ -29,12 +31,12 @@ type Funcao = {
 
 export function FuncoesDoGrupo({
   grupoId,
-  souAdmin,
   onConvidar,
+  onAdicionarPartida,
 }: {
   grupoId: string;
-  souAdmin: boolean;
   onConvidar: () => void;
+  onAdicionarPartida?: () => void;
 }) {
   const ir = (rota: Href) => () => router.push(rota);
   const funcoes: Funcao[] = [
@@ -64,9 +66,17 @@ export function FuncoesDoGrupo({
       Icone: BarChart3,
       onPress: ir(`/grupos/${grupoId}/enquetes`),
     },
-    ...(souAdmin
-      ? [{ titulo: "Convidar", subtitulo: "Chame a galera", Icone: UserPlus, onPress: onConvidar }]
+    ...(onAdicionarPartida
+      ? [
+          {
+            titulo: "Partida",
+            subtitulo: "Marque outro jogo",
+            Icone: CalendarPlus,
+            onPress: onAdicionarPartida,
+          },
+        ]
       : []),
+    { titulo: "Convidar", subtitulo: "Chame a galera", Icone: UserPlus, onPress: onConvidar },
   ];
 
   return (

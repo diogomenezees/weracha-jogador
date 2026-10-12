@@ -156,7 +156,8 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
   const mediaPeriodo = media(doPeriodo);
   const tend = ehGeral ? tendenciaGeral(doGrupo) : tendencia(doPeriodo, doGrupo);
 
-  const ultimo = doPeriodo.at(-1) ?? null;
+  // "Último jogo" só no mês corrente: em mês passado ou no Geral não diz nada.
+  const ultimo = periodoAtual.emAndamento ? (doPeriodo.at(-1) ?? null) : null;
   const antesDoUltimo = ultimo ? doGrupo.filter((j) => j.data < ultimo.data) : [];
   const mediaAntesDoUltimo = antesDoUltimo.length > 0 ? media(antesDoUltimo) : null;
 
@@ -255,7 +256,7 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
         </View>
       </View>
 
-      {/* Resumo do período (o título da tela já é "Meus indicadores"). */}
+      {/* Resumo do período (o título da tela já é "Minha performance"). */}
       <View>
         <TituloSecao Icone={BarChart3} titulo="Resumo" />
         <View style={styles.resumo}>
@@ -537,7 +538,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   numeroLinha: { flexDirection: "row", alignItems: "baseline", gap: 6 },
-  numeroGrande: { fontSize: 48, lineHeight: 52, fontWeight: "700", color: cores.branco },
+  numeroGrande: { fontSize: 36, lineHeight: 40, fontWeight: "700", color: cores.branco },
   numeroUnidade: { fontSize: 14, fontWeight: "600", color: cores.orange },
   mediaValor: { fontSize: 24, lineHeight: 28, fontWeight: "700", color: cores.branco },
   resumoSub: { marginTop: 4, fontSize: 12, color: cores.slate400 },

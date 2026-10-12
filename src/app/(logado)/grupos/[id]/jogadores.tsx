@@ -126,7 +126,7 @@ export default function GerenciarJogadores() {
     }
   }, [carregar]);
 
-  // Convite do grupo (sem partida), pro admin encaminhar direto daqui. Mesmo
+  // Convite do grupo (sem partida), pro membro encaminhar direto daqui. Mesmo
   // link do modal "Convidar jogadores" da tela do grupo.
   async function compartilharConvite() {
     if (!dados?.grupo) return;
@@ -386,17 +386,16 @@ export default function GerenciarJogadores() {
             <Text style={[styles.h1, { flexShrink: 1 }]} numberOfLines={1}>
               {souAdmin ? "Gerenciar jogadores" : "Jogadores do grupo"}
             </Text>
-            {souAdmin && (
-              <Pressable
-                style={styles.compartilharConvite}
-                onPress={() => void compartilharConvite()}
-                hitSlop={6}
-                accessibilityRole="button"
-                accessibilityLabel="Compartilhar convite do grupo"
-              >
-                <Share2 size={18} color={cores.orange} />
-              </Pressable>
-            )}
+            {/* Qualquer membro convida, não só admin. */}
+            <Pressable
+              style={styles.compartilharConvite}
+              onPress={() => void compartilharConvite()}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Compartilhar convite do grupo"
+            >
+              <Share2 size={18} color={cores.orange} />
+            </Pressable>
           </View>
           <View style={styles.subLinha}>
             <Users size={12} color={cores.slate400} />

@@ -38,12 +38,14 @@ import { buscarQuadras, sugerirQuadra } from "@/api/quadras";
 import {
   Ban,
   Calendar,
+  CalendarClock,
   CalendarPlus,
   Check,
   ChevronDown,
   ChevronRight,
   Clock,
   Copy,
+  History,
   EllipsisVertical,
   type LucideIcon,
   LogOut,
@@ -226,14 +228,15 @@ export default function TelaGrupo() {
   const souAdmin = grupo?.meuPapel === "ADMIN";
   const souDono = !!grupo && grupo.adminId === meuId;
 
-  // Token de convite: busca quando o admin abre o detalhe de uma partida ou o
-  // modal "Convidar jogadores" do menu.
+  // Token de convite: busca quando o membro abre o detalhe de uma partida ou o
+  // modal "Convidar jogadores" (Funções do grupo). Qualquer membro convida (o servidor
+  // libera o convite pra todos; só regenerar é de admin).
   useEffect(() => {
-    if ((aba !== "detalhe" && aba !== "convidar") || !souAdmin || !grupo || tokenConvite) return;
+    if ((aba !== "detalhe" && aba !== "convidar") || !grupo || tokenConvite) return;
     obterConvite(chamarApi, grupo.id)
       .then(setTokenConvite)
       .catch(() => {});
-  }, [aba, souAdmin, grupo, tokenConvite, chamarApi]);
+  }, [aba, grupo, tokenConvite, chamarApi]);
 
   // Busca de quadras dentro do modal.
   useEffect(() => {
@@ -285,11 +288,6 @@ export default function TelaGrupo() {
           onPress: () => abrirAdicionarPartida(),
         });
       }
-      itens.push({
-        rotulo: "Convidar jogadores",
-        Icone: UserPlus,
-        onPress: () => setAba("convidar"),
-      });
     }
     itens.push({
       rotulo: "Sair do grupo",
@@ -723,59 +721,67 @@ export default function TelaGrupo() {
             onPress={() => void chamarGalera()}
           />
         )}
-        {!renovar && proximas.length === 0 && grupo.tipo === "AVULSO" && (
-          <Banner
-            cor={souAdmin ? "orange" : "red"}
-            Icone={souAdmin ? CalendarPlus : Share2}
-            titulo={souAdmin ? "Bora marcar outra partida?" : "As partidas acabaram."}
-            chamada={souAdmin ? "Mesmos jogadores, esporte e quadra" : "Chamar todo mundo pra jogar"}
-            onPress={souAdmin ? () => abrirAdicionarPartida() : () => void chamarGalera()}
-          />
-        )}
-
         {/* Atalhos do grupo em carrossel (antes ficavam presos num rodapé fixo),
-            logo abaixo dos alertas. "Adicionar partida" (grupo avulso) segue no
-            menu ⋮ do topo. */}
+            logo abaixo dos alertas. "Adicionar partida" (grupo avulso) aparece aqui
+            e no menu ⋮ do topo. */}
         <FuncoesDoGrupo
           grupoId={grupo.id}
-          souAdmin={souAdmin}
           onConvidar={() => setAba("convidar")}
+          onAdicionarPartida={
+            souAdmin && grupo.tipo === "AVULSO" ? () => abrirAdicionarPartida() : undefined
+          }
         />
 
-        {proximas.length > 0 && (
-          <View style={styles.secao}>
-            <View style={styles.secaoCabecalho}>
+        {/* Título sempre visível: sem partida pela frente, o alerta laranja fica
+            logo abaixo dele pra chamar atenção. */}
+        <View style={styles.secao}>
+          <View style={styles.secaoCabecalho}>
+            <View style={styles.secaoTituloLinha}>
+              <CalendarClock size={14} color={cores.teal} />
               <Text style={styles.secaoTitulo}>Próximas partidas</Text>
+            </View>
+            {proximas.length > 0 && (
               <Text style={styles.secaoSub}>
                 O check-in abre {JANELA_CHECKIN_ANTES_HORAS} horas antes de cada partida.
               </Text>
-            </View>
-            {proximas.map((p) => (
-              <CardPartida
-                key={p.id}
-                partida={p}
-                grupo={grupo}
-                checkinAberto={idsEmAndamento.has(p.id)}
-                temResultado={!p.cancelada && idsResultado.has(p.id)}
-                jaFizCheckin={idsMeuCheckin.has(p.id)}
-                souAdmin={!!souAdmin}
-                onAbrir={() => abrirPartida(p)}
-                onMenu={() => abrirMenuPartida(p, !p.cancelada && idsResultado.has(p.id))}
-                onCheckin={() => router.push(`/grupos/${id}/partidas/${p.id}/checkin`)}
-                onAoVivo={() => router.push(`/grupos/${id}/partidas/${p.id}/ao-vivo`)}
-              />
-            ))}
+            )}
           </View>
-        )}
-
-        {!renovar && proximas.length === 0 && grupo.tipo === "RECORRENTE" && (
-          <Text style={styles.vazio}>Nenhuma partida por aqui.</Text>
-        )}
+          {!renovar && proximas.length === 0 && grupo.tipo === "AVULSO" && (
+            <Banner
+              cor="orange"
+              Icone={souAdmin ? CalendarPlus : Share2}
+              titulo={souAdmin ? "Bora marcar outra partida?" : "As partidas acabaram."}
+              chamada={souAdmin ? "Mesmos jogadores, esporte e quadra" : "Chamar todo mundo pra jogar"}
+              onPress={souAdmin ? () => abrirAdicionarPartida() : () => void chamarGalera()}
+            />
+          )}
+          {proximas.map((p) => (
+            <CardPartida
+              key={p.id}
+              partida={p}
+              grupo={grupo}
+              checkinAberto={idsEmAndamento.has(p.id)}
+              temResultado={!p.cancelada && idsResultado.has(p.id)}
+              jaFizCheckin={idsMeuCheckin.has(p.id)}
+              souAdmin={!!souAdmin}
+              onAbrir={() => abrirPartida(p)}
+              onMenu={() => abrirMenuPartida(p, !p.cancelada && idsResultado.has(p.id))}
+              onCheckin={() => router.push(`/grupos/${id}/partidas/${p.id}/checkin`)}
+              onAoVivo={() => router.push(`/grupos/${id}/partidas/${p.id}/ao-vivo`)}
+            />
+          ))}
+          {!renovar && proximas.length === 0 && grupo.tipo === "RECORRENTE" && (
+            <Text style={styles.vazio}>Nenhuma partida por aqui.</Text>
+          )}
+        </View>
 
         {passadas.length > 0 && (
           <View style={styles.secao}>
             <View style={styles.secaoCabecalho}>
-              <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
+              <View style={styles.secaoTituloLinha}>
+                <History size={14} color={cores.teal} />
+                <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
+              </View>
               <Text style={styles.secaoSub}>Confira o histórico das partidas já realizadas.</Text>
             </View>
             {(verTodasPassadas ? passadas : passadas.slice(0, PARTIDAS_PASSADAS_VISIVEIS)).map((p) => (
@@ -835,7 +841,6 @@ export default function TelaGrupo() {
             emCheckin={!partidaSel.cancelada && idsEmAndamento.has(partidaSel.id)}
             temResultado={!partidaSel.cancelada && idsResultado.has(partidaSel.id)}
             jaFizCheckin={idsMeuCheckin.has(partidaSel.id)}
-            souAdmin={!!souAdmin}
             temToken={!!tokenConvite}
             onCopiar={() => void copiarLink(partidaSel)}
             onCompartilhar={() => void compartilharConvite(partidaSel)}
@@ -862,17 +867,20 @@ export default function TelaGrupo() {
         </View>
         <Text style={styles.modalDesc}>Quem abrir o link entra direto no grupo.</Text>
         <View style={styles.convidarAcoes}>
-          <Pressable
-            style={[styles.modalBotaoContorno, styles.convidarBotaoIcone]}
-            onPress={() => {
-              setAba(null);
-              setConfirmando({ tipo: "novoLink" });
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Gerar novo convite"
-          >
-            <RefreshCw size={18} color={cores.branco} />
-          </Pressable>
+          {/* Só admin regenera; jogador comum só copia o link. */}
+          {souAdmin && (
+            <Pressable
+              style={[styles.modalBotaoContorno, styles.convidarBotaoIcone]}
+              onPress={() => {
+                setAba(null);
+                setConfirmando({ tipo: "novoLink" });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Gerar novo convite"
+            >
+              <RefreshCw size={18} color={cores.branco} />
+            </Pressable>
+          )}
           <Pressable
             style={[styles.modalBotao, styles.convidarBotaoLink, !tokenConvite && { opacity: 0.6 }]}
             onPress={() => void copiarLinkDoGrupo()}
@@ -1329,7 +1337,6 @@ function DetalhePartida({
   emCheckin,
   temResultado,
   jaFizCheckin,
-  souAdmin,
   temToken,
   onCopiar,
   onCompartilhar,
@@ -1343,7 +1350,6 @@ function DetalhePartida({
   emCheckin: boolean;
   temResultado: boolean;
   jaFizCheckin: boolean;
-  souAdmin: boolean;
   temToken: boolean;
   onCopiar: () => void;
   onCompartilhar: () => void;
@@ -1351,7 +1357,7 @@ function DetalhePartida({
   onFechar: () => void;
 }) {
   const data = new Date(p.data);
-  const podeConvidar = souAdmin && !p.cancelada && !encerrada;
+  const podeConvidar = !p.cancelada && !encerrada;
   const corEyebrow = p.cancelada ? cores.erroTexto : encerrada ? cores.slate400 : cores.teal;
 
   return (
@@ -1756,6 +1762,7 @@ const styles = StyleSheet.create({
 
   secao: { gap: 8 },
   secaoCabecalho: { gap: 4 },
+  secaoTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   secaoTitulo: {
     fontSize: 11,
     fontWeight: "600",

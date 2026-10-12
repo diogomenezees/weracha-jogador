@@ -46,9 +46,9 @@ type Item =
 // (weracha-site/components/navbar.tsx). Telas não portadas cairiam no /em-breve
 // (nenhuma hoje).
 const ITENS: Item[] = [
-  { rotulo: "Início", Icone: House, tipo: "rota", rota: "/painel" },
   { rotulo: "Perfil", Icone: CircleUserRound, tipo: "rota", rota: "/perfil" },
-  { rotulo: "Meus indicadores", Icone: Activity, tipo: "rota", rota: "/indicadores" },
+  { rotulo: "Início", Icone: House, tipo: "rota", rota: "/painel" },
+  { rotulo: "Performance", Icone: Activity, tipo: "rota", rota: "/indicadores" },
   { rotulo: "Artilheiros", Icone: Goal, tipo: "rota", rota: "/artilheiros" },
   { rotulo: "Replays", Icone: Video, tipo: "rota", rota: "/replays", beta: true },
   { rotulo: "Enquetes", Icone: BarChart3, tipo: "rota", rota: "/enquetes" },
