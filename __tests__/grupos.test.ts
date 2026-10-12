@@ -48,7 +48,7 @@ describe("proximaPartida", () => {
         partida({ id: "passada", data: daquiA(-2 * HORA) }),
         partida({ id: "cancelada", data: daquiA(1 * HORA), cancelada: true }),
         partida({ id: "longe", data: daquiA(48 * HORA) }),
-        partida({ id: "logo", data: daquiA(24 * HORA) }),
+        partida({ id: "logo", data: daquiA(30 * HORA) }),
       ],
     });
     expect(proximaPartida(g)?.id).toBe("logo");
@@ -80,7 +80,7 @@ describe("partidaEmAndamento / proximaPartidaInfo", () => {
   });
 
   it("sem partida em andamento, aponta a próxima futura sem check-in", () => {
-    const g = grupo({ partidas: [partida({ data: daquiA(24 * HORA) })] });
+    const g = grupo({ partidas: [partida({ data: daquiA(30 * HORA) })] });
     const info = proximaPartidaInfo(g);
     expect(info?.checkinDisponivel).toBe(false);
     expect(aguardandoRenovacao(g)).toBe(false);
