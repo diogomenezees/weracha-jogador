@@ -10,11 +10,11 @@ import {
   CalendarCheck,
   ChevronRight,
   Clock,
-  Flame,
   Medal,
   MessageCircle,
   Minus,
   Star,
+  Target,
   TrendingDown,
   TrendingUp,
   Users,
@@ -27,8 +27,6 @@ import {
   formatarMedia,
   media,
   noiteHistorica,
-  recordeDeSequencia,
-  sequenciaAtual,
   tendencia,
   tendenciaGeral,
 } from "@/estatisticas";
@@ -161,8 +159,8 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
   const antesDoUltimo = ultimo ? doGrupo.filter((j) => j.data < ultimo.data) : [];
   const mediaAntesDoUltimo = antesDoUltimo.length > 0 ? media(antesDoUltimo) : null;
 
-  const seqAgora = sequenciaAtual(doGrupo);
-  const recorde = recordeDeSequencia(doPeriodo);
+  // Regularidade: em quantos dos jogos do período ele marcou (1+ gol).
+  const jogosComGol = doPeriodo.filter((j) => j.gols > 0).length;
   const noite = noiteHistorica(doPeriodo);
 
   const realizadas = dados.partidasRealizadas
@@ -300,16 +298,10 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
         <>
           <View style={styles.grade}>
             <CardIndicador
-              Icone={Flame}
-              rotulo="Sequência"
-              valor={
-                seqAgora?.tipo === "MARCANDO"
-                  ? plural(seqAgora.jogos, "jogo", "jogos")
-                  : seqAgora
-                    ? `${seqAgora.jogos} sem gol`
-                    : "0"
-              }
-              detalhe={`${seqAgora?.tipo === "MARCANDO" ? "marcando seguido agora" : "em jejum agora"}\nRecorde ${nomeDoPeriodo}: ${plural(recorde, "jogo", "jogos")}`}
+              Icone={Target}
+              rotulo="Jogos com gol"
+              valor={`${Math.round((jogosComGol / doPeriodo.length) * 100)}%`}
+              detalhe={`marcou em ${jogosComGol} de ${plural(doPeriodo.length, "jogo", "jogos")}`}
             />
             <CardIndicador
               Icone={Star}

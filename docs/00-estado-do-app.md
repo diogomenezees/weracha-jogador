@@ -92,7 +92,7 @@ Espelha o site (mesmo dia; contrato em `16-api-v1.md`):
 Espelha o site (mesmo dia; contrato em `16-api-v1.md`, regras da resenha em `14-resenha.md`):
 - **Meus indicadores** (`(logado)/indicadores.tsx`, `GET /api/v1/estatisticas`): filtro
   de grupo (`ModalEscolha`, só com 2+ grupos) e de mês; Resumo (gols, gol/jogo, seta de
-  tendência), grade Sequência / Noite histórica / Presença / Artilharia, Último jogo,
+  tendência), grade Jogos com gol / Noite histórica / Presença / Artilharia, Último jogo,
   gráfico "Gols por jogo" (`react-native-svg`, toque numa coluna mostra o jogo, lista
   "Ver jogos em lista") e Repercussão com selo Beta. Contas puras em `src/estatisticas.ts`
   (cópia de `weracha-site/lib/estatisticas.ts`), corpo em `src/estatisticas/`.
