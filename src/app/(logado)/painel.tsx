@@ -27,6 +27,7 @@ import {
   AcoesRapidas,
   AtividadesRecentes,
   DestaquesDosGrupos,
+  MeusIndicadores,
   ProximoJogo,
   SeusGrupos,
 } from "@/painel/secoes";
@@ -160,6 +161,9 @@ export default function Painel() {
         )}
         {temGrupo && dados && !exclusaoPendente && (
           <AcoesRapidas ultimoResultado={dados.ultimoResultado} />
+        )}
+        {temGrupo && dados && !exclusaoPendente && dados.meusIndicadores && (
+          <MeusIndicadores indicadores={dados.meusIndicadores} />
         )}
         {temGrupo && dados && !exclusaoPendente && (
           <DestaquesDosGrupos destaques={dados.destaques} />

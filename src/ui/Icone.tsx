@@ -106,7 +106,13 @@ export {
   MonitorPlay,
   Smartphone,
   PenLine,
-  // painel (ações rápidas / destaques)
+  // painel (ações rápidas / destaques / meus indicadores)
+  House,
+  LayoutGrid,
+  Activity,
+  TrendingUp,
+  TrendingDown,
+  Hammer,
   Zap,
   Medal,
   Target,

@@ -252,7 +252,15 @@ export type LinhaRanking = {
 
 export type DadosArtilheiros = {
   escopo:
-    | { tipo: "grupo"; grupoNome: string; esporte: string }
+    | {
+        tipo: "grupo";
+        grupoNome: string;
+        esporte: string;
+        // Grupos do jogador pro seletor da tela global de artilheiros. Opcional:
+        // site antigo não manda.
+        grupoId?: string;
+        gruposDisponiveis?: { id: string; nome: string }[];
+      }
     | {
         tipo: "esporte";
         esporteSelecionado: string | null;
@@ -301,10 +309,19 @@ export type BlocoFeedResenha = {
   ultimaAtividade: string;
 };
 
+// Abas do feed da resenha do grupo (`?aba=destaques|todos`). DESTAQUES: só os
+// replays já comentados, comentário mais recente no topo. TODOS: todo replay com
+// vídeo, comentado ou não, da partida mais recente pra mais antiga.
+export type AbaResenha = "DESTAQUES" | "TODOS";
+
 export type FeedResenha = {
+  // `aba` e `totais` são opcionais: um site anterior às abas não manda (e
+  // devolve sempre o feed de Destaques).
+  aba?: AbaResenha;
   blocos: BlocoFeedResenha[];
   temMais: boolean;
   totalBlocos: number;
+  totais?: Record<AbaResenha, number>;
   podeModerar: boolean;
   meuJogadorId: string;
   podeComentar: PodeComentar;
@@ -643,4 +660,61 @@ export type DadosDoPainel = {
   ultimoResultado: UltimoResultadoPainel | null;
   atividadesRecentes: AtividadeRecentePainel[];
   destaques: DestaquesPainel;
+  // Card "Meus indicadores". Opcional: um site anterior a ele não manda.
+  meusIndicadores?: MeusIndicadoresPainel | null;
+};
+
+// ── Meus indicadores (GET /api/v1/estatisticas + card do painel) ───────────
+// Cópia de weracha-site/lib/estatisticas.ts (tipos). Os cálculos puros estão em
+// src/estatisticas.ts.
+
+// Uma partida jogada (check-in ou gol em partida com resultado ativo). `mes` =
+// "AAAA-MM" da data da partida no fuso de São Paulo.
+export type JogoDoJogador = {
+  partidaId: string;
+  grupoId: string;
+  data: string;
+  mes: string;
+  gols: number;
+  replays: number;
+  comentarios: number;
+  replayMaisComentado: { pedidoReplayId: string; comentarios: number } | null;
+};
+
+export type DadosEstatisticas = {
+  grupos: { id: string; nome: string }[];
+  periodos: PeriodoArtilheiros[]; // sempre começa com "Geral"
+  periodoInicial: string;
+  jogos: JogoDoJogador[]; // ordem cronológica crescente
+  partidasRealizadas: { grupoId: string; mes: string; total: number }[];
+  posicoes: { grupoId: string; periodo: string; posicao: number; de: number }[];
+};
+
+// ── GET /api/v1/grupos/{grupoId}/indicadores?periodo= ──────────────────────
+// Cópia de weracha-site/lib/indicadoresGrupo.ts.
+export type PartidaDoGrupoNoGrafico = {
+  partidaId: string;
+  data: string;
+  mes: string;
+  gols: number;
+  presentes: number;
+};
+
+export type DadosIndicadoresDoGrupo = {
+  grupo: { id: string; nome: string };
+  periodos: PeriodoArtilheiros[];
+  periodo: string;
+  destaques: DestaquesPainel;
+  partidas: PartidaDoGrupoNoGrafico[];
+};
+
+export type MeusIndicadoresPainel = {
+  mesRotulo: string;
+  golsNoMes: number;
+  jogosNoMes: number;
+  golsTotal: number;
+  jogosTotal: number;
+  ultimoJogo: { data: string; gols: number; mediaAntes: number | null } | null;
+  sequencia: { tipo: "MARCANDO" | "JEJUM"; jogos: number } | null;
+  ultimosGols: number[];
 };

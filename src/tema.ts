@@ -30,6 +30,9 @@ export const cores = {
   ambar: "#fbbf24",
   ambarEscuro: "#f59e0b",
 
+  // Subiu/melhorou (site: emerald-400), na seta de tendência dos indicadores.
+  verde: "#34d399",
+
   // Erro (red-300 / red-500)
   erroTexto: "#fca5a5",
   erroBorda: "rgba(239, 68, 68, 0.3)",

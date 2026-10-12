@@ -17,6 +17,7 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
 import { Video } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
@@ -176,13 +177,10 @@ export default function Replays() {
               </Text>
             </View>
           ) : (
-            <View style={styles.box}>
-              <Text style={styles.boxTitulo}>Nenhum replay ainda</Text>
-              <Text style={styles.boxTexto}>
-                Pode ser que ninguém tenha gravado um gol seu ainda, ou que seu grupo não use o We
-                Racha Cam. Quando o primeiro replay chegar, ele aparece aqui.
-              </Text>
-            </View>
+            <EmDesenvolvimento
+              titulo="Seus gols em vídeo estão chegando"
+              texto="Estamos preparando os replays para liberar em breve. Quando estiver pronto, cada gol seu vai aparecer aqui em vídeo."
+            />
           )
         }
         renderItem={({ item }) => (
@@ -231,13 +229,6 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 6,
     alignItems: "center",
-  },
-  boxTitulo: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: cores.teal,
-    textTransform: "uppercase",
   },
   boxTexto: { fontSize: 14, lineHeight: 20, color: cores.slate400, textAlign: "center" },
   mais: { height: 44, alignItems: "center", justifyContent: "center" },

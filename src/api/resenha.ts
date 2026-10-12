@@ -1,17 +1,21 @@
 import type { OpcoesRequisicao } from "@/api/cliente";
-import type { ComentarioResenha, FeedResenha } from "@/contrato/tipos";
+import type { AbaResenha, ComentarioResenha, FeedResenha } from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
-// GET /api/v1/grupos/{grupoId}/resenha?pagina=<n> — feed de replays comentados
-// do grupo, 3 blocos por página (pagina começa em 0). Corpo direto, sem
-// wrapper. Ver 16-api-v1.md §13.
+// GET /api/v1/grupos/{grupoId}/resenha?pagina=<n>&aba=<destaques|todos> — feed
+// de replays do grupo, 3 blocos por página (pagina começa em 0). DESTAQUES: só
+// os comentados; TODOS: todo replay com vídeo. Corpo direto, sem wrapper. Ver
+// 16-api-v1.md §13.
 export function buscarFeedResenha(
   chamarApi: ChamarApi,
   grupoId: string,
-  pagina: number
+  pagina: number,
+  aba: AbaResenha = "DESTAQUES"
 ): Promise<FeedResenha> {
-  return chamarApi<FeedResenha>(`/api/v1/grupos/${grupoId}/resenha?pagina=${pagina}`);
+  return chamarApi<FeedResenha>(
+    `/api/v1/grupos/${grupoId}/resenha?pagina=${pagina}&aba=${aba === "TODOS" ? "todos" : "destaques"}`
+  );
 }
 
 // GET /api/v1/replays/{pedidoReplayId}/comentarios — thread completa de um

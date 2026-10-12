@@ -46,11 +46,14 @@ export default function ArtilheirosGlobal() {
     };
   }, [chamarApi, tentativa]);
 
-  const trocarEsporte = useCallback(
-    async (esporte: string) => {
-      setTrocando(esporte);
+  // O ranking é sempre de UM grupo (o servidor abre no grupo onde o jogador jogou
+  // por último): somar grupos do mesmo esporte misturava rankings que não se
+  // comparam.
+  const trocarGrupo = useCallback(
+    async (grupoId: string) => {
+      setTrocando(grupoId);
       try {
-        setDados(await buscarArtilheiros(chamarApi, { esporte }));
+        setDados(await buscarArtilheiros(chamarApi, { grupoId }));
       } catch (e) {
         setErro(mensagemDoErro(e));
       } finally {
@@ -101,14 +104,15 @@ export default function ArtilheirosGlobal() {
           <View style={styles.box}>
             <Text style={styles.boxTitulo}>Sem grupos</Text>
             <Text style={styles.boxTexto}>
-              Entre num grupo pra ver o ranking de artilheiros do seu esporte.
+              Entre num grupo pra ver o ranking de artilheiros dele.
             </Text>
           </View>
         ) : (
           <TelaArtilheiros
             dados={dados}
-            aoTrocarEsporte={trocarEsporte}
-            esporteCarregando={trocando}
+            key={dados.escopo.tipo === "grupo" ? (dados.escopo.grupoId ?? "grupo") : "esporte"}
+            aoTrocarGrupo={trocarGrupo}
+            grupoCarregando={trocando}
           />
         )}
       </ScrollView>

@@ -8,23 +8,48 @@ import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarFeedResenha } from "@/api/resenha";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { BlocoCard } from "@/resenha/BlocoCard";
-import { RefreshCw, Users, VideoOff } from "@/ui/Icone";
+import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
+import { MessageCircle, RefreshCw, Users } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
-import type { BlocoFeedResenha, FeedResenha } from "@/contrato/tipos";
+import type { AbaResenha, BlocoFeedResenha, FeedResenha } from "@/contrato/tipos";
 
+const ABAS: { valor: AbaResenha; rotulo: string }[] = [
+  { valor: "TODOS", rotulo: "Todos os vídeos" },
+  { valor: "DESTAQUES", rotulo: "Destaques" },
+];
+
+// Feed da resenha do grupo com duas abas, espelhando
+// weracha-site/app/grupos/[id]/resenha/page.tsx. "Todos os vídeos": todo replay
+// com vídeo, comentado ou não (o feed pra rever o jogo e comentar qualquer
+// lance). "Destaques": só os já comentados, conversa mais recente no topo.
 export default function ResenhaDoGrupo() {
-  // ?video={pedidoReplayId}: abre já rolada até esse replay (link das
-  // "Atividades recentes" do painel), com a borda dele destacada.
-  const { id, video } = useLocalSearchParams<{ id: string; video?: string }>();
+  // ?video={pedidoReplayId}: abre já rolada até esse replay (link de vídeo
+  // comentado do painel ou de "Meus indicadores"), com a borda dele destacada.
+  // ?aba=destaques reabre em Destaques.
+  const { id, video, aba: abaParam } = useLocalSearchParams<{
+    id: string;
+    video?: string;
+    aba?: string;
+  }>();
   const listaRef = useRef<FlatList<BlocoFeedResenha>>(null);
   const rolouAteAlvo = useRef(false);
+  const tentouTodos = useRef(false);
   // Sem folga embaixo, a barra de botões do Android fica em cima do último card.
   const insets = useSafeAreaInsets();
   const { chamarApi } = useSessao();
+
+  // Quem chega num vídeo específico vem de um vídeo já comentado: Destaques.
+  // Sem nada, "Todos os vídeos" (o feed pra rever o jogo).
+  const [aba, setAba] = useState<AbaResenha>(
+    video || abaParam === "destaques" ? "DESTAQUES" : "TODOS"
+  );
+  // Aba vigente pra descartar resposta de página que chegou depois de uma troca
+  // de aba (a rolagem infinita pode estar no meio de uma carga).
+  const abaRef = useRef(aba);
 
   const [feed, setFeed] = useState<FeedResenha | undefined>(undefined);
   const [blocos, setBlocos] = useState<BlocoFeedResenha[]>([]);
@@ -34,11 +59,15 @@ export default function ResenhaDoGrupo() {
   const [tentativa, setTentativa] = useState(0);
   const [atualizando, setAtualizando] = useState(false);
   const [carregandoMais, setCarregandoMais] = useState(false);
+  const [trocandoAba, setTrocandoAba] = useState(false);
+
+  // Site anterior às abas não manda `aba` (o feed é sempre o de Destaques).
+  const daAbaAtual = (f: FeedResenha) => (f.aba ?? "DESTAQUES") === abaRef.current || !f.aba;
 
   const carregarPrimeira = useCallback(async () => {
     const [dados, f] = await Promise.all([
       buscarDadosDoGrupo(chamarApi, id),
-      buscarFeedResenha(chamarApi, id, 0),
+      buscarFeedResenha(chamarApi, id, 0, abaRef.current),
     ]);
     return { nome: dados.grupo?.nome ?? "", f };
   }, [chamarApi, id]);
@@ -48,7 +77,7 @@ export default function ResenhaDoGrupo() {
     (async () => {
       try {
         const { nome, f } = await carregarPrimeira();
-        if (!vivo) return;
+        if (!vivo || !daAbaAtual(f)) return;
         setGrupoNome(nome);
         setFeed(f);
         setBlocos(f.blocos);
@@ -67,6 +96,7 @@ export default function ResenhaDoGrupo() {
     setAtualizando(true);
     try {
       const { nome, f } = await carregarPrimeira();
+      if (!daAbaAtual(f)) return;
       setGrupoNome(nome);
       setFeed(f);
       setBlocos(f.blocos);
@@ -79,12 +109,32 @@ export default function ResenhaDoGrupo() {
     }
   }
 
+  async function trocarAba(nova: AbaResenha) {
+    if (nova === abaRef.current) return;
+    abaRef.current = nova;
+    setAba(nova);
+    setTrocandoAba(true);
+    try {
+      const f = await buscarFeedResenha(chamarApi, id, 0, nova);
+      if (!daAbaAtual(f)) return;
+      setFeed(f);
+      setBlocos(f.blocos);
+      setPagina(0);
+      listaRef.current?.scrollToOffset({ offset: 0, animated: false });
+    } catch (e) {
+      setErro(mensagemDoErro(e));
+    } finally {
+      setTrocandoAba(false);
+    }
+  }
+
   async function carregarMais() {
-    if (carregandoMais || !feed?.temMais) return;
+    if (carregandoMais || trocandoAba || !feed?.temMais) return;
     setCarregandoMais(true);
     try {
       const prox = pagina + 1;
-      const f = await buscarFeedResenha(chamarApi, id, prox);
+      const f = await buscarFeedResenha(chamarApi, id, prox, abaRef.current);
+      if (!daAbaAtual(f)) return;
       setFeed(f);
       setBlocos((prev) => {
         const vistos = new Set(prev.map((b) => b.pedidoReplayId));
@@ -99,19 +149,25 @@ export default function ResenhaDoGrupo() {
   }
 
   // Rola até o ?video= uma vez só. Se ele ainda não está nas páginas
-  // carregadas (o feed vem de 3 em 3), puxa a próxima até achar ou acabar.
+  // carregadas (o feed vem de 3 em 3), puxa a próxima até achar ou acabar. Se
+  // Destaques acabou sem achar (ex.: o comentário foi apagado), tenta uma vez em
+  // "Todos os vídeos".
   useEffect(() => {
-    if (!video || rolouAteAlvo.current || blocos.length === 0) return;
+    if (!video || !feed || rolouAteAlvo.current || trocandoAba) return;
     const indice = blocos.findIndex((b) => b.pedidoReplayId === video);
     if (indice >= 0) {
       rolouAteAlvo.current = true;
       setTimeout(() => listaRef.current?.scrollToIndex({ index: indice, animated: true }), 300);
-    } else if (feed?.temMais && !carregandoMais) {
+    } else if (feed.temMais && !carregandoMais) {
       const t = setTimeout(() => void carregarMais(), 0);
+      return () => clearTimeout(t);
+    } else if (!feed.temMais && feed.totais && abaRef.current === "DESTAQUES" && !tentouTodos.current) {
+      tentouTodos.current = true;
+      const t = setTimeout(() => void trocarAba("TODOS"), 0);
       return () => clearTimeout(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blocos, video, feed?.temMais, carregandoMais]);
+  }, [blocos, video, feed, carregandoMais, trocandoAba]);
 
   const voltar = <Navbar voltar="Grupo" />;
 
@@ -132,12 +188,17 @@ export default function ResenhaDoGrupo() {
     );
   }
 
+  // Grupo sem vídeo nenhum na nuvem: sem abas, só o aviso de que o recurso está
+  // chegando. (Site anterior às abas, sem `totais`: vazio = sem comentário.)
+  const totais = feed.totais;
+  const semVideos = totais ? totais.TODOS === 0 : blocos.length === 0;
+
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
       <FlatList
         ref={listaRef}
-        data={blocos}
+        data={trocandoAba || semVideos ? [] : blocos}
         // Os cards têm altura variável: sem getItemLayout o scrollToIndex pode
         // falhar pra um item ainda não medido. Rola perto e tenta de novo.
         onScrollToIndexFailed={({ index, averageItemLength }) => {
@@ -175,17 +236,60 @@ export default function ResenhaDoGrupo() {
                 {grupoNome}
               </Text>
             </View>
-            <Text style={styles.desc}>
-              Os replays comentados de todas as partidas aparecem aqui. Comente um gol nos
-              replays da partida ou na tela de cada jogador.
-            </Text>
+            {!semVideos && (
+              <Text style={styles.desc}>
+                {aba === "TODOS"
+                  ? "Todos os vídeos gravados nas partidas do grupo, do jogo mais recente pro mais antigo. Comente qualquer lance."
+                  : "Os vídeos que a galera já comentou, com a conversa mais recente no topo."}
+              </Text>
+            )}
+            {!semVideos && totais && (
+              <View style={styles.abas}>
+                {ABAS.map(({ valor, rotulo }) => {
+                  const selecionada = aba === valor;
+                  return (
+                    <Pressable
+                      key={valor}
+                      style={[styles.aba, selecionada && styles.abaSelecionada]}
+                      onPress={() => void trocarAba(valor)}
+                      accessibilityState={{ selected: selecionada }}
+                    >
+                      <Text style={[styles.abaTexto, selecionada && styles.abaTextoSelecionada]}>
+                        {rotulo}
+                      </Text>
+                      <View style={styles.abaContador}>
+                        <Text style={styles.abaContadorTexto}>{totais[valor]}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.vazio}>
-            <VideoOff size={24} color={cores.slate500} />
-            <Text style={styles.vazioTexto}>Ainda não rolou reação nenhuma nesse grupo.</Text>
-          </View>
+          semVideos ? (
+            <EmDesenvolvimento
+              titulo="A resenha está chegando"
+              texto="Estamos preparando os replays dos gols para liberar em breve. Quando estiver pronto, a galera vai poder ver e comentar cada lance aqui."
+            />
+          ) : trocandoAba ? (
+            <View style={styles.vazio}>
+              <ActivityIndicator color={cores.slate400} />
+            </View>
+          ) : (
+            // Só acontece em Destaques: tem vídeo, mas ninguém comentou ainda.
+            <View style={styles.semComentario}>
+              <MessageCircle size={24} color={cores.slate500} />
+              <Text style={styles.semComentarioTitulo}>Nenhum vídeo comentado ainda.</Text>
+              <Text style={styles.semComentarioTexto}>
+                Os vídeos que receberem comentários aparecem aqui. Que tal puxar a resenha?
+              </Text>
+              <Pressable style={styles.botaoTeal} onPress={() => void trocarAba("TODOS")}>
+                <Text style={styles.botaoTealTexto}>Ver todos os vídeos</Text>
+              </Pressable>
+            </View>
+          )
         }
         renderItem={({ item }) => (
           <BlocoCard
@@ -199,7 +303,7 @@ export default function ResenhaDoGrupo() {
           />
         )}
         ListFooterComponent={
-          feed.temMais ? (
+          feed.temMais && !trocandoAba && !semVideos ? (
             <Pressable style={styles.mais} onPress={() => void carregarMais()} disabled={carregandoMais}>
               {carregandoMais ? (
                 <ActivityIndicator color={cores.slate400} />
@@ -228,12 +332,59 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: raio.campo,
   },
-  h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
   sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
-  desc: { fontSize: 13, color: cores.slate500, marginTop: 4 },
-  vazio: { paddingVertical: 48, alignItems: "center", gap: 12 },
-  vazioTexto: { fontSize: 14, color: cores.slate400, textAlign: "center" },
+  desc: { fontSize: 13, lineHeight: 19, color: cores.slate500, marginTop: 4 },
+
+  // Abas (mesmo desenho das abas Ativos/Aguardando de "Seus grupos").
+  abas: {
+    flexDirection: "row",
+    gap: 4,
+    padding: 4,
+    marginTop: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+  },
+  aba: {
+    flex: 1,
+    height: 32,
+    borderRadius: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  abaSelecionada: { backgroundColor: "rgba(31, 179, 163, 0.15)" },
+  abaTexto: { fontSize: 12, fontWeight: "500", color: cores.slate400 },
+  abaTextoSelecionada: { color: cores.teal },
+  abaContador: { borderRadius: 999, paddingHorizontal: 6, backgroundColor: "rgba(255, 255, 255, 0.1)" },
+  abaContadorTexto: { fontSize: 10, color: cores.slate300 },
+
+  vazio: { paddingVertical: 48, alignItems: "center" },
+  semComentario: {
+    alignItems: "center",
+    gap: 10,
+    borderRadius: raio.card,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+  },
+  semComentarioTitulo: { fontSize: 14, color: cores.slate300, textAlign: "center" },
+  semComentarioTexto: { fontSize: 12, lineHeight: 18, color: cores.slate500, textAlign: "center" },
+  botaoTeal: {
+    marginTop: 4,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: cores.teal,
+  },
+  botaoTealTexto: { fontSize: 14, fontWeight: "600", color: cores.dark },
   mais: { height: 44, alignItems: "center", justifyContent: "center" },
   maisTexto: { fontSize: 13, fontWeight: "600", color: cores.slate400 },
 });

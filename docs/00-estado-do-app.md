@@ -66,6 +66,49 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: Funções do grupo, Indicadores do grupo, artilheiros por grupo (2026-10-11)
+
+Espelha o site (mesmo dia; contrato em `16-api-v1.md`):
+- Tela do grupo: o rodapé fixo ficou só com o botão laranja "Gerenciar jogadores · N"
+  ("Ver jogadores" pra membro). Artilheiros/Resenha/Enquetes saíram dele e foram pra
+  seção **Funções do grupo** em carrossel, logo abaixo dos alertas
+  (`src/grupo/FuncoesDoGrupo.tsx`, cards na mesma cor): Artilheiros, Indicadores,
+  Resenha (Beta), Enquetes e Convidar (só admin, abre o modal de convite).
+- **Indicadores do grupo** (`(logado)/grupos/[id]/indicadores.tsx`,
+  `GET /api/v1/grupos/{id}/indicadores?periodo=`): chips de mês (abre no corrente),
+  resumo (jogos, gols, presentes por jogo), destaques do período (artilheiro, mais
+  presente, melhor média, noite histórica), gráfico de gols por jogo do grupo e
+  Repercussão (Beta: resenheiro, gol mais comentado). Corpo em
+  `src/estatisticas/TelaIndicadoresGrupo.tsx`; o gráfico virou genérico
+  (`JogoNoGrafico`, `descrever`, `rotuloMedia`).
+- Artilheiros (menu): filtro por **grupo** no lugar de esporte (`ModalEscolha`), abre no
+  grupo onde o jogador jogou por último (decidido no servidor).
+- Painel: "Destaques dos grupos" passou a ser **do mês corrente** (cálculo no servidor),
+  com selo do mês no título.
+- Conferido no Expo Go: Funções do grupo e a tela de Indicadores abrem; resto por validar.
+
+## Feito: Meus indicadores, menu novo, abas da Resenha e selos Beta (2026-10-11)
+
+Espelha o site (mesmo dia; contrato em `16-api-v1.md`, regras da resenha em `14-resenha.md`):
+- **Meus indicadores** (`(logado)/indicadores.tsx`, `GET /api/v1/estatisticas`): filtro
+  de grupo (`ModalEscolha`, só com 2+ grupos) e de mês; Resumo (gols, gol/jogo, seta de
+  tendência), grade Sequência / Noite histórica / Presença / Artilharia, Último jogo,
+  gráfico "Gols por jogo" (`react-native-svg`, toque numa coluna mostra o jogo, lista
+  "Ver jogos em lista") e Repercussão com selo Beta. Contas puras em `src/estatisticas.ts`
+  (cópia de `weracha-site/lib/estatisticas.ts`), corpo em `src/estatisticas/`.
+- Painel: card **Meus indicadores** acima dos Destaques (gols do mês, mini barras dos
+  últimos 8 jogos, chips do último jogo e da sequência), vindo de
+  `DadosDoPainel.meusIndicadores` (opcional no tipo: site antigo não manda).
+- Menu: **Início** (antigo "Grupos", ícone casa) em 1º, Perfil em 2º, **Meus
+  indicadores** acima de Artilheiros.
+- Resenha do grupo com abas **Todos os vídeos** (padrão; todo replay com vídeo,
+  comentado ou não) e **Destaques** (só comentados). `?video=` abre em Destaques (e cai
+  pra Todos se não achar); paginação de 3 por aba; resposta de outra aba é descartada.
+  Grupo sem vídeo: card "Em desenvolvimento" (`src/ui/EmDesenvolvimento.tsx`), também
+  usado nos Replays vazios. Selo **Beta** no botão Resenha do rodapé do grupo.
+- Rodado no Expo Go (Galaxy, Wi-Fi) contra o site local: Meus indicadores e o selo Beta
+  conferidos na tela; resto do fluxo ainda por validar no celular.
+
 ## Feito: correção de gol no Ao vivo + card de time com escudo (2026-10-11)
 
 Espelha o site (spec `10-ao-vivo.md`, RN73/RN78):

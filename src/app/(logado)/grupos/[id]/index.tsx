@@ -37,7 +37,6 @@ import {
 import { buscarQuadras, sugerirQuadra } from "@/api/quadras";
 import {
   Ban,
-  BarChart3,
   Calendar,
   CalendarPlus,
   Check,
@@ -49,14 +48,12 @@ import {
   type LucideIcon,
   LogOut,
   MapPin,
-  MessageCircle,
   NotebookPen,
   Pencil,
   RefreshCw,
   RotateCcw,
   Share2,
   Trash2,
-  Trophy,
   UserPlus,
   Users,
 } from "@/ui/Icone";
@@ -82,6 +79,7 @@ import {
   partidaEncerrada,
 } from "@/partidas";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
+import { FuncoesDoGrupo } from "@/grupo/FuncoesDoGrupo";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { SeletorData, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
@@ -636,7 +634,7 @@ export default function TelaGrupo() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: 100 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -725,6 +723,24 @@ export default function TelaGrupo() {
             onPress={() => void chamarGalera()}
           />
         )}
+        {!renovar && proximas.length === 0 && grupo.tipo === "AVULSO" && (
+          <Banner
+            cor={souAdmin ? "orange" : "red"}
+            Icone={souAdmin ? CalendarPlus : Share2}
+            titulo={souAdmin ? "Bora marcar outra partida?" : "As partidas acabaram."}
+            chamada={souAdmin ? "Mesmos jogadores, esporte e quadra" : "Chamar todo mundo pra jogar"}
+            onPress={souAdmin ? () => abrirAdicionarPartida() : () => void chamarGalera()}
+          />
+        )}
+
+        {/* Atalhos do grupo em carrossel (antes ficavam presos num rodapé fixo),
+            logo abaixo dos alertas. "Adicionar partida" (grupo avulso) segue no
+            menu ⋮ do topo. */}
+        <FuncoesDoGrupo
+          grupoId={grupo.id}
+          souAdmin={souAdmin}
+          onConvidar={() => setAba("convidar")}
+        />
 
         {proximas.length > 0 && (
           <View style={styles.secao}>
@@ -752,15 +768,6 @@ export default function TelaGrupo() {
           </View>
         )}
 
-        {!renovar && proximas.length === 0 && grupo.tipo === "AVULSO" && (
-          <Banner
-            cor={souAdmin ? "orange" : "red"}
-            Icone={souAdmin ? CalendarPlus : Share2}
-            titulo={souAdmin ? "Bora marcar outra partida?" : "As partidas acabaram."}
-            chamada={souAdmin ? "Mesmos jogadores, esporte e quadra" : "Chamar todo mundo pra jogar"}
-            onPress={souAdmin ? () => abrirAdicionarPartida() : () => void chamarGalera()}
-          />
-        )}
         {!renovar && proximas.length === 0 && grupo.tipo === "RECORRENTE" && (
           <Text style={styles.vazio}>Nenhuma partida por aqui.</Text>
         )}
@@ -803,39 +810,9 @@ export default function TelaGrupo() {
         )}
       </ScrollView>
 
+      {/* Rodapé fixo só com o atalho principal (elenco), igual o site. As outras
+          sub-telas ficam em "Funções do grupo". */}
       <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
-        {/* Mesmo rodapé do site: 3 atalhos com o texto em destaque e o ícone à
-            esquerda + "Gerenciar jogadores" em laranja. "Adicionar partida"
-            (grupo avulso) mora no menu ⋮ do topo. */}
-        <View style={styles.rodapeLinha}>
-          <Pressable
-            style={styles.rodapeAtalho}
-            onPress={() => router.push(`/grupos/${grupo.id}/artilheiros`)}
-          >
-            <Trophy size={16} color={cores.teal} />
-            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
-              Artilheiros
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.rodapeAtalho}
-            onPress={() => router.push(`/grupos/${grupo.id}/resenha`)}
-          >
-            <MessageCircle size={16} color={cores.teal} />
-            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
-              Resenha
-            </Text>
-          </Pressable>
-          <Pressable
-            style={styles.rodapeAtalho}
-            onPress={() => router.push(`/grupos/${grupo.id}/enquetes`)}
-          >
-            <BarChart3 size={16} color={cores.teal} />
-            <Text style={styles.rodapeAtalhoTexto} numberOfLines={1}>
-              Enquetes
-            </Text>
-          </Pressable>
-        </View>
         <Pressable
           style={styles.rodapeBotaoLaranja}
           onPress={() => router.push(`/grupos/${grupo.id}/jogadores`)}
@@ -1873,28 +1850,7 @@ const styles = StyleSheet.create({
     backgroundColor: cores.dark,
     paddingHorizontal: 16,
     paddingTop: 12,
-    gap: 8,
   },
-  rodapeLinha: { flexDirection: "row", gap: 8 },
-  // Três partes iguais, como o `flex-1` do site: base 0 explícita, senão a
-  // largura de cada botão acompanha o tamanho do texto e o "Resenha" corta.
-  rodapeAtalho: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    minWidth: 0,
-    height: 44,
-    paddingHorizontal: 8,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    backgroundColor: cores.cardFundo,
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rodapeAtalhoTexto: { flexShrink: 1, fontSize: 14, fontWeight: "600", color: cores.branco },
   rodapeBotaoLaranja: {
     height: 48,
     borderRadius: raio.campo,

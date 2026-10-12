@@ -1,13 +1,15 @@
 import { useState, type ReactNode } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 
 import { Text, FAMILIA_MONO } from "@/ui/Texto";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { Carrossel } from "@/ui/Carrossel";
 import { ModalPerfil } from "@/jogadores/modais";
 import { useSessao } from "@/sessao/contexto";
 import { SeloPapel } from "@/ui/SeloPapel";
 import {
+  Activity,
   ArrowRight,
   BarChart3,
   Calendar,
@@ -26,6 +28,8 @@ import {
   Shuffle,
   Star,
   Target,
+  TrendingDown,
+  TrendingUp,
   TriangleAlert,
   Trophy,
   Users,
@@ -47,6 +51,7 @@ import type {
   JogadorEmPartida,
   DestaquesPainel,
   GrupoPainel,
+  MeusIndicadoresPainel,
   ProximoJogoPainel,
   UltimoResultadoPainel,
 } from "@/contrato/tipos";
@@ -98,18 +103,6 @@ function TituloSecao({
       </View>
       {lateral}
     </View>
-  );
-}
-
-function Carrossel({ children }: { children: ReactNode }) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.carrossel}
-    >
-      {children}
-    </ScrollView>
   );
 }
 
@@ -303,6 +296,128 @@ type CardDestaque = {
   acao: { tipo: "perfil"; grupoId: string } | { tipo: "video"; grupoId: string; pedidoReplayId: string };
 };
 
+// ── Meus indicadores ─────────────────────────────────────────────────────────
+
+// Os números do próprio jogador (geral, todos os grupos), enxutos de propósito.
+// O card inteiro leva pra /estatisticas, onde ficam os filtros de grupo e mês.
+// Espelha MeusIndicadores de weracha-site/app/painel/page.tsx.
+export function MeusIndicadores({ indicadores }: { indicadores: MeusIndicadoresPainel }) {
+  const ultimo = indicadores.ultimoJogo;
+  const comparacao =
+    ultimo && ultimo.mediaAntes !== null
+      ? ultimo.gols > ultimo.mediaAntes
+        ? "acima"
+        : ultimo.gols < ultimo.mediaAntes
+          ? "abaixo"
+          : "na"
+      : null;
+  const seq = indicadores.sequencia;
+  const maxGols = Math.max(1, ...indicadores.ultimosGols);
+  const ALTURA_BARRAS = 56;
+
+  return (
+    <View>
+      <TituloSecao
+        Icone={Activity}
+        titulo="Meus indicadores"
+        lateral={
+          <Pressable
+            hitSlop={8}
+            style={styles.info}
+            onPress={() => router.push("/indicadores")}
+          >
+            <Text style={styles.verTudo}>Ver tudo</Text>
+            <ChevronRight size={14} color={cores.slate400} />
+          </Pressable>
+        }
+      />
+      <Pressable
+        style={({ pressed }) => [styles.indicadores, pressed && styles.indicadoresPressionado]}
+        onPress={() => router.push("/indicadores")}
+      >
+        <View style={styles.indicadoresTopo}>
+          <View style={styles.encolhe}>
+            <View style={styles.numeroLinha}>
+              <Text style={styles.numeroGrande}>{indicadores.golsNoMes}</Text>
+              <Text style={styles.numeroUnidade}>
+                {indicadores.golsNoMes === 1 ? "gol" : "gols"}
+              </Text>
+            </View>
+            <Text style={styles.indicadoresSub}>
+              em {indicadores.mesRotulo} · {plural(indicadores.jogosNoMes, "jogo", "jogos")}
+            </Text>
+          </View>
+          {/* Mini gráfico: gols dos últimos jogos, o mais recente em laranja. */}
+          <View
+            style={[styles.miniBarras, { height: ALTURA_BARRAS }]}
+            accessible
+            accessibilityLabel={`Gols nos últimos ${indicadores.ultimosGols.length} jogos: ${indicadores.ultimosGols.join(", ")}`}
+          >
+            {indicadores.ultimosGols.map((g, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.miniBarra,
+                  {
+                    height:
+                      g === 0 ? 3 : Math.max(0.12, g / maxGols) * ALTURA_BARRAS,
+                    backgroundColor:
+                      i === indicadores.ultimosGols.length - 1
+                        ? cores.orange
+                        : "rgba(31, 179, 163, 0.5)",
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.indicadoresChips}>
+          {ultimo && (
+            <View style={styles.chipIndicador}>
+              {comparacao === "acima" ? (
+                <TrendingUp size={14} color={cores.verde} />
+              ) : comparacao === "abaixo" ? (
+                <TrendingDown size={14} color={cores.ambar} />
+              ) : (
+                <Goal size={14} color={cores.teal} />
+              )}
+              <Text style={styles.chipIndicadorTexto}>
+                Último jogo:{" "}
+                <Text style={styles.chipIndicadorForte}>{plural(ultimo.gols, "gol", "gols")}</Text>
+                {comparacao && comparacao !== "na" ? (
+                  <Text style={styles.chipIndicadorFraco}> ({comparacao} da média)</Text>
+                ) : null}
+              </Text>
+            </View>
+          )}
+          {seq && seq.tipo === "MARCANDO" && seq.jogos >= 2 ? (
+            <View style={[styles.chipIndicador, styles.chipIndicadorLaranja]}>
+              <Flame size={14} color={cores.orange} />
+              <Text style={[styles.chipIndicadorTexto, styles.chipIndicadorTextoLaranja]}>
+                {seq.jogos} jogos seguidos marcando
+              </Text>
+            </View>
+          ) : seq && seq.tipo === "JEJUM" && seq.jogos >= 2 ? (
+            <View style={styles.chipIndicador}>
+              <Clock size={14} color={cores.slate400} />
+              <Text style={styles.chipIndicadorTexto}>{seq.jogos} jogos sem marcar</Text>
+            </View>
+          ) : (
+            <View style={styles.chipIndicador}>
+              <Target size={14} color={cores.teal} />
+              <Text style={styles.chipIndicadorTexto}>
+                {plural(indicadores.golsTotal, "gol", "gols")} em{" "}
+                {plural(indicadores.jogosTotal, "jogo", "jogos")}
+              </Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
 // Um jogador por métrica, somando todos os grupos (cálculo no servidor).
 // Métrica sem ninguém qualificado some; sem nenhuma, a seção inteira some.
 export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }) {
@@ -384,7 +499,19 @@ export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }
 
   return (
     <View>
-      <TituloSecao Icone={Star} titulo="Destaques dos grupos" />
+      {/* Os destaques são do mês corrente (cálculo no servidor): o selo deixa
+          claro que o placar zera a cada mês. */}
+      <TituloSecao
+        Icone={Star}
+        titulo="Destaques dos grupos"
+        lateral={
+          <View style={[styles.seloTitulo, styles.seloContorno]}>
+            <Text style={[styles.seloTituloTexto, { color: cores.slate400 }]}>
+              {nomeDoMes(new Date().getMonth())}
+            </Text>
+          </View>
+        }
+      />
       <Carrossel>
         {cards.map(({ rotulo, Icone, jogador: j, valor, detalhe, acao }) => (
           <Pressable
@@ -706,7 +833,6 @@ const styles = StyleSheet.create({
   pontoTeal: { width: 6, height: 6, borderRadius: 3, backgroundColor: cores.teal },
   pontoBranco: { width: 6, height: 6, borderRadius: 3, backgroundColor: cores.branco },
 
-  carrossel: { gap: 8 },
   card: CARD,
 
   // Próximo jogo
@@ -775,6 +901,52 @@ const styles = StyleSheet.create({
   acao: { width: 104, alignItems: "center", gap: 6, paddingHorizontal: 8, paddingVertical: 12 },
   acaoTitulo: { fontSize: 13, fontWeight: "600", color: cores.branco, textAlign: "center" },
   acaoSub: { fontSize: 11, lineHeight: 15, color: cores.slate400, textAlign: "center" },
+
+  // Meus indicadores
+  verTudo: { fontSize: 12, fontWeight: "500", color: cores.slate400 },
+  indicadores: {
+    borderRadius: raio.card,
+    borderWidth: 1,
+    borderColor: "rgba(242, 140, 30, 0.25)",
+    backgroundColor: "rgba(242, 140, 30, 0.07)",
+    padding: 16,
+  },
+  indicadoresPressionado: { borderColor: "rgba(242, 140, 30, 0.5)" },
+  indicadoresTopo: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  numeroLinha: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+  numeroGrande: { fontSize: 48, lineHeight: 52, fontWeight: "700", color: cores.branco },
+  numeroUnidade: { fontSize: 14, fontWeight: "600", color: cores.orange },
+  indicadoresSub: { marginTop: 4, fontSize: 12, color: cores.slate400 },
+  miniBarras: { flexDirection: "row", alignItems: "flex-end", gap: 3 },
+  miniBarra: { width: 10, borderTopLeftRadius: 3, borderTopRightRadius: 3 },
+  indicadoresChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+  },
+  chipIndicador: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+  },
+  chipIndicadorLaranja: { backgroundColor: "rgba(242, 140, 30, 0.15)" },
+  chipIndicadorTexto: { fontSize: 11, color: cores.slate200 },
+  chipIndicadorTextoLaranja: { color: cores.orange, fontWeight: "500" },
+  chipIndicadorForte: { fontSize: 11, fontWeight: "600", color: cores.slate200 },
+  chipIndicadorFraco: { fontSize: 11, color: cores.slate400 },
 
   // Destaques
   cardDestaque: { width: 176, padding: 12, gap: 8 },
