@@ -26,12 +26,14 @@ import {
   MessageSquareText,
   Plus,
   Shuffle,
+  Sparkles,
   Star,
   Target,
   TrendingDown,
   TrendingUp,
   TriangleAlert,
   Trophy,
+  UserCheck,
   Users,
   Video,
   Zap,
@@ -288,12 +290,16 @@ export function AcoesRapidas({ ultimoResultado }: { ultimoResultado: UltimoResul
 type CardDestaque = {
   rotulo: string;
   Icone: LucideIcon;
-  jogador: JogadorEmPartida;
+  // null: card de contagem (Fiéis), sem jogador e sem toque.
+  jogador: JogadorEmPartida | null;
   valor: string;
   detalhe: string;
   // Toque: perfil do jogador (modal, pelo grupo onde ele mais aparece) ou, no
   // "Gol mais comentado", o vídeo na resenha do grupo.
-  acao: { tipo: "perfil"; grupoId: string } | { tipo: "video"; grupoId: string; pedidoReplayId: string };
+  acao:
+    | { tipo: "perfil"; grupoId: string }
+    | { tipo: "video"; grupoId: string; pedidoReplayId: string }
+    | null;
 };
 
 // ── Meus indicadores ─────────────────────────────────────────────────────────
@@ -445,15 +451,14 @@ export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }
       acao: perfil(d.grupoId),
     });
   }
-  if (destaques.maisPresente) {
-    const d = destaques.maisPresente;
+  if (destaques.fieis) {
     cards.push({
-      rotulo: "Mais presente",
+      rotulo: "Fiéis",
       Icone: CalendarCheck,
-      jogador: d.jogador,
-      valor: plural(d.jogos, "jogo", "jogos"),
-      detalhe: plural(d.gols, "gol", "gols"),
-      acao: perfil(d.grupoId),
+      jogador: null,
+      valor: plural(destaques.fieis.quantidade, "jogador", "jogadores"),
+      detalhe: "em todos os jogos",
+      acao: null,
     });
   }
   if (destaques.noiteHistorica) {
@@ -464,6 +469,50 @@ export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }
       jogador: d.jogador,
       valor: plural(d.gols, "gol", "gols"),
       detalhe: `em ${formatarDiaMes(new Date(d.data))}`,
+      acao: perfil(d.grupoId),
+    });
+  }
+  if (destaques.revelacao) {
+    const d = destaques.revelacao;
+    cards.push({
+      rotulo: "Revelação",
+      Icone: Sparkles,
+      jogador: d.jogador,
+      valor: plural(d.gols, "gol", "gols"),
+      detalhe: `estreou no mês, ${plural(d.jogos, "jogo", "jogos")}`,
+      acao: perfil(d.grupoId),
+    });
+  }
+  if (destaques.emAlta) {
+    const d = destaques.emAlta;
+    cards.push({
+      rotulo: "Em alta",
+      Icone: TrendingUp,
+      jogador: d.jogador,
+      valor: `+${plural(d.gols - d.golsMesAnterior, "gol", "gols")}`,
+      detalhe: `de ${d.golsMesAnterior} para ${d.gols} no mês`,
+      acao: perfil(d.grupoId),
+    });
+  }
+  if (destaques.abreOPlacar) {
+    const d = destaques.abreOPlacar;
+    cards.push({
+      rotulo: "Abre o placar",
+      Icone: Zap,
+      jogador: d.jogador,
+      valor: plural(d.vezes, "vez", "vezes"),
+      detalhe: "fez o 1º gol do jogo",
+      acao: perfil(d.grupoId),
+    });
+  }
+  if (destaques.primeiroAConfirmar) {
+    const d = destaques.primeiroAConfirmar;
+    cards.push({
+      rotulo: "Primeiro a confirmar",
+      Icone: UserCheck,
+      jogador: d.jogador,
+      valor: plural(d.vezes, "vez", "vezes"),
+      detalhe: "1º no check-in",
       acao: perfil(d.grupoId),
     });
   }
@@ -516,24 +565,35 @@ export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }
         {cards.map(({ rotulo, Icone, jogador: j, valor, detalhe, acao }) => (
           <Pressable
             key={rotulo}
+            disabled={!acao}
             style={[styles.card, styles.cardDestaque]}
-            onPress={() =>
-              acao.tipo === "perfil"
-                ? setAberto({ grupoId: acao.grupoId, jogadorId: j.id })
-                : router.push(`/grupos/${acao.grupoId}/resenha?video=${acao.pedidoReplayId}`)
-            }
+            onPress={() => {
+              if (acao?.tipo === "video")
+                router.push(`/grupos/${acao.grupoId}/resenha?video=${acao.pedidoReplayId}`);
+              else if (acao && j) setAberto({ grupoId: acao.grupoId, jogadorId: j.id });
+            }}
           >
             <View style={styles.info}>
               <Icone size={14} color={cores.teal} />
               <Text style={styles.destaqueRotulo}>{rotulo}</Text>
             </View>
             <View style={styles.linhaAvatar}>
-              <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={44} />
+              {j ? (
+                <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={44} />
+              ) : (
+                <View style={styles.avatarContagem}>
+                  <Users size={20} color={cores.teal} />
+                </View>
+              )}
               <View style={styles.flex1}>
-                <Text style={styles.destaqueJogador} numberOfLines={1}>
-                  {j.nome}
+                {j ? (
+                  <Text style={styles.destaqueJogador} numberOfLines={1}>
+                    {j.nome}
+                  </Text>
+                ) : null}
+                <Text style={[styles.destaqueValor, !j && styles.destaqueValorContagem]}>
+                  {valor}
                 </Text>
-                <Text style={styles.destaqueValor}>{valor}</Text>
                 <Text style={styles.destaqueDetalhe}>{detalhe}</Text>
               </View>
             </View>
@@ -954,6 +1014,15 @@ const styles = StyleSheet.create({
   linhaAvatar: { flexDirection: "row", alignItems: "center", gap: 10 },
   destaqueJogador: { fontSize: 14, fontWeight: "600", color: cores.branco },
   destaqueValor: { fontSize: 12, fontWeight: "600", color: cores.teal },
+  destaqueValorContagem: { fontSize: 14 },
+  avatarContagem: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(31, 179, 163, 0.15)",
+  },
   destaqueDetalhe: { fontSize: 11, color: cores.slate500 },
 
   // Seus grupos

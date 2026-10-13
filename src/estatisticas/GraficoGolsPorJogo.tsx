@@ -10,7 +10,8 @@ import { cores, fontes, raio } from "@/tema";
 export type JogoNoGrafico = { partidaId: string; data: string; mes: string; gols: number };
 
 // Gols por jogo, desde sempre (só o filtro de grupo se aplica). Uma coluna por
-// jogo, em ordem cronológica, com a linha da média. Com muitos jogos a área
+// jogo, em ordem cronológica, com a linha da média (e, opcional, uma linha
+// tracejada de comparação). Com muitos jogos a área
 // rola na horizontal e abre já no fim (os jogos mais recentes). O mês escolhido
 // nos filtros fica em destaque; os outros jogos ficam esmaecidos. Tocar numa
 // coluna mostra o jogo na linha de leitura acima. Espelha
@@ -18,8 +19,9 @@ export type JogoNoGrafico = { partidaId: string; data: string; mes: string; gols
 
 const ALTURA = 140;
 const TOPO = 10;
-const SLOT = 20; // largura de cada jogo
-const BARRA = 12; // largura da coluna (com ar no slot)
+const SLOT = 20; // largura MÍNIMA de cada jogo (abaixo disso, rola)
+const BARRA = 12; // largura mínima da coluna
+const BARRA_MAX = 24; // com poucos jogos a coluna alarga até aqui
 const RAIO = 4;
 const EIXO = 22;
 
@@ -40,6 +42,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   mesDestacado,
   descrever,
   rotuloMedia = "sua média",
+  comparacao = null,
 }: {
   jogos: T[];
   // "AAAA-MM" quando um mês está escolhido; null no Geral.
@@ -47,20 +50,35 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   // Complemento da linha de leitura e da lista (ex.: o nome do grupo).
   descrever?: (jogo: T) => string;
   rotuloMedia?: string;
+  // Segunda linha, tracejada, pra comparar (ex.: média dos outros jogadores nos
+  // mesmos jogos). null/ausente: só a média do gráfico.
+  comparacao?: { valor: number; rotulo: string } | null;
 }) {
   const rolagem = useRef<ScrollView>(null);
   const [ativo, setAtivo] = useState<number | null>(null);
   const [listaAberta, setListaAberta] = useState(false);
+  // Largura visível da área das colunas: com poucos jogos, eles se espalham
+  // por ela toda em vez de ficar amontoados à esquerda.
+  const [disponivel, setDisponivel] = useState(0);
 
-  const maxGols = Math.max(1, ...jogos.map((j) => j.gols));
+  const maxGols = Math.max(1, ...jogos.map((j) => j.gols), comparacao?.valor ?? 0);
   // Escala sempre em inteiros "redondos".
   const passo = maxGols <= 5 ? 1 : maxGols <= 10 ? 2 : 5;
   const topoEscala = Math.ceil(maxGols / passo) * passo;
   const ticks = Array.from({ length: topoEscala / passo + 1 }, (_, i) => i * passo);
   const util = ALTURA - TOPO;
   const y = (v: number) => TOPO + util - (v / topoEscala) * util;
-  const largura = Math.max(jogos.length * SLOT, 1);
+  const slot = Math.max(SLOT, jogos.length > 0 ? disponivel / jogos.length : 0);
+  const barra = Math.min(BARRA_MAX, Math.max(BARRA, slot * 0.6));
+  const largura = Math.max(jogos.length * slot, 1);
   const mediaGeral = media(jogos);
+  const posicaoNaComparacao = !comparacao
+    ? null
+    : mediaGeral > comparacao.valor
+      ? "acima"
+      : mediaGeral < comparacao.valor
+        ? "abaixo"
+        : "na mesma";
   const jogoAtivo = ativo !== null ? jogos[ativo] : null;
 
   return (
@@ -79,6 +97,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
             {`${jogos.length} ${jogos.length === 1 ? "jogo" : "jogos"} · média de `}
             <Text style={styles.leituraForte}>{formatarMedia(mediaGeral)}</Text>
             {" gol por jogo"}
+            {comparacao ? " · " + posicaoNaComparacao + " da " + comparacao.rotulo : ""}
           </>
         )}
       </Text>
@@ -105,6 +124,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.flex1}
+          onLayout={(e) => setDisponivel(e.nativeEvent.layout.width)}
           onContentSizeChange={() => rolagem.current?.scrollToEnd({ animated: false })}
         >
           <Svg width={largura} height={ALTURA + 4}>
@@ -120,7 +140,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
               />
             ))}
             {jogos.map((j, i) => {
-              const x = i * SLOT + (SLOT - BARRA) / 2;
+              const x = i * slot + (slot - barra) / 2;
               const destacado = !mesDestacado || j.mes === mesDestacado;
               const selecionado = ativo === i;
               const altura = j.gols === 0 ? 0 : util - (y(j.gols) - TOPO);
@@ -130,7 +150,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
                   key={j.partidaId}
                   x={x}
                   y={y(0) - 2}
-                  width={BARRA}
+                  width={barra}
                   height={2}
                   rx={1}
                   fill={selecionado ? cores.orange : cores.slate600}
@@ -139,7 +159,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
               ) : (
                 <Path
                   key={j.partidaId}
-                  d={caminhoColuna(x, y(j.gols), BARRA, altura)}
+                  d={caminhoColuna(x, y(j.gols), barra, altura)}
                   fill={selecionado ? cores.orange : cores.teal}
                   opacity={destacado || selecionado ? 1 : 0.28}
                 />
@@ -155,14 +175,25 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
                 strokeWidth={1}
               />
             )}
+            {comparacao && (
+              <Line
+                x1={0}
+                x2={largura}
+                y1={y(comparacao.valor)}
+                y2={y(comparacao.valor)}
+                stroke="rgba(203, 213, 225, 0.7)"
+                strokeWidth={1}
+                strokeDasharray="4 3"
+              />
+            )}
             {/* Áreas de toque por cima de tudo: o slot inteiro, mais alto que a
                 coluna. Tocar de novo no mesmo jogo volta pro resumo. */}
             {jogos.map((j, i) => (
               <Rect
                 key={`toque-${j.partidaId}`}
-                x={i * SLOT}
+                x={i * slot}
                 y={0}
-                width={SLOT}
+                width={slot}
                 height={ALTURA}
                 fill="transparent"
                 onPress={() => setAtivo((a) => (a === i ? null : i))}
@@ -179,8 +210,13 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
             {rotuloMedia} ({formatarMedia(mediaGeral)})
           </Text>
         </View>
-        {mesDestacado ? (
-          <Text style={styles.legendaTexto}>Em destaque: jogos do mês escolhido</Text>
+        {comparacao ? (
+          <View style={styles.legendaItem}>
+            <View style={styles.legendaTracejada} />
+            <Text style={styles.legendaTexto}>
+              {comparacao.rotulo} ({formatarMedia(comparacao.valor)})
+            </Text>
+          </View>
         ) : null}
       </View>
 
@@ -233,6 +269,13 @@ const styles = StyleSheet.create({
   },
   legendaItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   legendaLinha: { width: 16, height: 1, backgroundColor: "rgba(242, 140, 30, 0.7)" },
+  legendaTracejada: {
+    width: 16,
+    height: 0,
+    borderTopWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "rgba(203, 213, 225, 0.7)",
+  },
   legendaTexto: { fontSize: 10, color: cores.slate500 },
   listaBloco: {
     marginTop: 12,

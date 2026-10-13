@@ -23,6 +23,17 @@ export function media(jogos: { gols: number }[]): number {
   return jogos.reduce((s, j) => s + j.gols, 0) / jogos.length;
 }
 
+// Gols por jogador dos outros presentes, nos mesmos jogos (soma dos gols ÷ soma
+// das presenças, não média das médias). null sem ninguém além do jogador, ou
+// com o site antigo, que não manda os campos.
+export function mediaDosOutros(
+  jogos: { golsOutros?: number; presentesOutros?: number }[]
+): number | null {
+  const presentes = jogos.reduce((s, j) => s + (j.presentesOutros ?? 0), 0);
+  if (presentes === 0) return null;
+  return jogos.reduce((s, j) => s + (j.golsOutros ?? 0), 0) / presentes;
+}
+
 // Seta da média: compara os jogos "recentes" com a base. No Geral, recentes =
 // últimos JOGOS_NA_TENDENCIA e base = todos os jogos; num mês, recentes = os do
 // mês e base = todos (mesmo grupo). null quando não dá pra comparar.

@@ -26,6 +26,7 @@ import {
   filtrarJogos,
   formatarMedia,
   media,
+  mediaDosOutros,
   noiteHistorica,
   tendencia,
   tendenciaGeral,
@@ -298,10 +299,33 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
         <>
           <View style={styles.grade}>
             <CardIndicador
+              Icone={CalendarCheck}
+              rotulo="Presença"
+              valor={
+                realizadas > 0 ? `${Math.round((presencas / realizadas) * 100)}%` : "Sem jogos"
+              }
+              detalhe={
+                realizadas > 0
+                  ? `${presencas} de ${plural(realizadas, "jogo realizado", "jogos realizados")}`
+                  : "nenhum jogo realizado"
+              }
+            />
+            <CardIndicador
               Icone={Target}
               rotulo="Jogos com gol"
               valor={`${Math.round((jogosComGol / doPeriodo.length) * 100)}%`}
               detalhe={`marcou em ${jogosComGol} de ${plural(doPeriodo.length, "jogo", "jogos")}`}
+            />
+            <CardIndicador
+              Icone={Medal}
+              rotulo="Artilharia"
+              valor={melhorPosicao ? `${melhorPosicao.posicao}º lugar` : "Fora do ranking"}
+              detalhe={
+                melhorPosicao
+                  ? `${grupoId ? "" : `${nomeDoGrupo(melhorPosicao.grupoId)}, `}entre ${plural(melhorPosicao.de, "artilheiro", "artilheiros")}`
+                  : "marque um gol pra entrar"
+              }
+              rota={melhorPosicao ? `/grupos/${melhorPosicao.grupoId}/artilheiros` : undefined}
             />
             <CardIndicador
               Icone={Star}
@@ -315,29 +339,6 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
               rota={
                 noite ? `/grupos/${noite.grupoId}/partidas/${noite.partidaId}/resultado` : undefined
               }
-            />
-            <CardIndicador
-              Icone={CalendarCheck}
-              rotulo="Presença"
-              valor={
-                realizadas > 0 ? `${Math.round((presencas / realizadas) * 100)}%` : "Sem jogos"
-              }
-              detalhe={
-                realizadas > 0
-                  ? `${presencas} de ${plural(realizadas, "jogo realizado", "jogos realizados")}`
-                  : "nenhum jogo realizado"
-              }
-            />
-            <CardIndicador
-              Icone={Medal}
-              rotulo="Artilharia"
-              valor={melhorPosicao ? `${melhorPosicao.posicao}º lugar` : "Fora do ranking"}
-              detalhe={
-                melhorPosicao
-                  ? `${grupoId ? "" : `${nomeDoGrupo(melhorPosicao.grupoId)}, `}entre ${plural(melhorPosicao.de, "artilheiro", "artilheiros")}`
-                  : "marque um gol pra entrar"
-              }
-              rota={melhorPosicao ? `/grupos/${melhorPosicao.grupoId}/artilheiros` : undefined}
             />
           </View>
 
@@ -393,6 +394,10 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
             jogos={doGrupo}
             mesDestacado={ehGeral ? null : periodo}
             descrever={(j) => nomeDoGrupo(j.grupoId)}
+            comparacao={(() => {
+              const valor = mediaDosOutros(doGrupo);
+              return valor === null ? null : { valor, rotulo: "média dos outros" };
+            })()}
           />
         </View>
       )}

@@ -629,10 +629,27 @@ export type DestaquePainel = {
   jogos: number;
 };
 
+/** Jogador + quantas vezes ele foi o primeiro (a abrir o placar, a confirmar). */
+export type DestaqueVezes = { jogador: JogadorEmPartida; grupoId: string; vezes: number };
+
 export type DestaquesPainel = {
   artilheiro: DestaquePainel | null;
-  maisPresente: DestaquePainel | null;
+  /** Quantos jogadores foram a todos os jogos realizados do recorte. */
+  fieis: { quantidade: number } | null;
   melhorConversao: DestaquePainel | null;
+  /** Mais gols entre quem estreou no grupo no mês (só com recorte de mês). */
+  revelacao: DestaquePainel | null;
+  /** Quem mais vezes fez o primeiro gol da partida. */
+  abreOPlacar: DestaqueVezes | null;
+  /** Quem mais vezes foi o primeiro check-in de uma partida realizada. */
+  primeiroAConfirmar: DestaqueVezes | null;
+  /** Maior aumento de gols sobre o mês anterior (só com recorte de mês). */
+  emAlta: {
+    jogador: JogadorEmPartida;
+    grupoId: string;
+    gols: number;
+    golsMesAnterior: number;
+  } | null;
   /** Mais gols de um jogador numa única partida. */
   noiteHistorica: {
     jogador: JogadorEmPartida;
@@ -679,6 +696,9 @@ export type JogoDoJogador = {
   replays: number;
   comentarios: number;
   replayMaisComentado: { pedidoReplayId: string; comentarios: number } | null;
+  /** Os OUTROS jogadores desse jogo: gols (não cancelados) e check-ins. */
+  golsOutros: number;
+  presentesOutros: number;
 };
 
 export type DadosEstatisticas = {

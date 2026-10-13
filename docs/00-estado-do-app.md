@@ -76,8 +76,9 @@ Espelha o site (mesmo dia; contrato em `16-api-v1.md`):
   Resenha (Beta), Enquetes e Convidar (só admin, abre o modal de convite).
 - **Indicadores do grupo** (`(logado)/grupos/[id]/indicadores.tsx`,
   `GET /api/v1/grupos/{id}/indicadores?periodo=`): chips de mês (abre no corrente),
-  resumo (jogos, gols, presentes por jogo), destaques do período (artilheiro, mais
-  presente, melhor média, noite histórica), gráfico de gols por jogo do grupo e
+  resumo (jogos, gols, presentes por jogo), destaques do período (artilheiro, fiéis,
+  melhor média, noite histórica, revelação, em alta, abre o placar, primeiro a
+  confirmar), gráfico de gols por jogo do grupo e
   Repercussão (Beta: resenheiro, gol mais comentado). Corpo em
   `src/estatisticas/TelaIndicadoresGrupo.tsx`; o gráfico virou genérico
   (`JogoNoGrafico`, `descrever`, `rotuloMedia`).
@@ -143,9 +144,11 @@ tipos em `src/contrato/tipos.ts`); o painel não usa mais `/api/v1/grupos` nem
 - Tela do grupo mostra 5 partidas finalizadas antes do "Ver todas".
 - Criar grupo: validação aponta o campo (rola até ele, borda vermelha,
   mensagem embaixo, abre o teclado); `ScrollTeclado` ganhou `rolagemRef`.
-- Destaques (6 cards): Artilheiro, Melhor média, Mais presente (presença = check-in
-  em partida com resultado), Noite histórica, Resenheiro e Gol mais comentado; o
-  card abre o perfil (`ModalPerfil`) ou o vídeo na resenha.
+- Destaques (até 10 cards): Artilheiro, Melhor média, Fiéis (quantos foram a todos
+  os jogos do mês, sem jogador e sem toque; substituiu o Mais presente em
+  2026-10-13), Noite histórica, Revelação, Em alta, Abre o placar, Primeiro a
+  confirmar, Resenheiro e Gol mais comentado; o card abre o perfil (`ModalPerfil`)
+  ou o vídeo na resenha. Regras em `16-api-v1.md` do site.
 - Próximo jogo com folhinha de calendário + contagem regressiva; botão "Grupo" ao
   lado e rodapé (confirmados + botão) só com o check-in aberto.
 - Tela do grupo: rodapé com Enquetes/Artilheiros/Resenha (ícone ao lado do texto),

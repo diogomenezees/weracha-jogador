@@ -14,9 +14,14 @@ import {
   Goal,
   MessageCircle,
   MessageSquareText,
+  Sparkles,
   Star,
   Target,
+  TrendingUp,
+  UserCheck,
+  Users,
   Video,
+  Zap,
   type LucideIcon,
 } from "@/ui/Icone";
 import { formatarMedia } from "@/estatisticas";
@@ -63,7 +68,8 @@ function TituloSecao({
 type CardDestaque = {
   rotulo: string;
   Icone: LucideIcon;
-  jogador: JogadorEmPartida;
+  // null: card de contagem (Fiéis), sem jogador e sem toque.
+  jogador: JogadorEmPartida | null;
   valor: string;
   detalhe: string;
   // Sem rota: abre o perfil do jogador (modal).
@@ -82,8 +88,9 @@ function GradeDestaques({
       {cards.map(({ rotulo, Icone, jogador: j, valor, detalhe, rota }) => (
         <Pressable
           key={rotulo}
+          disabled={!j && !rota}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressionado]}
-          onPress={() => (rota ? router.push(rota) : onPerfil(j.id))}
+          onPress={() => (rota ? router.push(rota) : j && onPerfil(j.id))}
         >
           <View style={styles.cardRotuloLinha}>
             <Icone size={14} color={cores.teal} />
@@ -92,12 +99,20 @@ function GradeDestaques({
             </Text>
           </View>
           <View style={styles.cardLinha}>
-            <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={36} />
+            {j ? (
+              <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={36} />
+            ) : (
+              <View style={[styles.avatarContagem, { width: 36, height: 36 }]}>
+                <Users size={16} color={cores.teal} />
+              </View>
+            )}
             <View style={styles.flex1}>
-              <Text style={styles.cardNome} numberOfLines={1}>
-                {j.nome}
-              </Text>
-              <Text style={styles.cardValor}>{valor}</Text>
+              {j ? (
+                <Text style={styles.cardNome} numberOfLines={1}>
+                  {j.nome}
+                </Text>
+              ) : null}
+              <Text style={[styles.cardValor, !j && styles.cardValorContagem]}>{valor}</Text>
               <Text style={styles.cardDetalhe} numberOfLines={1}>
                 {detalhe}
               </Text>
@@ -142,13 +157,13 @@ export function TelaIndicadoresGrupo({
       valor: plural(d.artilheiro.gols, "gol", "gols"),
       detalhe: `em ${plural(d.artilheiro.jogos, "jogo", "jogos")}`,
     });
-  if (d.maisPresente)
+  if (d.fieis)
     destaquesDeJogo.push({
-      rotulo: "Mais presente",
+      rotulo: "Fiéis",
       Icone: CalendarCheck,
-      jogador: d.maisPresente.jogador,
-      valor: plural(d.maisPresente.jogos, "jogo", "jogos"),
-      detalhe: plural(d.maisPresente.gols, "gol", "gols"),
+      jogador: null,
+      valor: plural(d.fieis.quantidade, "jogador", "jogadores"),
+      detalhe: "em todos os jogos",
     });
   if (d.melhorConversao)
     destaquesDeJogo.push({
@@ -166,6 +181,38 @@ export function TelaIndicadoresGrupo({
       valor: plural(d.noiteHistorica.gols, "gol", "gols"),
       detalhe: `em ${formatarDiaMes(d.noiteHistorica.data)}`,
       rota: `/grupos/${grupoId}/partidas/${d.noiteHistorica.partidaId}/resultado`,
+    });
+  if (d.revelacao)
+    destaquesDeJogo.push({
+      rotulo: "Revelação",
+      Icone: Sparkles,
+      jogador: d.revelacao.jogador,
+      valor: plural(d.revelacao.gols, "gol", "gols"),
+      detalhe: `estreou no mês, ${plural(d.revelacao.jogos, "jogo", "jogos")}`,
+    });
+  if (d.emAlta)
+    destaquesDeJogo.push({
+      rotulo: "Em alta",
+      Icone: TrendingUp,
+      jogador: d.emAlta.jogador,
+      valor: `+${plural(d.emAlta.gols - d.emAlta.golsMesAnterior, "gol", "gols")}`,
+      detalhe: `de ${d.emAlta.golsMesAnterior} para ${d.emAlta.gols} no mês`,
+    });
+  if (d.abreOPlacar)
+    destaquesDeJogo.push({
+      rotulo: "Abre o placar",
+      Icone: Zap,
+      jogador: d.abreOPlacar.jogador,
+      valor: plural(d.abreOPlacar.vezes, "vez", "vezes"),
+      detalhe: "fez o 1º gol do jogo",
+    });
+  if (d.primeiroAConfirmar)
+    destaquesDeJogo.push({
+      rotulo: "Primeiro a confirmar",
+      Icone: UserCheck,
+      jogador: d.primeiroAConfirmar.jogador,
+      valor: plural(d.primeiroAConfirmar.vezes, "vez", "vezes"),
+      detalhe: "1º no check-in",
     });
 
   const destaquesDaResenha: CardDestaque[] = [];
@@ -400,6 +447,13 @@ const styles = StyleSheet.create({
   cardLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
   cardNome: { fontSize: 14, fontWeight: "600", color: cores.branco },
   cardValor: { fontSize: 12, fontWeight: "600", color: cores.teal },
+  cardValorContagem: { fontSize: 14 },
+  avatarContagem: {
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(31, 179, 163, 0.15)",
+  },
   cardDetalhe: { fontSize: 11, color: cores.slate500 },
 
   linkArtilheiros: {
