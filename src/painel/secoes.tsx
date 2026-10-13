@@ -287,6 +287,26 @@ export function AcoesRapidas({ ultimoResultado }: { ultimoResultado: UltimoResul
 
 // ── Destaques dos grupos ─────────────────────────────────────────────────────
 
+// Ordem de leitura dos destaques (duas colunas): Fiéis e Revelação, Em alta e
+// Noite histórica, Artilheiro e Melhor média, Abre o placar e Primeiro a
+// confirmar. Rótulo fora da lista (Resenheiro, Gol mais comentado) vai pro fim,
+// na ordem em que entrou.
+const ORDEM_DESTAQUES = [
+  "Fiéis",
+  "Revelação",
+  "Em alta",
+  "Noite histórica",
+  "Artilheiro",
+  "Melhor média",
+  "Abre o placar",
+  "Primeiro a confirmar",
+];
+
+function posicaoNaOrdem(rotulo: string): number {
+  const i = ORDEM_DESTAQUES.indexOf(rotulo);
+  return i < 0 ? ORDEM_DESTAQUES.length : i;
+}
+
 type CardDestaque = {
   rotulo: string;
   Icone: LucideIcon;
@@ -543,6 +563,8 @@ export function DestaquesDosGrupos({ destaques }: { destaques: DestaquesPainel }
   // (grupos, partidas e gols).
   const { chamarApi } = useSessao();
   const [aberto, setAberto] = useState<{ grupoId: string; jogadorId: string } | null>(null);
+
+  cards.sort((a, b) => posicaoNaOrdem(a.rotulo) - posicaoNaOrdem(b.rotulo));
 
   if (cards.length === 0) return null;
 

@@ -65,6 +65,26 @@ function TituloSecao({
   );
 }
 
+// Ordem de leitura dos destaques (duas colunas): Fiéis e Revelação, Em alta e
+// Noite histórica, Artilheiro e Melhor média, Abre o placar e Primeiro a
+// confirmar. Rótulo fora da lista (Resenheiro, Gol mais comentado) vai pro fim,
+// na ordem em que entrou.
+const ORDEM_DESTAQUES = [
+  "Fiéis",
+  "Revelação",
+  "Em alta",
+  "Noite histórica",
+  "Artilheiro",
+  "Melhor média",
+  "Abre o placar",
+  "Primeiro a confirmar",
+];
+
+function posicaoNaOrdem(rotulo: string): number {
+  const i = ORDEM_DESTAQUES.indexOf(rotulo);
+  return i < 0 ? ORDEM_DESTAQUES.length : i;
+}
+
 type CardDestaque = {
   rotulo: string;
   Icone: LucideIcon;
@@ -215,6 +235,8 @@ export function TelaIndicadoresGrupo({
       detalhe: "1º no check-in",
     });
 
+  destaquesDeJogo.sort((a, b) => posicaoNaOrdem(a.rotulo) - posicaoNaOrdem(b.rotulo));
+
   const destaquesDaResenha: CardDestaque[] = [];
   if (d.resenheiro)
     destaquesDaResenha.push({
@@ -314,18 +336,6 @@ export function TelaIndicadoresGrupo({
           </View>
         )}
 
-        {destaquesDaResenha.length > 0 && (
-          <View>
-            {/* Depende dos replays do We Racha Cam, que nem todo grupo tem. */}
-            <TituloSecao
-              Icone={Video}
-              titulo="Repercussão"
-              lateral={<Text style={styles.beta}>Beta</Text>}
-            />
-            <GradeDestaques cards={destaquesDaResenha} onPerfil={setPerfilAberto} />
-          </View>
-        )}
-
         <Pressable
           style={({ pressed }) => [styles.linkArtilheiros, pressed && styles.cardPressionado]}
           onPress={() => router.push(`/grupos/${grupoId}/artilheiros`)}
@@ -337,6 +347,18 @@ export function TelaIndicadoresGrupo({
           </View>
           <ChevronRight size={16} color={cores.slate500} />
         </Pressable>
+
+        {destaquesDaResenha.length > 0 && (
+          <View>
+            {/* Depende dos replays do We Racha Cam, que nem todo grupo tem. */}
+            <TituloSecao
+              Icone={Video}
+              titulo="Repercussão"
+              lateral={<Text style={styles.beta}>Beta</Text>}
+            />
+            <GradeDestaques cards={destaquesDaResenha} onPerfil={setPerfilAberto} />
+          </View>
+        )}
       </View>
 
       {/* key: remonta a cada jogador, pro modal nascer limpo (ver ModalPerfil). */}
