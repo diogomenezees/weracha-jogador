@@ -405,8 +405,9 @@ export type MembroGrupo = {
   grupoId: string;
   jogadorId: string;
   papel: "ADMIN" | "MEMBRO";
-  score: number;
-  scoreOrigem: string;
+  /** null = quem lê não é admin do grupo: o servidor só manda o score do próprio. */
+  score: number | null;
+  scoreOrigem: string | null;
   posicaoId: string | null;
   /** "AAAA-MM-DD" ou null. Mensalista enquanto >= hoje. */
   mensalistaAte: string | null;
@@ -415,7 +416,7 @@ export type MembroGrupo = {
 };
 
 /** Só os campos que a tela usa (a resposta traz o row inteiro de posicoes_esporte). */
-export type PosicaoEsporte = { id: string; nome: string };
+export type PosicaoEsporte = { id: string; nome: string; descricao?: string };
 
 export type JogadorDoGrupo = {
   id: string;

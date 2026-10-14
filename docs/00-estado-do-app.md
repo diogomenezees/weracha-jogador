@@ -66,12 +66,12 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
-## Feito: Funções do grupo, Indicadores do grupo, artilheiros por grupo (2026-10-11)
+## Feito: Atalhos do grupo, Indicadores do grupo, artilheiros por grupo (2026-10-11)
 
 Espelha o site (mesmo dia; contrato em `16-api-v1.md`):
 - Tela do grupo: o rodapé fixo ficou só com o botão laranja "Gerenciar jogadores · N"
   ("Ver jogadores" pra membro). Artilheiros/Resenha/Enquetes saíram dele e foram pra
-  seção **Funções do grupo** em carrossel, logo abaixo dos alertas
+  seção **Atalhos do grupo** em carrossel, logo abaixo dos alertas
   (`src/grupo/FuncoesDoGrupo.tsx`, cards na mesma cor): Artilheiros, Indicadores,
   Resenha (Beta), Enquetes e Convidar (só admin, abre o modal de convite).
 - **Indicadores do grupo** (`(logado)/grupos/[id]/indicadores.tsx`,
@@ -86,7 +86,7 @@ Espelha o site (mesmo dia; contrato em `16-api-v1.md`):
   grupo onde o jogador jogou por último (decidido no servidor).
 - Painel: "Destaques dos grupos" passou a ser **do mês corrente** (cálculo no servidor),
   com selo do mês no título.
-- Conferido no Expo Go: Funções do grupo e a tela de Indicadores abrem; resto por validar.
+- Conferido no Expo Go: Atalhos do grupo e a tela de Indicadores abrem; resto por validar.
 
 ## Feito: Meus indicadores, menu novo, abas da Resenha e selos Beta (2026-10-11)
 

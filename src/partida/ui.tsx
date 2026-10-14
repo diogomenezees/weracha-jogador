@@ -42,15 +42,19 @@ export function Cabecalho({
   titulo,
   Icone,
   grupoNome,
+  meuScore,
   descricao,
   direita,
 }: {
   titulo: string;
   Icone?: LucideIcon;
   grupoNome: string;
+  /** Só o check-in passa: o próprio score, entre o grupo e a descrição. */
+  meuScore?: number;
   descricao?: string | null;
   direita?: ReactNode;
 }) {
+  const descricaoTexto = descricao ? `  ·  ${descricao.replace(/\s*\n\s*/g, " ")}` : "";
   return (
     <View style={styles.cabecalho}>
       <View style={{ flex: 1 }}>
@@ -58,13 +62,31 @@ export function Cabecalho({
           {Icone ? <Icone size={20} color={cores.branco} /> : null}
           <Text style={styles.h1}>{titulo}</Text>
         </View>
-        <View style={styles.subLinha}>
-          <Users size={12} color={cores.slate400} />
-          <Text style={styles.sub} numberOfLines={1}>
-            {grupoNome}
-            {descricao ? `  ·  ${descricao.replace(/\s*\n\s*/g, " ")}` : ""}
-          </Text>
-        </View>
+        {meuScore === undefined ? (
+          <View style={styles.subLinha}>
+            <Users size={12} color={cores.slate400} />
+            <Text style={styles.sub} numberOfLines={1}>
+              {grupoNome}
+              {descricaoTexto}
+            </Text>
+          </View>
+        ) : (
+          // Check-in: igual ao site, a linha quebra em vez de cortar (a
+          // descrição da partida pode ser longa). A estrela vai dentro do texto
+          // pra acompanhar a quebra.
+          <View style={[styles.subLinha, styles.subLinhaQuebra]}>
+            <Users size={12} color={cores.slate400} style={styles.subIconeTopo} />
+            <Text style={[styles.sub, styles.subQuebra]}>
+              {grupoNome}
+              {"  ·  "}
+              {/* Ícone dentro do texto apoia na linha de base e fica alto:
+                  desce 2px pra centralizar com as letras. */}
+              <Star size={12} color={cores.slate400} style={styles.subIconeInline} />
+              {` Seu score: ${meuScore}`}
+              {descricaoTexto}
+            </Text>
+          </View>
+        )}
       </View>
       {direita}
     </View>
@@ -365,6 +387,12 @@ const styles = StyleSheet.create({
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
   sub: { flexShrink: 1, fontSize: 13, color: cores.slate400 },
+  subLinhaQuebra: { alignItems: "flex-start" },
+  // lineHeight fixo pra o ícone de fora do texto centralizar na 1ª linha:
+  // (18 - 12) / 2 = 3.
+  subQuebra: { lineHeight: 18 },
+  subIconeTopo: { marginTop: 3 },
+  subIconeInline: { transform: [{ translateY: 2 }] },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 14 },
   avisoTexto: { fontSize: 14, color: cores.slate400, textAlign: "center", lineHeight: 20 },
   linkVoltar: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 6 },

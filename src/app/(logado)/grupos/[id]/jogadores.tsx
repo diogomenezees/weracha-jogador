@@ -182,7 +182,7 @@ export default function GerenciarJogadores() {
         const mb = ehMensalistaHoje(b);
         if (ma !== mb) return ma ? -1 : 1;
       } else if (ordenacao === "SCORE" && a.score !== b.score) {
-        return b.score - a.score;
+        return (b.score ?? 0) - (a.score ?? 0);
       }
       return na.localeCompare(nb, "pt-BR");
     });
@@ -204,7 +204,7 @@ export default function GerenciarJogadores() {
       {
         rotulo: "Editar score",
         Icone: Pencil,
-        onPress: () => setScoreDe({ jogadorId: j.id, nome: j.nome, score: m.score }),
+        onPress: () => setScoreDe({ jogadorId: j.id, nome: j.nome, score: m.score ?? 50 }),
       },
       {
         rotulo: "Editar posição",
@@ -484,7 +484,7 @@ export default function GerenciarJogadores() {
               </View>
             );
           }
-          if (podeVerScore) {
+          if (podeVerScore && m.score !== null) {
             detalhes.push(
               <View style={styles.linhaDetalhesItem}>
                 <Star size={11} color={cores.slate400} />

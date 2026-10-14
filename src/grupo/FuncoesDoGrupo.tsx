@@ -8,6 +8,7 @@ import {
   CalendarPlus,
   LayoutGrid,
   MessageCircle,
+  Star,
   Trophy,
   UserPlus,
   type LucideIcon,
@@ -15,10 +16,11 @@ import {
 import { cores } from "@/tema";
 import { Carrossel } from "@/ui/Carrossel";
 
-// "Funções do grupo": os atalhos das sub-telas do grupo em carrossel, no mesmo
+// "Atalhos do grupo": os atalhos das sub-telas do grupo em carrossel, no mesmo
 // formato das "Ações rápidas" do painel, todos com a mesma cor. "Convidar" pra
 // qualquer membro. "Partida" (adicionar) só quando a tela passa
-// `onAdicionarPartida` (admin de grupo avulso). Espelha
+// `onAdicionarPartida` (admin de grupo avulso). "Meu score" abre o
+// ModalMeuScore: o score é o que equilibra os times. Espelha
 // weracha-site/components/funcoes-do-grupo.tsx.
 
 type Funcao = {
@@ -33,13 +35,23 @@ export function FuncoesDoGrupo({
   grupoId,
   onConvidar,
   onAdicionarPartida,
+  meuScore,
+  onMeuScore,
 }: {
   grupoId: string;
   onConvidar: () => void;
   onAdicionarPartida?: () => void;
+  meuScore: number;
+  onMeuScore: () => void;
 }) {
   const ir = (rota: Href) => () => router.push(rota);
   const funcoes: Funcao[] = [
+    {
+      titulo: "Meu score",
+      subtitulo: `Está em ${meuScore}`,
+      Icone: Star,
+      onPress: onMeuScore,
+    },
     {
       titulo: "Artilheiros",
       subtitulo: "Ranking de gols",
@@ -83,7 +95,7 @@ export function FuncoesDoGrupo({
     <View>
       <View style={styles.titulo}>
         <LayoutGrid size={16} color={cores.teal} />
-        <Text style={styles.tituloTexto}>Funções do grupo</Text>
+        <Text style={styles.tituloTexto}>Atalhos do grupo</Text>
       </View>
       <Carrossel>
         {funcoes.map(({ titulo, subtitulo, Icone, selo, onPress }) => (

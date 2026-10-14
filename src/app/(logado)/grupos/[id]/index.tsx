@@ -82,6 +82,7 @@ import {
 } from "@/partidas";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { FuncoesDoGrupo } from "@/grupo/FuncoesDoGrupo";
+import { ModalMeuScore } from "@/grupo/ModalMeuScore";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { SeletorData, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
@@ -104,6 +105,7 @@ export default function TelaGrupo() {
   const insets = useSafeAreaInsets();
 
   const [dados, setDados] = useState<DadosDaTelaGrupo | undefined>(undefined);
+  const [meuScoreAberto, setMeuScoreAberto] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [contaPendente, setContaPendente] = useState(false);
   const [tentativa, setTentativa] = useState(0);
@@ -229,7 +231,7 @@ export default function TelaGrupo() {
   const souDono = !!grupo && grupo.adminId === meuId;
 
   // Token de convite: busca quando o membro abre o detalhe de uma partida ou o
-  // modal "Convidar jogadores" (Funções do grupo). Qualquer membro convida (o servidor
+  // modal "Convidar jogadores" (Atalhos do grupo). Qualquer membro convida (o servidor
   // libera o convite pra todos; só regenerar é de admin).
   useEffect(() => {
     if ((aba !== "detalhe" && aba !== "convidar") || !grupo || tokenConvite) return;
@@ -727,6 +729,8 @@ export default function TelaGrupo() {
         <FuncoesDoGrupo
           grupoId={grupo.id}
           onConvidar={() => setAba("convidar")}
+          meuScore={grupo.meuScore}
+          onMeuScore={() => setMeuScoreAberto(true)}
           onAdicionarPartida={
             souAdmin && grupo.tipo === "AVULSO" ? () => abrirAdicionarPartida() : undefined
           }
@@ -817,7 +821,7 @@ export default function TelaGrupo() {
       </ScrollView>
 
       {/* Rodapé fixo só com o atalho principal (elenco), igual o site. As outras
-          sub-telas ficam em "Funções do grupo". */}
+          sub-telas ficam em "Atalhos do grupo". */}
       <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
         <Pressable
           style={styles.rodapeBotaoLaranja}
@@ -1050,6 +1054,25 @@ export default function TelaGrupo() {
         onSalvar={() => void salvarEdicao()}
         onFechar={() => setEditando(null)}
       />
+
+      {/* key: remonta a cada abertura, pro formulário nascer com os valores atuais. */}
+      {meuId ? (
+        <ModalMeuScore
+          key={meuScoreAberto ? "aberto" : "fechado"}
+          aberto={meuScoreAberto}
+          onFechar={() => setMeuScoreAberto(false)}
+          grupo={grupo}
+          jogadorId={meuId}
+          chamarApi={chamarApi}
+          onSalvo={({ score, posicaoId }) =>
+            setDados((d) =>
+              d?.grupo
+                ? { ...d, grupo: { ...d.grupo, meuScore: score, meuPosicaoId: posicaoId } }
+                : d
+            )
+          }
+        />
+      ) : null}
 
       <MenuAcoes
         aberto={menu !== null}

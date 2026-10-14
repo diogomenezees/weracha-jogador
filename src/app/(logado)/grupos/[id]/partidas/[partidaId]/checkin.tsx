@@ -165,6 +165,9 @@ export default function TelaCheckin() {
     [apoio?.checkins]
   );
   const jaFizCheckin = presentesIds.has(meuId);
+  // Só o próprio score (o dos outros é do admin). Depois do check-in vale o
+  // snapshot gravado nele, que é o que o sorteio usa.
+  const meuCheckinScore = apoio?.checkins.find((c) => c.jogadorId === meuId)?.scoreNoCheckin;
 
   // Membro que já confirmou e o sorteio saiu: vai direto pro resultado.
   const jaAbriuResultado = useRef(false);
@@ -340,6 +343,7 @@ export default function TelaCheckin() {
           titulo="Lista de presença"
           Icone={UserCheck}
           grupoNome={grupoAtual.nome}
+          meuScore={meuCheckinScore ?? grupoAtual.meuScore}
           descricao={partidaAtual.descricao}
           direita={
             <Pressable
