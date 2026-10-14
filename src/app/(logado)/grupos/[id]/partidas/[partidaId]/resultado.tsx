@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
-import { Text } from "@/ui/Texto";
+import Svg, { Line } from "react-native-svg";
+import { Text, FAMILIA_MONO } from "@/ui/Texto";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
@@ -495,6 +496,17 @@ export default function TelaResultado() {
                     corHex={null}
                   />
                 ))}
+                {/* Legenda da camiseta riscada (ver CardTime), só quando algum
+                    time aparece sem cor. */}
+                {(montado.times.some((_, i) => !montado.coresTimes[i]) ||
+                  montado.timesDosProximos.length > 0) && (
+                  <View style={styles.legendaSemCor}>
+                    <Shirt size={12} color={cores.slate500} />
+                    <Text style={styles.legendaSemCorTexto}>
+                      Camiseta riscada: o time está sem cor de colete definida.
+                    </Text>
+                  </View>
+                )}
               </>
             )}
           </View>
@@ -760,8 +772,8 @@ const ESTILO_BADGE_TIME: Record<
 
 /** Card de um time no resultado: porte de `TimeCard` de
  * weracha-site/.../resultado/page.tsx. O card é neutro e quem mostra a cor do
- * colete é o escudo grande à direita dos jogadores, preenchido com a cor do
- * time. Sem cor cadastrada o escudo fica só no contorno cinza, de propósito
+ * colete é a camiseta grande à direita dos jogadores, preenchida com a cor do
+ * time. Sem cor cadastrada a camiseta fica só no contorno cinza, de propósito
  * (ver comentário no site sobre não ter default bonito). */
 function CardTime({
   numero,
@@ -785,7 +797,7 @@ function CardTime({
       <View style={styles.timeCabecalho}>
         <View style={{ flex: 1 }}>
           <View style={styles.timeNomeLinha}>
-            <Shirt size={16} color={cores.branco} />
+            <Shield size={16} color={cores.branco} />
             <Text style={styles.timeNome}>Time {numero}</Text>
           </View>
         </View>
@@ -805,20 +817,39 @@ function CardTime({
           </View>
         )}
       </View>
-      {/* Jogadores à esquerda; escudo grande na cor do time à direita,
-          centralizado na altura da lista. */}
+      {/* Jogadores à esquerda; camiseta grande na cor do colete à direita,
+          centralizada na altura da lista. */}
       <View style={styles.timeCorpo}>
         <View style={styles.timeJogadores}>
           {jogadores.map((j) => (
             <LinhaJogadorTime key={j.jogadorId} jogador={j} mostrarScore={mostrarScore} />
           ))}
         </View>
-        <Shield
-          size={64}
-          strokeWidth={1.25}
-          color={corHex ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.15)"}
-          fill={corHex ?? "none"}
-        />
+        <View style={styles.timeColete}>
+          <View>
+            <Shirt
+              size={64}
+              strokeWidth={1.25}
+              color={corHex ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.15)"}
+              fill={corHex ?? "none"}
+            />
+            {/* Sem cor cadastrada: risco na diagonal, como um "sem colete". */}
+            {!corHex && (
+              <Svg width={64} height={64} viewBox="0 0 24 24" style={StyleSheet.absoluteFill}>
+                <Line
+                  x1={3}
+                  y1={3}
+                  x2={21}
+                  y2={21}
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth={1.25}
+                  strokeLinecap="round"
+                />
+              </Svg>
+            )}
+          </View>
+          <Text style={styles.timeColeteTexto}>Colete</Text>
+        </View>
       </View>
       {(comecaComABola || escolheLado) && (
         <View style={styles.timeRodape}>
@@ -1020,6 +1051,16 @@ const styles = StyleSheet.create({
   timeNome: { fontSize: 13, fontWeight: "800", color: cores.branco, textTransform: "uppercase", letterSpacing: 1 },
   timeCorpo: { flexDirection: "row", alignItems: "center", gap: 12 },
   timeJogadores: { flex: 1, minWidth: 0, gap: 12 },
+  timeColete: { alignItems: "center", gap: 4 },
+  legendaSemCor: { flexDirection: "row", alignItems: "center", gap: 6 },
+  legendaSemCorTexto: { flexShrink: 1, fontSize: 12, color: cores.slate500 },
+  timeColeteTexto: {
+    fontFamily: FAMILIA_MONO,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: cores.slate500,
+    textTransform: "uppercase",
+  },
   timeRodape: {
     flexDirection: "row",
     alignItems: "center",
