@@ -66,6 +66,17 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: banner do Instagram entre os vídeos (2026-10-14)
+
+Espelha o site (mesmo dia; regra em `14-resenha.md` do site): faixa de divulgação do
+`@weracha.app` (`src/resenha/BannerInstagram.tsx`, ícone em `react-native-svg` com o
+degradê da marca) intercalada nos cards da Resenha (duas abas) e de Replays. Onde entra e
+os 3 textos vêm de `src/contrato/bannerInstagram.ts`, cópia literal de
+`weracha-site/lib/bannerInstagram.ts`: primeiro depois do 3º vídeo, depois a cada
+6, 5, 8, 7; lista curta e completa mostra no fim. Abre com `Linking.openURL` pra cair no
+app do Instagram quando instalado. Teste em `__tests__/bannerInstagram.test.ts`. Não
+rodou em device ainda.
+
 ## Feito: Atalhos do grupo, Indicadores do grupo, artilheiros por grupo (2026-10-11)
 
 Espelha o site (mesmo dia; contrato em `16-api-v1.md`):
@@ -212,7 +223,12 @@ guarda `MeuPerfil` e expõe `recarregarPerfil` / `marcarOnboardingConcluido`
 - **Tela do grupo** (`src/app/(logado)/grupos/[id].tsx`, era stub): porta
   completa de `weracha-site/app/grupos/[id]/page.tsx` com **tudo de admin** —
   editar nome/descrição, cancelar (com justificativa) / reativar / excluir
-  partida, adicionar partida avulsa, renovar mês, vincular/cadastrar quadra,
+  partida, adicionar partida avulsa, renovar mês, vincular/cadastrar quadra
+  (desde 2026-10-14 em tela própria `grupos/[id]/quadra.tsx`, aberta só pelo aviso
+  "Cadastre o local do jogo"; o topo do grupo e do resultado mostram pílula do
+  esporte (ícone de bola; abre `src/grupo/PilulaEsporte.tsx` com descrição do
+  esporte e posições expansíveis) e, se tiver, pílula separada da quadra que abre o
+  modal só leitura com nome, selo "Em validação" e endereço),
   convidar jogadores (modal com o nome do grupo, "Link de convite" copia o link
   do grupo sem partida, "Gerar novo convite" regenera com confirmação — igual
   ao site), sair do grupo. Menu "mais opções" virou
@@ -365,7 +381,7 @@ Porta de `weracha-site/app/perfil/page.tsx`.
   `DELETE /api/v1/conta/exclusao` do painel).
 - **Score / posição por grupo**: cada grupo lista score + posição; toca e abre
   `ModalScore` / `ModalPosicao` (reusados de `src/jogadores/modais.tsx`) →
-  `PUT .../membros/{meuId}/{score,posicao}`. Score fica travado (🔒) < 1h antes
+  `PUT .../membros/{meuId}/{score,posicao}`. Score fica travado (🔒) de 1h antes
   da próxima partida pra quem não é admin (`scoreCongelado` portado pra
   `src/partidas.ts`).
 - **Mudança no site**: rota nova **`POST /api/v1/perfil/foto/upload-url`**

@@ -14,6 +14,8 @@ import { buscarStatusExclusao } from "@/api/conta";
 import { buscarMeusReplays } from "@/api/replays";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
+import { bannerInstagramDepoisDe } from "@/contrato/bannerInstagram";
+import { BannerInstagram } from "@/resenha/BannerInstagram";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -183,17 +185,23 @@ export default function Replays() {
             />
           )
         }
-        renderItem={({ item }) => (
-          <BlocoCard
-            bloco={comoBloco(item, jogador)}
-            grupoId={item.grupoId}
-            chamarApi={chamarApi}
-            podeModerar={false}
-            meuJogadorId={jogador.id}
-            podeComentar={podeComentar}
-            meus={{ grupoNome: item.grupoNome, grupoRemovido: item.grupoRemovido }}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          const banner = bannerInstagramDepoisDe(index, replays.length, !temMais);
+          return (
+            <View style={styles.item}>
+              <BlocoCard
+                bloco={comoBloco(item, jogador)}
+                grupoId={item.grupoId}
+                chamarApi={chamarApi}
+                podeModerar={false}
+                meuJogadorId={jogador.id}
+                podeComentar={podeComentar}
+                meus={{ grupoNome: item.grupoNome, grupoRemovido: item.grupoRemovido }}
+              />
+              {banner !== null && <BannerInstagram mensagem={banner} />}
+            </View>
+          );
+        }}
         ListFooterComponent={
           temMais && !contaPendente ? (
             <Pressable
@@ -220,6 +228,8 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   lista: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 16 },
   cabecalho: { gap: 4, marginBottom: 2 },
+  // Card + banner do Instagram (quando cai ali), com o mesmo respiro da lista.
+  item: { gap: 16 },
   sub: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   box: {
     borderRadius: raio.card,

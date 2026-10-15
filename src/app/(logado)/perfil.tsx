@@ -14,7 +14,7 @@ import {
 } from "@/api/perfil";
 import { definirPosicao, definirScore, listarPosicoes } from "@/api/jogadores";
 import { formatarTelefoneBR } from "@/contrato/telefone";
-import { meuPapelNoGrupo, proximaPartida } from "@/grupos";
+import { meuPapelNoGrupo, proximaPartidaPeloHorario } from "@/grupos";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { scoreCongelado } from "@/partidas";
 import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
@@ -324,9 +324,9 @@ export default function Perfil() {
                 Os grupos dos quais você faz parte, com o seu score em cada um.
               </Text>
               {grupos.map((g) => {
-                const prox = proximaPartida(g);
+                const prox = proximaPartidaPeloHorario(g);
                 const souAdmin = g.meuPapel === "ADMIN";
-                const congelado = !souAdmin && scoreCongelado(prox ? new Date(prox.data) : null);
+                const congelado = !souAdmin && scoreCongelado(prox);
                 const editando = grupoAberto === g.id && !congelado;
                 const valor = edicoesScore[g.id] ?? g.meuScore;
                 const avisoOrigem =

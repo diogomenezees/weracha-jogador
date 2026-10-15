@@ -7,6 +7,7 @@ import {
   BarChart3,
   CalendarPlus,
   LayoutGrid,
+  Lock,
   MessageCircle,
   Star,
   Trophy,
@@ -15,12 +16,17 @@ import {
 } from "@/ui/Icone";
 import { cores } from "@/tema";
 import { Carrossel } from "@/ui/Carrossel";
+import type { MomentoDoMeuScore } from "@/grupos";
 
 // "Atalhos do grupo": os atalhos das sub-telas do grupo em carrossel, no mesmo
 // formato das "Ações rápidas" do painel, todos com a mesma cor. "Convidar" pra
 // qualquer membro. "Partida" (adicionar) só quando a tela passa
 // `onAdicionarPartida` (admin de grupo avulso). "Meu score" abre o
-// ModalMeuScore: o score é o que equilibra os times. Espelha
+// ModalMeuScore: o score é o que equilibra os times. Fica na penúltima posição
+// (antes de "Convidar"), mas com o check-in aberto sobe pra primeira, em
+// laranja; quando o score congela (1h antes) volta pro lugar com cadeado — o
+// modal ainda abre (a posição não congela) e explica a trava. Ver
+// momentoDoMeuScore em src/grupos.ts. Espelha
 // weracha-site/components/funcoes-do-grupo.tsx.
 
 type Funcao = {
@@ -28,6 +34,7 @@ type Funcao = {
   subtitulo: string;
   Icone: LucideIcon;
   selo?: string;
+  destaque?: boolean;
   onPress: () => void;
 };
 
@@ -36,22 +43,35 @@ export function FuncoesDoGrupo({
   onConvidar,
   onAdicionarPartida,
   meuScore,
+  momentoMeuScore,
   onMeuScore,
 }: {
   grupoId: string;
   onConvidar: () => void;
   onAdicionarPartida?: () => void;
   meuScore: number;
+  momentoMeuScore: MomentoDoMeuScore;
   onMeuScore: () => void;
 }) {
   const ir = (rota: Href) => () => router.push(rota);
+  const noCheckin = momentoMeuScore === "checkin";
+  const cardMeuScore: Funcao =
+    momentoMeuScore === "travado"
+      ? {
+          titulo: "Meu score",
+          subtitulo: `Travado em ${meuScore}`,
+          Icone: Lock,
+          onPress: onMeuScore,
+        }
+      : {
+          titulo: "Meu score",
+          subtitulo: noCheckin ? `Confira: ${meuScore}` : `Está em ${meuScore}`,
+          Icone: Star,
+          destaque: noCheckin,
+          onPress: onMeuScore,
+        };
   const funcoes: Funcao[] = [
-    {
-      titulo: "Meu score",
-      subtitulo: `Está em ${meuScore}`,
-      Icone: Star,
-      onPress: onMeuScore,
-    },
+    ...(noCheckin ? [cardMeuScore] : []),
     {
       titulo: "Artilheiros",
       subtitulo: "Ranking de gols",
@@ -88,6 +108,7 @@ export function FuncoesDoGrupo({
           },
         ]
       : []),
+    ...(noCheckin ? [] : [cardMeuScore]),
     { titulo: "Convidar", subtitulo: "Chame a galera", Icone: UserPlus, onPress: onConvidar },
   ];
 
@@ -98,16 +119,20 @@ export function FuncoesDoGrupo({
         <Text style={styles.tituloTexto}>Atalhos do grupo</Text>
       </View>
       <Carrossel>
-        {funcoes.map(({ titulo, subtitulo, Icone, selo, onPress }) => (
+        {funcoes.map(({ titulo, subtitulo, Icone, selo, destaque, onPress }) => (
           <Pressable
             key={titulo}
             onPress={onPress}
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressionado]}
+            style={({ pressed }) => [
+              styles.card,
+              destaque && styles.cardDestaque,
+              pressed && (destaque ? styles.cardDestaquePressionado : styles.cardPressionado),
+            ]}
           >
             {selo ? <Text style={styles.selo}>{selo}</Text> : null}
-            <Icone size={20} color={cores.teal} />
+            <Icone size={20} color={destaque ? cores.orange : cores.teal} />
             <Text style={styles.cardTitulo}>{titulo}</Text>
-            <Text style={styles.cardSub}>{subtitulo}</Text>
+            <Text style={[styles.cardSub, destaque && styles.cardSubDestaque]}>{subtitulo}</Text>
           </Pressable>
         ))}
       </Carrossel>
@@ -136,6 +161,12 @@ const styles = StyleSheet.create({
     backgroundColor: cores.cardFundo,
   },
   cardPressionado: { backgroundColor: cores.superficieMedia },
+  cardDestaque: {
+    borderColor: "rgba(242, 140, 30, 0.6)",
+    backgroundColor: "rgba(242, 140, 30, 0.15)",
+  },
+  cardDestaquePressionado: { backgroundColor: "rgba(242, 140, 30, 0.25)" },
+  cardSubDestaque: { color: "#fed7aa" },
   cardTitulo: { fontSize: 13, fontWeight: "600", color: cores.branco, textAlign: "center" },
   cardSub: { fontSize: 11, lineHeight: 15, color: cores.slate400, textAlign: "center" },
   selo: {

@@ -207,6 +207,12 @@ export type DadosDaTelaGrupo = {
 // ── GET /api/v1/esportes ────────────────────────────────────────────────────
 export type EsporteOpcao = { id: string; nome: string };
 
+// GET /api/v1/esportes/detalhe?nome= — modal da pílula do esporte. Ver 16-api-v1.md §3.
+export type DetalheEsporte = {
+  esporte: { id: string; nome: string; descricao: string };
+  posicoes: { id: string; nome: string; descricao: string }[];
+};
+
 // ── GET /api/v1/parceiros ───────────────────────────────────────────────────
 // Parceiros ativos, já na ordem de exibição. Ver 16-api-v1.md §3.
 export type Parceiro = {

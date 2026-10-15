@@ -7,6 +7,8 @@ import { useLocalSearchParams } from "expo-router";
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarFeedResenha } from "@/api/resenha";
 import { mensagemDoErro } from "@/mensagens-erro";
+import { bannerInstagramDepoisDe } from "@/contrato/bannerInstagram";
+import { BannerInstagram } from "@/resenha/BannerInstagram";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
 import { MessageCircle, RefreshCw, Users } from "@/ui/Icone";
@@ -291,17 +293,23 @@ export default function ResenhaDoGrupo() {
             </View>
           )
         }
-        renderItem={({ item }) => (
-          <BlocoCard
-            bloco={item}
-            grupoId={id}
-            chamarApi={chamarApi}
-            podeModerar={feed.podeModerar}
-            meuJogadorId={feed.meuJogadorId}
-            podeComentar={feed.podeComentar}
-            destacado={item.pedidoReplayId === video}
-          />
-        )}
+        renderItem={({ item, index }) => {
+          const banner = bannerInstagramDepoisDe(index, blocos.length, !feed.temMais);
+          return (
+            <View style={styles.item}>
+              <BlocoCard
+                bloco={item}
+                grupoId={id}
+                chamarApi={chamarApi}
+                podeModerar={feed.podeModerar}
+                meuJogadorId={feed.meuJogadorId}
+                podeComentar={feed.podeComentar}
+                destacado={item.pedidoReplayId === video}
+              />
+              {banner !== null && <BannerInstagram mensagem={banner} />}
+            </View>
+          );
+        }}
         ListFooterComponent={
           feed.temMais && !trocandoAba && !semVideos ? (
             <Pressable style={styles.mais} onPress={() => void carregarMais()} disabled={carregandoMais}>
@@ -324,6 +332,8 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   lista: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 16 },
   cabecalho: { gap: 4, marginBottom: 2 },
+  // Card + banner do Instagram (quando cai ali), com o mesmo respiro da lista.
+  item: { gap: 16 },
   tituloLinha: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
   atualizarBtn: {
     width: 36,

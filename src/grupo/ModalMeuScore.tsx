@@ -7,6 +7,7 @@ import { ModalCartao } from "@/grupo/modais";
 import { definirPosicao, definirScore, listarPosicoes } from "@/api/jogadores";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { scoreCongelado } from "@/partidas";
+import { proximaPartidaPeloHorario } from "@/grupos";
 import { cores, raio } from "@/tema";
 import type { Grupo, PosicaoEsporte } from "@/contrato/tipos";
 import type { OpcoesRequisicao } from "@/api/cliente";
@@ -37,19 +38,6 @@ const FAIXAS: { min: number; nome: string; descricao: string }[] = [
 
 function faixaDoScore(score: number) {
   return FAIXAS.find((f) => score >= f.min) ?? FAIXAS[FAIXAS.length - 1];
-}
-
-// Próxima partida não cancelada cujo horário ainda não chegou: a mesma regra do
-// servidor pro congelamento (proximaPartidaDoGrupo em lib/actions/autorizacao.ts
-// do site). Não usa `proximaPartida` de @/grupos, que ignora a partida assim que
-// a janela de check-in abre.
-function proximaPartidaPeloHorario(grupo: Grupo): Date | null {
-  const agora = Date.now();
-  const futuras = grupo.partidas
-    .filter((p) => !p.cancelada && new Date(p.data).getTime() >= agora)
-    .map((p) => new Date(p.data).getTime())
-    .sort((a, b) => a - b);
-  return futuras[0] !== undefined ? new Date(futuras[0]) : null;
 }
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
@@ -187,7 +175,7 @@ export function ModalMeuScore({
           <View style={styles.congelado}>
             <Lock size={14} color={cores.slate400} />
             <Text style={styles.congeladoTexto}>
-              O score fica travado a partir de 1h antes da partida. Se precisar mudar, fale com
+              O score fica travado de 1h antes da partida até ela acabar. Se precisar mudar, fale com
               o admin do grupo.
             </Text>
           </View>

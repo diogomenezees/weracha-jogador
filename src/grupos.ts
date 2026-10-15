@@ -2,7 +2,9 @@ import type { Grupo, PartidaResumo } from "@/contrato/tipos";
 import {
   dentroDaJanelaDeCheckin,
   janelaDeCheckin,
+  partidaEncerrada,
   resolverDuracaoMin,
+  scoreCongelado,
 } from "@/partidas";
 
 // Helpers de leitura sobre `Grupo`, espelhando weracha-site/lib/grupos.ts.
@@ -126,4 +128,37 @@ export function ordenarPorProximaPartida(grupos: Grupo[]): Grupo[] {
 export function meuPapelNoGrupo(grupo: Grupo, meuId: string): "DONO" | "ADMIN" | "MEMBRO" {
   if (grupo.adminId === meuId) return "DONO";
   return grupo.meuPapel;
+}
+
+// Próxima partida não cancelada que ainda não terminou (inclui a que já começou,
+// até a janela de check-in fechar): a mesma regra do servidor pro congelamento
+// do score (proximaPartidaDoGrupo em lib/actions/autorizacao.ts do site).
+// Diferente de `proximaPartida`, que ignora a partida assim que a janela de
+// check-in abre.
+export function proximaPartidaPeloHorario(grupo: Grupo): Date | null {
+  const naoTerminadas = ordenar(
+    grupo.partidas.filter(
+      (p) => !p.cancelada && !partidaEncerrada(new Date(p.data), duracaoDaPartida(grupo, p))
+    )
+  );
+  return naoTerminadas[0] ? new Date(naoTerminadas[0].data) : null;
+}
+
+// Em que momento o atalho "Meu score" dos Atalhos do grupo está, pela partida
+// com o check-in aberto (partidasEmAndamento — inclui a que já começou, até a
+// janela fechar):
+// - "checkin": check-in aberto e ainda falta mais que o prazo de congelamento
+//   (scoreCongelado) pro início — o card sobe pra primeira posição, em laranja:
+//   é a última chance de acertar o score antes do sorteio;
+// - "travado": daí até o check-in fechar, pra quem não é admin — o card volta
+//   pro lugar de sempre com cadeado;
+// - "normal": o resto (inclusive o admin na reta final, que nunca é travado).
+// Espelha momentoDoMeuScore em weracha-site/lib/grupos.ts.
+export type MomentoDoMeuScore = "normal" | "checkin" | "travado";
+
+export function momentoDoMeuScore(grupo: Grupo, agora: Date = new Date()): MomentoDoMeuScore {
+  const emCheckin = partidasEmAndamento(grupo)[0];
+  if (!emCheckin) return "normal";
+  if (!scoreCongelado(new Date(emCheckin.data), agora)) return "checkin";
+  return grupo.meuPapel === "ADMIN" ? "normal" : "travado";
 }

@@ -5,7 +5,22 @@
 // Uso: `import { Users } from "@/ui/Icone"` e `<Users size={18} color={cores.teal} />`
 // (mesma API de props do site: size / color / strokeWidth).
 
+import { createLucideIcon } from "lucide-react-native";
+
 export type { LucideIcon } from "lucide-react-native";
+
+// Bola de futebol: ícone do esporte (pílula e modal). O lucide só tem a de vôlei,
+// então é desenhada no mesmo grid (24x24, traço) — mesma do site em
+// weracha-site/components/icones.ts.
+export const BolaFutebol = createLucideIcon("bola-futebol", [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "bola" }],
+  ["path", { d: "M12 8.5l3.33 2.42-1.27 3.91H9.94l-1.27-3.91z", key: "gomo" }],
+  ["path", { d: "M12 8.5V2", key: "l1" }],
+  ["path", { d: "m15.33 10.92 6.18-2.01", key: "l2" }],
+  ["path", { d: "m14.06 14.83 3.82 5.26", key: "l3" }],
+  ["path", { d: "m9.94 14.83-3.82 5.26", key: "l4" }],
+  ["path", { d: "M8.67 10.92 2.49 8.91", key: "l5" }],
+]);
 
 export {
   // navbar / navegação

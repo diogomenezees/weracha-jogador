@@ -2,6 +2,7 @@ import { requisicao, type OpcoesRequisicao } from "@/api/cliente";
 import type {
   CriarGrupoRequest,
   DadosDaTelaGrupo,
+  DetalheEsporte,
   Grupo,
   GruposResposta,
 } from "@/contrato/tipos";
@@ -30,6 +31,12 @@ export async function criarGrupo(chamarApi: ChamarApi, dados: CriarGrupoRequest)
 // sempre manda o Bearer via chamarApi.
 export function listarEsportes(chamarApi: ChamarApi) {
   return chamarApi<{ esportes: { id: string; nome: string }[] }>("/api/v1/esportes");
+}
+
+// GET /api/v1/esportes/detalhe?nome= — descrição do esporte + posições com
+// descrição, pro modal da pílula do esporte (grupo e resultado).
+export function buscarDetalheEsporte(chamarApi: ChamarApi, nome: string) {
+  return chamarApi<DetalheEsporte>(`/api/v1/esportes/detalhe?nome=${encodeURIComponent(nome)}`);
 }
 
 // Também disponível sem sessão pronta (não é o caso do app hoje, mas mantém o

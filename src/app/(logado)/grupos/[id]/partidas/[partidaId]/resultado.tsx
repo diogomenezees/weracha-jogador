@@ -19,6 +19,7 @@ import { buscarComentariosEmLote } from "@/api/resenha";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { PainelAdicionarJogador } from "@/partida/PainelAdicionarJogador";
+import { PilulaEsporte } from "@/grupo/PilulaEsporte";
 import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { CardsReplay } from "@/partida/CardsReplay";
@@ -392,7 +393,7 @@ export default function TelaResultado() {
   const IconeModoSorteio =
     montado.modoSorteio === "SORTE" ? Shuffle : montado.modoSorteio === "POSICAO" ? Shield : Star;
   const rotuloModoSorteio =
-    montado.modoSorteio === "SORTE" ? "Sorte" : montado.modoSorteio === "POSICAO" ? "Posição" : "Score";
+    `Sorteio por ${montado.modoSorteio === "SORTE" ? "sorte" : montado.modoSorteio === "POSICAO" ? "posição" : "score"}`;
 
   return (
     <TelaPartida voltar="Grupo">
@@ -413,18 +414,13 @@ export default function TelaResultado() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.bridges}
         >
+          <PilulaEsporte esporte={g.esporte} clicavel />
           {g.quadraId ? (
             <Pressable style={[styles.esportePill, styles.quadraPill]} onPress={() => setModalQuadra(true)}>
               <MapPin size={12} color={cores.branco} />
-              <Text style={[styles.esportePillTexto, { flexShrink: 1 }]} numberOfLines={1}>
-                {quadra?.nome ?? "Quadra não encontrada"}
-              </Text>
+              <Text style={styles.esportePillTexto}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
             </Pressable>
-          ) : (
-            <View style={styles.esportePill}>
-              <Text style={styles.esportePillTexto}>{g.esporte}</Text>
-            </View>
-          )}
+          ) : null}
           <View style={styles.infoPill}>
             <Clock size={12} color={cores.zinc500} />
             <Text style={styles.infoPillTexto}>
@@ -628,12 +624,9 @@ export default function TelaResultado() {
         <Text style={styles.modalTitulo}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
         {quadra && quadra.status !== "VALIDADA" && (
           <View style={styles.pendentePill}>
-            <Text style={styles.pendenteTexto}>Pendente</Text>
+            <Text style={styles.pendenteTexto}>Em validação</Text>
           </View>
         )}
-        <View style={[styles.esportePill, { alignSelf: "flex-start" }]}>
-          <Text style={styles.esportePillTexto}>{g.esporte}</Text>
-        </View>
         <Text style={styles.modalDesc}>{quadra?.endereco ?? "Endereço não informado."}</Text>
       </ModalCartao>
 
@@ -1002,7 +995,7 @@ const styles = StyleSheet.create({
   },
   esportePillTexto: { fontSize: 12, fontWeight: "500", color: cores.branco },
   // Pílula da quadra: mesma cor da do esporte, com o ícone de pino à frente e clicável.
-  quadraPill: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
+  quadraPill: { flexDirection: "row", alignItems: "center", gap: 4 },
   pendentePill: {
     alignSelf: "flex-start",
     borderRadius: 999,

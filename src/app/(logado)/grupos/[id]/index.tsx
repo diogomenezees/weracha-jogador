@@ -8,7 +8,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  TextInput,
   View,
 } from "react-native";
 import { Text } from "@/ui/Texto";
@@ -26,7 +25,6 @@ import {
   regenerarConvite,
   renovarGrupo,
   sairDoGrupo,
-  vincularQuadra,
 } from "@/api/grupos";
 import {
   cancelarPartida,
@@ -34,7 +32,6 @@ import {
   excluirPartida,
   reativarPartida,
 } from "@/api/partidas";
-import { buscarQuadras, sugerirQuadra } from "@/api/quadras";
 import {
   Ban,
   Calendar,
@@ -65,6 +62,7 @@ import {
   aguardandoRenovacao,
   duracaoDaPartida,
   mesDeRenovacao,
+  momentoDoMeuScore,
   partidasEmAndamento,
   partidasFuturas,
   partidasPassadas,
@@ -84,6 +82,7 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { FuncoesDoGrupo } from "@/grupo/FuncoesDoGrupo";
 import { ModalMeuScore } from "@/grupo/ModalMeuScore";
 import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
+import { PilulaEsporte } from "@/grupo/PilulaEsporte";
 import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { SeletorData, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
 import { Navbar } from "@/ui/Navbar";
@@ -100,7 +99,7 @@ const PARTIDAS_PASSADAS_VISIVEIS = 5;
 export default function TelaGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { estado, chamarApi } = useSessao();
-  const { avisar, confirmar: confirmarDialogo } = useDialogos();
+  const { avisar } = useDialogos();
   const meuId = estado.fase === "logado" ? estado.jogador.id : "";
   const insets = useSafeAreaInsets();
 
@@ -141,13 +140,6 @@ export default function TelaGrupo() {
   >(null);
   const [confOcupado, setConfOcupado] = useState(false);
   const [confErro, setConfErro] = useState<string | null>(null);
-
-  // Modal de quadra.
-  const [termoQuadra, setTermoQuadra] = useState("");
-  const [quadrasBusca, setQuadrasBusca] = useState<Quadra[]>([]);
-  const [novaQuadra, setNovaQuadra] = useState<{ nome: string; endereco: string } | null>(null);
-  const [salvandoQuadra, setSalvandoQuadra] = useState(false);
-  const [erroQuadra, setErroQuadra] = useState<string | null>(null);
 
   // Modal adicionar partida.
   const [novaData, setNovaData] = useState(hojeISO());
@@ -239,18 +231,6 @@ export default function TelaGrupo() {
       .then(setTokenConvite)
       .catch(() => {});
   }, [aba, grupo, tokenConvite, chamarApi]);
-
-  // Busca de quadras dentro do modal.
-  useEffect(() => {
-    if (aba !== "quadra" || !grupo || grupo.quadraId || !souAdmin) return;
-    let vivo = true;
-    buscarQuadras(chamarApi, grupo.esporte, termoQuadra)
-      .then((qs) => vivo && setQuadrasBusca(qs))
-      .catch(() => {});
-    return () => {
-      vivo = false;
-    };
-  }, [aba, grupo, souAdmin, termoQuadra, chamarApi]);
 
   function recarregar() {
     setTentativa((t) => t + 1);
@@ -457,50 +437,6 @@ export default function TelaGrupo() {
     }
   }
 
-  async function handleVincularQuadraExistente(q: Quadra) {
-    if (!grupo) return;
-    confirmarDialogo({
-      eyebrow: "Quadra",
-      titulo: "Vincular quadra?",
-      descricao: `Vincular "${q.nome}" a esse grupo? Não dá pra trocar a quadra depois.`,
-      confirmarLabel: "Vincular",
-      onConfirmar: async () => {
-        setSalvandoQuadra(true);
-        const r = await comApi(() => vincularQuadra(chamarApi, grupo.id, q.id), setErroQuadra);
-        setSalvandoQuadra(false);
-        if (r !== null) {
-          setAba(null);
-          recarregar();
-        }
-      },
-    });
-  }
-
-  async function handleCadastrarQuadra() {
-    if (!grupo || !novaQuadra) return;
-    if (!novaQuadra.nome.trim() || !novaQuadra.endereco.trim()) {
-      setErroQuadra("Preencha nome e endereço da quadra.");
-      return;
-    }
-    setSalvandoQuadra(true);
-    setErroQuadra(null);
-    try {
-      const q = await sugerirQuadra(chamarApi, {
-        nome: novaQuadra.nome.trim(),
-        endereco: novaQuadra.endereco.trim(),
-        esporte: grupo.esporte,
-      });
-      await vincularQuadra(chamarApi, grupo.id, q.id);
-      setAba(null);
-      setNovaQuadra(null);
-      recarregar();
-    } catch (e) {
-      setErroQuadra(mensagemDoErro(e));
-    } finally {
-      setSalvandoQuadra(false);
-    }
-  }
-
   function linkConvite(p: PartidaResumo | null): string {
     const base = `${PRODUCAO_URL}/convite/${tokenConvite}`;
     return p ? `${base}?partida=${p.id}` : base;
@@ -669,20 +605,13 @@ export default function TelaGrupo() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pillsLinha}
           >
-            <Pressable
-              style={styles.pill}
-              onPress={() => {
-                setErroQuadra(null);
-                setNovaQuadra(null);
-                setTermoQuadra("");
-                setAba("quadra");
-              }}
-            >
-              <MapPin size={12} color={cores.branco} />
-              <Text style={styles.pillTexto}>
-                {grupo.quadraId ? (dados.quadra?.nome ?? "Quadra") : grupo.esporte}
-              </Text>
-            </Pressable>
+            <PilulaEsporte esporte={grupo.esporte} clicavel />
+            {grupo.quadraId ? (
+              <Pressable style={styles.pill} onPress={() => setAba("quadra")}>
+                <MapPin size={12} color={cores.branco} />
+                <Text style={styles.pillTexto}>{dados.quadra?.nome ?? "Quadra não encontrada"}</Text>
+              </Pressable>
+            ) : null}
             <Pressable style={styles.pill} onPress={() => setAba("horarios")}>
               <Clock size={12} color={cores.branco} />
               <Text style={styles.pillTexto}>Horários</Text>
@@ -696,12 +625,7 @@ export default function TelaGrupo() {
             Icone={MapPin}
             titulo="Cadastre o local do jogo pra galera."
             chamada="Cadastrar quadra"
-            onPress={() => {
-              setErroQuadra(null);
-              setNovaQuadra(null);
-              setTermoQuadra("");
-              setAba("quadra");
-            }}
+            onPress={() => router.push(`/grupos/${grupo.id}/quadra`)}
           />
         )}
 
@@ -730,6 +654,7 @@ export default function TelaGrupo() {
           grupoId={grupo.id}
           onConvidar={() => setAba("convidar")}
           meuScore={grupo.meuScore}
+          momentoMeuScore={momentoDoMeuScore(grupo)}
           onMeuScore={() => setMeuScoreAberto(true)}
           onAdicionarPartida={
             souAdmin && grupo.tipo === "AVULSO" ? () => abrirAdicionarPartida() : undefined
@@ -899,21 +824,8 @@ export default function TelaGrupo() {
       </ModalCartao>
 
       {/* Modal: quadra */}
-      <ModalCartao aberto={aba === "quadra"} onFechar={() => setAba(null)}>
-        <ModalQuadra
-          grupo={grupo}
-          quadra={dados.quadra}
-          souAdmin={!!souAdmin}
-          termo={termoQuadra}
-          onTermo={setTermoQuadra}
-          resultados={quadrasBusca}
-          nova={novaQuadra}
-          onNova={setNovaQuadra}
-          salvando={salvandoQuadra}
-          erro={erroQuadra}
-          onVincular={handleVincularQuadraExistente}
-          onCadastrar={handleCadastrarQuadra}
-        />
+      <ModalCartao aberto={aba === "quadra" && !!grupo.quadraId} onFechar={() => setAba(null)}>
+        <ModalQuadra grupo={grupo} quadra={dados.quadra} />
       </ModalCartao>
 
       {/* Modal: horários */}
@@ -1425,9 +1337,7 @@ function DetalhePartida({
       <View style={styles.divisor} />
 
       <View style={styles.pills}>
-        <View style={styles.pill}>
-          <Text style={styles.pillTexto}>{grupo.esporte}</Text>
-        </View>
+        <PilulaEsporte esporte={grupo.esporte} />
       </View>
 
       {!p.cancelada && (
@@ -1559,153 +1469,23 @@ function DescricaoGrupoResumo({ texto }: { texto: string }) {
   );
 }
 
-// Selo do esporte, igual ao EsportePill do site (components/info-pill.tsx).
-function EsportePill({ esporte }: { esporte: string }) {
-  return (
-    <View style={[styles.pill, { alignSelf: "flex-start" }]}>
-      <Text style={styles.pillTexto}>{esporte}</Text>
-    </View>
-  );
-}
-
-function ModalQuadra({
-  grupo,
-  quadra,
-  souAdmin,
-  termo,
-  onTermo,
-  resultados,
-  nova,
-  onNova,
-  salvando,
-  erro,
-  onVincular,
-  onCadastrar,
-}: {
-  grupo: Grupo;
-  quadra?: Quadra;
-  souAdmin: boolean;
-  termo: string;
-  onTermo: (v: string) => void;
-  resultados: Quadra[];
-  nova: { nome: string; endereco: string } | null;
-  onNova: (v: { nome: string; endereco: string } | null) => void;
-  salvando: boolean;
-  erro: string | null;
-  onVincular: (q: Quadra) => void;
-  onCadastrar: () => void;
-}) {
-  if (grupo.quadraId) {
-    return (
-      <>
-        <View style={styles.modalEyebrowLinha}>
-          <MapPin size={16} color={cores.teal} />
-          <Text style={styles.modalEyebrow}>Quadra</Text>
-        </View>
-        <Text style={styles.modalTitulo}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
-        <EsportePill esporte={grupo.esporte} />
-        {quadra && quadra.status !== "VALIDADA" && (
-          <View style={styles.pendentePill}>
-            <Text style={styles.pendenteTexto}>Pendente de conferência</Text>
-          </View>
-        )}
-        <Text style={styles.modalDesc}>{quadra?.endereco ?? "Endereço não informado."}</Text>
-      </>
-    );
-  }
-  if (!souAdmin) {
-    return (
-      <>
-        <View style={styles.modalEyebrowLinha}>
-          <MapPin size={16} color={cores.teal} />
-          <Text style={styles.modalEyebrow}>Quadra</Text>
-        </View>
-        <Text style={styles.modalTitulo}>Sem quadra vinculada</Text>
-        <EsportePill esporte={grupo.esporte} />
-        <Text style={styles.modalDesc}>O admin do grupo ainda não cadastrou uma quadra.</Text>
-      </>
-    );
-  }
-  if (nova) {
-    return (
-      <>
-        <View style={styles.modalEyebrowLinha}>
-          <MapPin size={16} color={cores.teal} />
-          <Text style={styles.modalEyebrow}>Quadra</Text>
-        </View>
-        <Text style={styles.modalTitulo}>Cadastrar quadra</Text>
-        <EsportePill esporte={grupo.esporte} />
-        <Text style={styles.modalDesc}>
-          Fica disponível pra todo mundo com a marca &quot;Pendente&quot; até ser conferida.
-        </Text>
-        <ModalInput placeholder="Nome da quadra" valor={nova.nome} onChange={(v) => onNova({ ...nova, nome: v })} />
-        <ModalInput placeholder="Endereço" valor={nova.endereco} onChange={(v) => onNova({ ...nova, endereco: v })} />
-        {erro ? <Text style={styles.modalErro}>{erro}</Text> : null}
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Pressable style={[styles.modalBotaoContorno, { flex: 1 }]} onPress={() => onNova(null)}>
-            <Text style={styles.modalBotaoContornoTexto}>Voltar</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.modalBotao, { flex: 1 }, salvando && { opacity: 0.6 }]}
-            onPress={onCadastrar}
-            disabled={salvando}
-          >
-            <Text style={styles.modalBotaoTexto}>{salvando ? "Salvando..." : "Salvar quadra"}</Text>
-          </Pressable>
-        </View>
-      </>
-    );
-  }
+// Só leitura: a pílula da quadra só aparece com quadra vinculada. Cadastrar ou
+// vincular é na tela própria (grupos/[id]/quadra), a partir do aviso pro admin.
+function ModalQuadra({ grupo, quadra }: { grupo: Grupo; quadra?: Quadra }) {
   return (
     <>
       <View style={styles.modalEyebrowLinha}>
         <MapPin size={16} color={cores.teal} />
         <Text style={styles.modalEyebrow}>Quadra</Text>
       </View>
-      <Text style={styles.modalTitulo}>Vincular quadra</Text>
-      <EsportePill esporte={grupo.esporte} />
-      <Text style={styles.modalDesc}>Busque uma quadra ou cadastre uma nova pra esse grupo.</Text>
-      <ModalInput placeholder="Buscar quadra..." valor={termo} onChange={onTermo} />
-      <View style={{ gap: 4, maxHeight: 200 }}>
-        {resultados.length === 0 ? (
-          <Text style={styles.modalDesc}>Nenhuma quadra cadastrada ainda pra {grupo.esporte}.</Text>
-        ) : (
-          resultados.map((q) => (
-            <Pressable key={q.id} style={styles.quadraItem} onPress={() => onVincular(q)} disabled={salvando}>
-              <Text style={styles.quadraNome}>
-                {q.nome}
-                {q.status !== "VALIDADA" ? "  (pendente)" : ""}
-              </Text>
-              <Text style={styles.quadraEndereco}>{q.endereco}</Text>
-            </Pressable>
-          ))
-        )}
-      </View>
-      {erro ? <Text style={styles.modalErro}>{erro}</Text> : null}
-      <Pressable onPress={() => onNova({ nome: "", endereco: "" })}>
-        <Text style={styles.modalLink}>+ Cadastrar quadra</Text>
-      </Pressable>
+      <Text style={styles.modalTitulo}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
+      {quadra && quadra.status !== "VALIDADA" && (
+        <View style={styles.pendentePill}>
+          <Text style={styles.pendenteTexto}>Em validação</Text>
+        </View>
+      )}
+      <Text style={styles.modalDesc}>{quadra?.endereco ?? "Endereço não informado."}</Text>
     </>
-  );
-}
-
-function ModalInput({
-  placeholder,
-  valor,
-  onChange,
-}: {
-  placeholder: string;
-  valor: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <TextInput
-      value={valor}
-      onChangeText={onChange}
-      placeholder={placeholder}
-      placeholderTextColor={cores.slate500}
-      style={styles.modalInput}
-    />
   );
 }
 
@@ -1903,16 +1683,6 @@ const styles = StyleSheet.create({
   modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
   modalDesc: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   modalErro: { fontSize: 13, color: cores.erroTexto },
-  modalInput: {
-    height: 46,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
-    backgroundColor: cores.campoFundo,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    color: cores.branco,
-  },
   modalBotao: {
     height: 48,
     borderRadius: raio.campo,
@@ -1934,7 +1704,6 @@ const styles = StyleSheet.create({
   convidarBotaoIcone: { width: 48 },
   convidarBotaoLink: { flex: 1, flexDirection: "row", gap: 8 },
   modalBotaoContornoTexto: { fontSize: 15, fontWeight: "600", color: cores.branco },
-  modalLink: { fontSize: 14, fontWeight: "600", color: cores.teal },
 
   horarioLinha: {
     flexDirection: "row",
@@ -1998,14 +1767,6 @@ const styles = StyleSheet.create({
   },
   detalheDescTexto: { fontSize: 14, lineHeight: 19, color: cores.slate200 },
 
-  quadraItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: raio.campo,
-    backgroundColor: cores.superficieSutil,
-  },
-  quadraNome: { fontSize: 14, color: cores.branco },
-  quadraEndereco: { fontSize: 12, color: cores.slate500 },
   pendentePill: {
     alignSelf: "flex-start",
     borderRadius: 999,
