@@ -55,6 +55,7 @@ import {
   RotateCcw,
   Share2,
   Trash2,
+  Trophy,
   UserPlus,
   Users,
 } from "@/ui/Icone";
@@ -628,6 +629,19 @@ export default function TelaGrupo() {
           </ScrollView>
         </View>
 
+        {/* Espelha o aviso do site: score ainda no padrão (nasceu do maior score
+            real do jogador em outro grupo do esporte, ou 50). Some depois que ele
+            ajusta pra um valor diferente. */}
+        {grupo.meuScoreOrigem === "PADRAO" && (
+          <Banner
+            cor="orange"
+            Icone={Trophy}
+            titulo="Seu score nesse grupo ainda está no padrão."
+            chamada="Ajustar meu score"
+            onPress={() => setMeuScoreAberto(true)}
+          />
+        )}
+
         {souAdmin && !grupo.quadraId && (
           <Banner
             cor="orange"
@@ -1058,7 +1072,21 @@ export default function TelaGrupo() {
           onSalvo={({ score, posicaoId }) =>
             setDados((d) =>
               d?.grupo
-                ? { ...d, grupo: { ...d.grupo, meuScore: score, meuPosicaoId: posicaoId } }
+                ? {
+                    ...d,
+                    grupo: {
+                      ...d.grupo,
+                      meuScore: score,
+                      meuPosicaoId: posicaoId,
+                      // Mesma regra do site: só sai do PADRAO se o valor mudou.
+                      meuScoreOrigem:
+                        score !== d.grupo.meuScore
+                          ? souAdmin
+                            ? "ADMIN"
+                            : "AUTOAVALIACAO"
+                          : d.grupo.meuScoreOrigem,
+                    },
+                  }
                 : d
             )
           }
