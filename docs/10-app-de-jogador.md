@@ -114,7 +114,7 @@ inteiro, não um endpoint.
       de exclusão/anonimização de jogador (mesmo tratamento de `tokensAcesso`).
       Decidir se é tabela própria ou coluna em `tokensAcesso` (1 device = 1 token
       de acesso + 1 push token; provavelmente vale juntar).
-- [~] **Serviço de envio** (2026-10-15: `lib/services/push.ts` + gatilho "check-in aberto" em `lib/services/notificacoes.ts` + `POST/DELETE /api/v1/push/token`, testado local com token falso; contrato em 16-api-v1.md §15. Faltam os outros gatilhos e receipts) (Expo Push é um POST HTTP) + mapa de gatilhos em
+- [~] **Serviço de envio** (2026-10-15: `lib/services/push.ts` + gatilho "check-in aberto" em `lib/services/notificacoes.ts` + `POST/DELETE /api/v1/push/token`, testado local com token falso; contrato em 16-api-v1.md §15. Gatilhos: check-in aberto e resultado disponível (cron), nova enquete e comentário no gol com trava de 6h por vídeo (imediatos). Faltam receipts e gatilhos como sorteio saiu / artilheiro do mês) (Expo Push é um POST HTTP) + mapa de gatilhos em
       `lib/services/*`. Testável agora com um token registrado na mão; o app só
       pluga o registro do token dele depois. Alguns gatilhos são reação a ação de
       outro usuário (resposta na resenha), outros são agendados (lembrete de

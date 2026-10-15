@@ -67,9 +67,21 @@ function destinoDaNotificacao(data: Record<string, unknown> | undefined): Href |
   const tipo = typeof data?.tipo === "string" ? data.tipo : undefined;
   const grupoId = typeof data?.grupoId === "string" ? data.grupoId : undefined;
   const partidaId = typeof data?.partidaId === "string" ? data.partidaId : undefined;
+  const pedidoReplayId =
+    typeof data?.pedidoReplayId === "string" ? data.pedidoReplayId : undefined;
   if (!grupoId) return null;
   if (tipo === "CHECKIN_ABERTO" && partidaId) {
     return `/grupos/${grupoId}/partidas/${partidaId}/checkin`;
+  }
+  if (tipo === "RESULTADO_DISPONIVEL" && partidaId) {
+    return `/grupos/${grupoId}/partidas/${partidaId}/resultado`;
+  }
+  if (tipo === "NOVA_ENQUETE") {
+    return `/grupos/${grupoId}/enquetes`;
+  }
+  if (tipo === "COMENTARIO_GOL" && pedidoReplayId) {
+    // Resenha já rolada até o vídeo comentado (mesmo link do painel).
+    return `/grupos/${grupoId}/resenha?video=${pedidoReplayId}`;
   }
   return `/grupos/${grupoId}`;
 }

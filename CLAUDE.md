@@ -85,8 +85,9 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
 - **Push** (`src/notificacoes/`): `expo-notifications` é carregado sob demanda e **nunca
   no Expo Go** (no Android não tem push remoto lá desde o SDK 53, e o import já gera
   aviso). `useNotificacoes` (montado no layout `(logado)`) registra o token Expo Push
-  no site a cada abertura e navega pelo `data` ao tocar (`CHECKIN_ABERTO` → tela de
-  check-in). O `sair` apaga o token no site antes de descartar o Bearer. Só testa em
+  no site a cada abertura e navega pelo `data` ao tocar (`destinoDaNotificacao`:
+  check-in, resultado, enquetes, resenha no vídeo; tipo desconhecido cai no grupo,
+  então gatilho novo no site nunca quebra app antigo). O `sair` apaga o token no site antes de descartar o Bearer. Só testa em
   build EAS. Gatilhos e envio moram no site (`lib/services/notificacoes.ts`).
 - Chat da resenha faz polling só enquanto `AppState.currentState === "active"`.
 - **Vídeo de replay toca embutido** (`src/replay/PlayerReplay.tsx`, `expo-video`): pôster
