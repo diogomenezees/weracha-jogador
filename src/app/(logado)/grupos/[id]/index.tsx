@@ -1777,7 +1777,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeBotaoLaranjaTexto: { fontSize: 14, fontWeight: "700", color: cores.dark },
+  rodapeBotaoLaranjaTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
 
   modalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   modalEyebrow: {
