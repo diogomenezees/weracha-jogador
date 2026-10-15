@@ -139,7 +139,8 @@ export default function CriarGrupo() {
         horariosRecorrentes: tipo === "RECORRENTE" ? horarios : undefined,
         datasAvulsas: tipo === "AVULSO" ? avulsas : undefined,
       });
-      router.replace(`/grupos/${grupo.id}`);
+      // bemVindo=1 abre uma vez o modal "Agora, traga a galera" na tela do grupo.
+      router.replace(`/grupos/${grupo.id}?bemVindo=1`);
     } catch (e) {
       setErro(mensagemDoErro(e));
       setSalvando(false);

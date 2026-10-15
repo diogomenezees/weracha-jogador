@@ -217,7 +217,11 @@ guarda `MeuPerfil` e expõe `recarregarPerfil` / `marcarOnboardingConcluido`
 - **Criar grupo** (`src/app/(logado)/criar-grupo.tsx`): nome, tipo
   (recorrente/avulso), horários recorrentes ou datas avulsas, esporte
   (`GET /api/v1/esportes`). `POST /api/v1/grupos` → `router.replace` pra tela do
-  grupo. Quadra fica pra depois (dentro do grupo), igual o site. Pickers de
+  grupo com `?bemVindo=1`, que abre uma vez (só admin) o modal "Agora, traga a galera":
+  explica os dois caminhos (link em **Convidar** ou cadastro em **Gerenciar jogadores**),
+  sem botão que leve pra essas telas, só "Entendi" (2026-10-15, igual ao site). O modal
+  Convidar ganhou "como funciona" em 3 passos + prévia do link que copia ao tocar.
+  Quadra fica pra depois (dentro do grupo), igual o site. Pickers de
   data/hora em `src/grupo/pickers.tsx` (novas deps `@react-native-community/
   datetimepicker` + `expo-clipboard`, ambas no Expo Go).
 - **Tela do grupo** (`src/app/(logado)/grupos/[id].tsx`, era stub): porta

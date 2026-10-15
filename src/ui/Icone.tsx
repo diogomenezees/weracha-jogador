@@ -77,6 +77,8 @@ export {
   RotateCcw,
   Copy,
   Link,
+  Link2,
+  PartyPopper,
   ClipboardPaste,
   Globe,
   Send,

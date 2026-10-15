@@ -45,9 +45,11 @@ import {
   History,
   EllipsisVertical,
   type LucideIcon,
+  Link2,
   LogOut,
   MapPin,
   NotebookPen,
+  PartyPopper,
   Pencil,
   RefreshCw,
   RotateCcw,
@@ -88,7 +90,7 @@ import { SeletorData, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
 import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { useDialogos } from "@/ui/Dialogos";
-import { cores, raio } from "@/tema";
+import { cores, fontes, raio } from "@/tema";
 import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/tipos";
 
 type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
@@ -96,8 +98,11 @@ type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
 // Quantas partidas finalizadas aparecem antes do "Ver todas" (mesmo valor do site).
 const PARTIDAS_PASSADAS_VISIVEIS = 5;
 
+// "Como funciona" do modal Convidar (mesmo texto do site).
+const PASSOS_CONVITE = ["Copie o link", "Mande no grupo do WhatsApp", "A galera entra e confirma presença"];
+
 export default function TelaGrupo() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, bemVindo } = useLocalSearchParams<{ id: string; bemVindo?: string }>();
   const { estado, chamarApi } = useSessao();
   const { avisar } = useDialogos();
   const meuId = estado.fase === "logado" ? estado.jogador.id : "";
@@ -111,6 +116,10 @@ export default function TelaGrupo() {
   const [atualizando, setAtualizando] = useState(false);
 
   const [aba, setAba] = useState<Aba>(null);
+  // Quem acabou de criar o grupo chega com ?bemVindo=1 (criar-grupo.tsx) e vê uma
+  // vez o modal de como trazer os jogadores. Mesmo modal do site
+  // (weracha-site/components/dialog-primeiros-jogadores.tsx).
+  const [boasVindasAberto, setBoasVindasAberto] = useState(bemVindo === "1");
   const [verTodasPassadas, setVerTodasPassadas] = useState(false);
   const [partidaSel, setPartidaSel] = useState<PartidaResumo | null>(null);
   const [tokenConvite, setTokenConvite] = useState<string | null>(null);
@@ -794,7 +803,36 @@ export default function TelaGrupo() {
             {grupo.nome}
           </Text>
         </View>
-        <Text style={styles.modalDesc}>Quem abrir o link entra direto no grupo.</Text>
+        <Text style={styles.modalDesc}>
+          Um link só pra galera toda. Ninguém precisa esperar você cadastrar.
+        </Text>
+        <View style={styles.convidarPassos}>
+          {PASSOS_CONVITE.map((passo, i) => (
+            <View key={passo} style={styles.convidarPasso}>
+              <View style={styles.convidarPassoNumero}>
+                <Text style={styles.convidarPassoNumeroTexto}>{i + 1}</Text>
+              </View>
+              <Text style={styles.convidarPassoTexto}>{passo}</Text>
+            </View>
+          ))}
+        </View>
+        {/* Prévia do link: mostra o que vai ser colado e também copia ao tocar. */}
+        <Pressable
+          style={styles.convidarPrevia}
+          onPress={() => void copiarLinkDoGrupo()}
+          disabled={!tokenConvite}
+          accessibilityRole="button"
+          accessibilityLabel="Copiar link de convite"
+        >
+          <Text style={styles.convidarPreviaTexto} numberOfLines={1}>
+            {tokenConvite ? linkConvite(null).replace(/^https?:\/\//, "") : "Gerando link..."}
+          </Text>
+          {linkGrupoCopiado ? (
+            <Check size={16} color={cores.teal} />
+          ) : (
+            <Copy size={16} color={cores.slate500} />
+          )}
+        </Pressable>
         <View style={styles.convidarAcoes}>
           {/* Só admin regenera; jogador comum só copia o link. */}
           {souAdmin && (
@@ -817,10 +855,51 @@ export default function TelaGrupo() {
           >
             {linkGrupoCopiado ? <Check size={16} color={cores.dark} /> : <Copy size={16} color={cores.dark} />}
             <Text style={styles.modalBotaoTexto}>
-              {!tokenConvite ? "Carregando link..." : linkGrupoCopiado ? "Link copiado!" : "Link de convite"}
+              {!tokenConvite ? "Carregando link..." : linkGrupoCopiado ? "Link copiado!" : "Copiar link"}
             </Text>
           </Pressable>
         </View>
+      </ModalCartao>
+
+      {/* Modal: logo depois de criar o grupo. Só explica os dois caminhos; quem
+          clica em Convidar / Gerenciar jogadores é o dono. */}
+      <ModalCartao
+        aberto={boasVindasAberto && souAdmin}
+        onFechar={() => setBoasVindasAberto(false)}
+      >
+        <View style={styles.modalEyebrowLinha}>
+          <PartyPopper size={16} color={cores.teal} />
+          <Text style={styles.modalEyebrow}>Grupo criado</Text>
+        </View>
+        <Text style={styles.modalTitulo}>Agora, traga a galera</Text>
+        <Text style={styles.modalDesc}>Dois jeitos de colocar os jogadores.</Text>
+        <View style={styles.boasVindasOpcao}>
+          <View style={styles.boasVindasOpcaoTopo}>
+            <View style={styles.boasVindasIcone}>
+              <Link2 size={16} color={cores.teal} />
+            </View>
+            <Text style={styles.boasVindasOpcaoTitulo}>Mande o link de convite</Text>
+          </View>
+          <Text style={styles.boasVindasOpcaoTexto}>
+            Em <Text style={styles.boasVindasDestaque}>Convidar</Text>, copie o link e mande
+            no WhatsApp. Cada um entra sozinho.
+          </Text>
+        </View>
+        <View style={styles.boasVindasOpcao}>
+          <View style={styles.boasVindasOpcaoTopo}>
+            <View style={styles.boasVindasIcone}>
+              <UserPlus size={16} color={cores.teal} />
+            </View>
+            <Text style={styles.boasVindasOpcaoTitulo}>Ou cadastre você mesmo</Text>
+          </View>
+          <Text style={styles.boasVindasOpcaoTexto}>
+            Em <Text style={styles.boasVindasDestaque}>Gerenciar jogadores</Text> → Novo
+            jogador. Bom pra quem não usa o app.
+          </Text>
+        </View>
+        <Pressable style={[styles.modalBotao, { marginTop: 4 }]} onPress={() => setBoasVindasAberto(false)}>
+          <Text style={styles.modalBotaoTexto}>Entendi</Text>
+        </Pressable>
       </ModalCartao>
 
       {/* Modal: quadra */}
@@ -1703,6 +1782,53 @@ const styles = StyleSheet.create({
   convidarAcoes: { flexDirection: "row", gap: 8, marginTop: 4 },
   convidarBotaoIcone: { width: 48 },
   convidarBotaoLink: { flex: 1, flexDirection: "row", gap: 8 },
+  convidarPassos: { gap: 10, marginTop: 6 },
+  convidarPasso: { flexDirection: "row", alignItems: "center", gap: 10 },
+  convidarPassoNumero: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(31, 179, 163, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  convidarPassoNumeroTexto: { fontSize: 12, fontWeight: "600", color: cores.teal },
+  convidarPassoTexto: { fontSize: 14, color: cores.slate300, flexShrink: 1 },
+  convidarPrevia: {
+    height: 44,
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "rgba(31, 179, 163, 0.3)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  convidarPreviaTexto: { flex: 1, fontSize: 13, fontFamily: fontes.mono, color: cores.slate300 },
+
+  boasVindasOpcao: {
+    borderRadius: raio.card,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    padding: 14,
+    gap: 6,
+  },
+  boasVindasOpcaoTopo: { flexDirection: "row", alignItems: "center", gap: 8 },
+  boasVindasIcone: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(31, 179, 163, 0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  boasVindasOpcaoTitulo: { fontSize: 14, fontWeight: "600", color: cores.branco },
+  boasVindasOpcaoTexto: { fontSize: 14, lineHeight: 19, color: cores.slate400 },
+  boasVindasDestaque: { fontWeight: "600", color: cores.slate200 },
   modalBotaoContornoTexto: { fontSize: 15, fontWeight: "600", color: cores.branco },
 
   horarioLinha: {
