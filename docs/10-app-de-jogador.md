@@ -101,7 +101,7 @@ cliente que justifica: lembrete de check-in, "sorteio saiu", "seu gol foi
 gravado", resposta na resenha, "artilheiro do mês definido". É um subsistema
 inteiro, não um endpoint.
 
-- [~] **Infra de job agendado** — rota pronta no site (`GET /api/cron/notificacoes`, protegida por `CRON_SECRET`, 2026-10-15); agendador escolhido: Cloudflare Cron Trigger (Worker `weracha-cron` em `weracha-site/infra/cron-cloudflare/`, a cada 10 min, grátis). Antes não existia (renovação de
+- [~] **Infra de job agendado** — rota pronta no site (`GET /api/cron/notificacoes`, protegida por `CRON_SECRET`, 2026-10-15); agendador escolhido: Cloudflare Cron Trigger (Worker `weracha-cron` em `weracha-site/infra/cron-cloudflare/`, grátis); push validado no celular em 2026-10-15 e cron PAUSADO em seguida (sem usuários ainda; religar a cada 2h das 08h às 22h). Antes não existia (renovação de
       partida é manual, fila de exclusão é atendida na mão). Serve pra dois usos:
       lembrete de check-in (push agendado X horas antes da partida) e automatizar
       a fila de `solicitacoes_exclusao`. Uma infra, dois consumidores.
