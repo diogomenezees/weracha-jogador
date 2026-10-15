@@ -101,24 +101,25 @@ cliente que justifica: lembrete de check-in, "sorteio saiu", "seu gol foi
 gravado", resposta na resenha, "artilheiro do mês definido". É um subsistema
 inteiro, não um endpoint.
 
-- [ ] **Infra de job agendado (Vercel Cron)** — não existe hoje (renovação de
+- [~] **Infra de job agendado** — rota pronta no site (`GET /api/cron/notificacoes`, protegida por `CRON_SECRET`, 2026-10-15); falta escolher e configurar o agendador (Vercel Cron Pro, Cloudflare Cron Trigger, GitHub Actions ou cron-job.org, a cada ~10 min). Antes não existia (renovação de
       partida é manual, fila de exclusão é atendida na mão). Serve pra dois usos:
       lembrete de check-in (push agendado X horas antes da partida) e automatizar
       a fila de `solicitacoes_exclusao`. Uma infra, dois consumidores.
-- [ ] **Transporte**: Expo Push (camada única sobre FCM + APNs, combina com o
+- [x] **Transporte** (decidido 2026-10-15: Expo Push, POST direto sem SDK): Expo Push (camada única sobre FCM + APNs, combina com o
       EAS/RN escolhido) vs. FCM/APNs direto. Inclinação: Expo Push pela
       simplicidade, migrar só se precisar de recurso que o Expo não expõe.
-- [ ] **Schema**: tabela de device push tokens (`jogadorId`, token, plataforma,
+- [x] **Schema** (2026-10-15, migration 0068, tabela própria `push_tokens` com PK no token + `notificacoes_enviadas` pra idempotência; já entra em bloquear/anonimizar/excluir): tabela de device push tokens (`jogadorId`, token, plataforma,
       `criadoEm`/`ultimoUsoEm`/`revogadoEm`). Regra do CLAUDE.md do site: coluna
       `.defaultNow()` nasce `{ withTimezone: true }`. Precisa entrar nos 3 pontos
       de exclusão/anonimização de jogador (mesmo tratamento de `tokensAcesso`).
       Decidir se é tabela própria ou coluna em `tokensAcesso` (1 device = 1 token
       de acesso + 1 push token; provavelmente vale juntar).
-- [ ] **Serviço de envio** (Expo Push é um POST HTTP) + mapa de gatilhos em
+- [~] **Serviço de envio** (2026-10-15: `lib/services/push.ts` + gatilho "check-in aberto" em `lib/services/notificacoes.ts` + `POST/DELETE /api/v1/push/token`, testado local com token falso; contrato em 16-api-v1.md §15. Faltam os outros gatilhos e receipts) (Expo Push é um POST HTTP) + mapa de gatilhos em
       `lib/services/*`. Testável agora com um token registrado na mão; o app só
       pluga o registro do token dele depois. Alguns gatilhos são reação a ação de
       outro usuário (resposta na resenha), outros são agendados (lembrete de
       check-in) e dependem do cron acima.
+- [~] **Registro no app** (código feito 2026-10-15: `src/notificacoes/` + `useNotificacoes` no layout `(logado)` + DELETE no `sair`; falta `google-services.json` em `android.googleServicesFile` e a chave FCM V1 no EAS pra testar num build): `expo-notifications`, pedir permissão (Android 13+), `getExpoPushTokenAsync({ projectId })`, `POST /api/v1/push/token` após login/abertura, `DELETE` antes do logout, abrir o grupo/partida pelo `data` ao tocar. Não roda no Expo Go: precisa build EAS + `google-services.json` + chave FCM V1 subida no EAS.
 - [ ] **Preferências**: tela no app pra ligar/desligar por categoria; coluna(s)
       no jogador ou tabela à parte. Default de cada categoria.
 - [ ] **iOS**: pedido de permissão de notificação (prompt nativo), tratamento de

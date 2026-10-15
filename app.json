@@ -74,6 +74,13 @@
       ],
       "expo-video",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#1fb3a3"
+        }
+      ],
+      [
         "expo-media-library",
         {
           "savePhotosPermission": "O WeRacha salva os replays que você baixa na sua galeria.",

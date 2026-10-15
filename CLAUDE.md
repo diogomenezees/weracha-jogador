@@ -82,6 +82,12 @@ caminhos do Android Studio). Build nativo real só quando for pra loja (EAS).
   no lugar de `ScrollView`: encolhe a área quando o teclado abre e rola até o campo que
   ganhou foco (senão o teclado cobre o campo). Modais (`Modal`) já se ajustam sozinhos no
   Android e a tela de acesso tem o próprio `KeyboardAvoidingView`.
+- **Push** (`src/notificacoes/`): `expo-notifications` é carregado sob demanda e **nunca
+  no Expo Go** (no Android não tem push remoto lá desde o SDK 53, e o import já gera
+  aviso). `useNotificacoes` (montado no layout `(logado)`) registra o token Expo Push
+  no site a cada abertura e navega pelo `data` ao tocar (`CHECKIN_ABERTO` → tela de
+  check-in). O `sair` apaga o token no site antes de descartar o Bearer. Só testa em
+  build EAS. Gatilhos e envio moram no site (`lib/services/notificacoes.ts`).
 - Chat da resenha faz polling só enquanto `AppState.currentState === "active"`.
 - **Vídeo de replay toca embutido** (`src/replay/PlayerReplay.tsx`, `expo-video`): pôster
   com play, o `VideoView` só monta no toque (cada um segura um decoder no Android) e só

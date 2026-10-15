@@ -30,6 +30,7 @@ import {
 } from "@/sessao/armazenamento";
 import type { JogadorSessao, MeuPerfil } from "@/contrato/tipos";
 import { marcarIntroVista } from "@/intro/vista";
+import { marcarTokenPushRegistrado, tokenPushRegistrado } from "@/notificacoes/registro";
 
 type Estado =
   | { fase: "carregando" }
@@ -143,10 +144,29 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   );
 
   const sair = useCallback(async () => {
+    // Tira o token de push deste aparelho antes de jogar o Bearer fora, senão
+    // a conta continua recebendo notificação num celular deslogado. Direto pelo
+    // `requisicao` (sem o re-login do `chamarApi`, que chama `sair` de novo
+    // num 401) e best-effort: sem rede, o logout segue igual.
+    const cred = credenciais.current;
+    const tokenPush = tokenPushRegistrado();
+    marcarTokenPushRegistrado(null);
+    if (cred && tokenPush) {
+      try {
+        await requisicao(urlBase, "/api/v1/push/token", {
+          metodo: "DELETE",
+          corpo: { token: tokenPush },
+          token: cred.token,
+          timeoutMs: 5_000,
+        });
+      } catch {
+        // segue o logout
+      }
+    }
     credenciais.current = null;
     await limparSessao();
     setEstado({ fase: "deslogado" });
-  }, []);
+  }, [urlBase]);
 
   const trocarAmbiente = useCallback(
     async (novo: Ambiente) => {
