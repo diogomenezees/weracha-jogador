@@ -119,7 +119,7 @@ inteiro, não um endpoint.
       pluga o registro do token dele depois. Alguns gatilhos são reação a ação de
       outro usuário (resposta na resenha), outros são agendados (lembrete de
       check-in) e dependem do cron acima.
-- [~] **Registro no app** (código feito 2026-10-15: `src/notificacoes/` + `useNotificacoes` no layout `(logado)` + DELETE no `sair`; falta `google-services.json` em `android.googleServicesFile` e a chave FCM V1 no EAS pra testar num build): `expo-notifications`, pedir permissão (Android 13+), `getExpoPushTokenAsync({ projectId })`, `POST /api/v1/push/token` após login/abertura, `DELETE` antes do logout, abrir o grupo/partida pelo `data` ao tocar. Não roda no Expo Go: precisa build EAS + `google-services.json` + chave FCM V1 subida no EAS.
+- [~] **Registro no app** (código feito 2026-10-15: `src/notificacoes/` + `useNotificacoes` no layout `(logado)` + DELETE no `sair`; Firebase ligado em 2026-10-15 (`google-services.json` versionado + chave FCM V1 no EAS); falta testar num build): `expo-notifications`, pedir permissão (Android 13+), `getExpoPushTokenAsync({ projectId })`, `POST /api/v1/push/token` após login/abertura, `DELETE` antes do logout, abrir o grupo/partida pelo `data` ao tocar. Não roda no Expo Go: precisa build EAS + `google-services.json` + chave FCM V1 subida no EAS.
 - [ ] **Preferências**: tela no app pra ligar/desligar por categoria; coluna(s)
       no jogador ou tabela à parte. Default de cada categoria.
 - [ ] **iOS**: pedido de permissão de notificação (prompt nativo), tratamento de
