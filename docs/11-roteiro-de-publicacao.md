@@ -265,7 +265,8 @@ Compose (`ui/intro/IntroScreen.kt`).
         nascimento (opcional; funcionalidade), Fotos = foto de perfil (opcional; funcionalidade),
         Outras mensagens no app = comentários e contato (opcional; funcionalidade).
         **Não declarar:** Vídeos (o app só reproduz e baixa; quem grava é o Cam), SMS/MMS (o app
-        não lê SMS, o código é digitado), IDs do dispositivo, localização, análise, publicidade.
+        não lê SMS, o código é digitado), IDs do dispositivo (**até o push entrar**, ver o item do
+        push abaixo), localização, análise, publicidade.
         Prestadores (Vercel, Neon, R2, Twilio) não contam como compartilhamento. Não marcar
         "Personalização" em nenhum. **Sentry entrou em 2026-09-26 e o formulário foi atualizado
         (ver abaixo). Se entrar analytics, atualizar de novo.**
@@ -287,6 +288,17 @@ Compose (`ui/intro/IntroScreen.kt`).
       é Monitorar e aprimorar, Política e programas, Conteúdo do app, Segurança dos dados (ou a
       busca do topo). Se entrar analytics, reabrir. *Privacy nutrition labels* da Apple só se for
       pro iOS.
+- [ ] **Data safety: atualizar quando a 1ª versão com push for pra Play** (push entrou no código
+      em 2026-10-15, app `9ea113c`; ainda não foi pra loja, só APK de preview). O app passa a mandar
+      pro site o **token de push do aparelho** (Expo Push, tabela `push_tokens`), um identificador do
+      dispositivo. Marcar provavelmente **IDs do dispositivo ou outros IDs**: coletado, não
+      compartilhado, não efêmero, obrigatório só pra quem aceita notificação (na dúvida, marcar
+      obrigatório), finalidade **Funcionalidade do app**. Confirmar a categoria com o formulário
+      aberto. Expo e Firebase entregam a mensagem como prestadores, não contam como
+      compartilhamento. A permissão de notificação (`POST_NOTIFICATIONS`) não pede declaração.
+      Conferir também se a política de privacidade (`weracha.app/privacidade`) cita as
+      notificações. **Esperar a 1ª aprovação da Play antes de mandar essa versão:** mexer durante
+      a revisão pode atrasar a aprovação.
 - [x] **Exclusão de conta:** o fluxo dentro do app já existe (perfil, "Excluir meus dados"). A Play
       também pede uma **URL web** pra solicitar exclusão de dados fora do app: página pública
       **`https://weracha.app/excluir-conta`** no ar desde 2026-09-27 (três jeitos de pedir, como
