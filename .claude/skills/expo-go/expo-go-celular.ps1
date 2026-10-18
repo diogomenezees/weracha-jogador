@@ -136,13 +136,17 @@ if (-not $SoAbrir) {
   if (-not $pidMetro) {
     # Janela separada pro usuário ver logs e apertar "r".
     # NUNCA --localhost (escuta só IPv6 aqui) nem CI=1 (desliga o reload).
-    $cmd = "`$env:REACT_NATIVE_PACKAGER_HOSTNAME='$host_'; Set-Location '$app'; npx expo start --lan --port 8081 --go --clear"
+    # --clear só com -Limpar: sem cache o Metro recompila tudo e a subida passa de 1 min.
+    $limparCache = if ($Limpar) { ' --clear' } else { '' }
+    # NO_COLOR=1 vem do terminal do Claude Code; o Expo põe FORCE_COLOR nos workers e o Node
+    # avisa "NO_COLOR is ignored due to FORCE_COLOR" em todo log. Tirar devolve as cores.
+    $cmd = "Remove-Item Env:NO_COLOR -ErrorAction SilentlyContinue; `$env:REACT_NATIVE_PACKAGER_HOSTNAME='$host_'; Set-Location '$app'; npx expo start --lan --port 8081 --go$limparCache"
     Start-Process powershell -ArgumentList '-NoExit', '-Command', $cmd | Out-Null
     Write-Host '...esperando o Metro subir'
     $t = 0
     while ((MetroStatus) -notmatch 'running') {
       Start-Sleep -Seconds 2; $t += 2
-      if ($t -ge 90) { Falha 'Metro não respondeu em 90s. Veja a janela do Metro.' }
+      if ($t -ge 180) { Falha 'Metro não respondeu em 180s. Veja a janela do Metro.' }
     }
     Ok 'Metro no ar (janela separada)'
   } else {

@@ -238,6 +238,9 @@ export default function TelaResultado() {
       .reverse()
       .map((x) => ({ id: x.id, data: x.data }));
   }, [grupo, idsComResultado]);
+  // Fileira "Jogos" só no resultado de partida finalizada e com mais de uma pra
+  // navegar. Quando ela aparece, a pílula de data/hora sai (seria repetida).
+  const mostrarFileiraDeDatas = encerrada && partidasComResultado.length > 1;
   const golsPorJogador = useMemo(() => {
     const m: Record<string, number> = {};
     for (const g of golsAtivos) if (g.jogador) m[g.jogador.id] = (m[g.jogador.id] ?? 0) + 1;
@@ -421,12 +424,16 @@ export default function TelaResultado() {
               <Text style={styles.esportePillTexto}>{quadra?.nome ?? "Quadra não encontrada"}</Text>
             </Pressable>
           ) : null}
-          <View style={styles.infoPill}>
-            <Clock size={12} color={cores.zinc500} />
-            <Text style={styles.infoPillTexto}>
-              {formatarPartidaResumo(new Date(p.data))}
-            </Text>
-          </View>
+          {/* Com a fileira "Jogos" na tela, a data e hora já aparecem nela (na
+              data aberta, em teal): a pílula repetiria e ocuparia largura. */}
+          {!mostrarFileiraDeDatas && (
+            <View style={styles.infoPill}>
+              <Clock size={12} color={cores.zinc500} />
+              <Text style={styles.infoPillTexto}>
+                {formatarPartidaResumo(new Date(p.data))}
+              </Text>
+            </View>
+          )}
           <View style={styles.infoPill}>
             <IconeModoSorteio size={12} color={cores.zinc500} />
             <Text style={styles.infoPillTexto}>{rotuloModoSorteio}</Text>
@@ -435,7 +442,7 @@ export default function TelaResultado() {
         {/* Só no resultado de partida finalizada e com mais de uma pra navegar.
             replace: o "Grupo" do topo continua indo pro grupo, sem passar por cada
             resultado visto. */}
-        {encerrada && partidasComResultado.length > 1 && (
+        {mostrarFileiraDeDatas && (
           <FileiraDeDatas
             partidas={partidasComResultado}
             partidaAtualId={partidaId}

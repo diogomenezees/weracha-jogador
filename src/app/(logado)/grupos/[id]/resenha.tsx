@@ -7,8 +7,8 @@ import { useLocalSearchParams } from "expo-router";
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarFeedResenha } from "@/api/resenha";
 import { mensagemDoErro } from "@/mensagens-erro";
-import { bannerInstagramDepoisDe } from "@/contrato/bannerInstagram";
-import { BannerInstagram } from "@/resenha/BannerInstagram";
+import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
+import { BannerDoFeed, useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
 import { MessageCircle, RefreshCw, Users } from "@/ui/Icone";
@@ -43,6 +43,7 @@ export default function ResenhaDoGrupo() {
   // Sem folga embaixo, a barra de botões do Android fica em cima do último card.
   const insets = useSafeAreaInsets();
   const { chamarApi } = useSessao();
+  const campanhas = useCampanhasNoAr();
 
   // Quem chega num vídeo específico vem de um vídeo já comentado: Destaques.
   // Sem nada, "Todos os vídeos" (o feed pra rever o jogo).
@@ -201,6 +202,8 @@ export default function ResenhaDoGrupo() {
       <FlatList
         ref={listaRef}
         data={trocandoAba || semVideos ? [] : blocos}
+        // Campanhas chegam numa busca à parte: redesenha os banners quando vierem.
+        extraData={campanhas}
         // Os cards têm altura variável: sem getItemLayout o scrollToIndex pode
         // falhar pra um item ainda não medido. Rola perto e tenta de novo.
         onScrollToIndexFailed={({ index, averageItemLength }) => {
@@ -218,7 +221,11 @@ export default function ResenhaDoGrupo() {
         ListHeaderComponent={
           <View style={styles.cabecalho}>
             <View style={styles.tituloLinha}>
-              <TituloTela>Resenha</TituloTela>
+              <View style={styles.tituloComSelo}>
+                <TituloTela>Resenha</TituloTela>
+                {/* Mesmo selo da Repercussão em Minha performance. */}
+                <Text style={styles.beta}>Beta</Text>
+              </View>
               <Pressable
                 accessibilityLabel="Atualizar"
                 style={styles.atualizarBtn}
@@ -294,7 +301,7 @@ export default function ResenhaDoGrupo() {
           )
         }
         renderItem={({ item, index }) => {
-          const banner = bannerInstagramDepoisDe(index, blocos.length, !feed.temMais);
+          const banner = bannerDoFeedDepoisDe(index, blocos.length, !feed.temMais, campanhas.length);
           return (
             <View style={styles.item}>
               <BlocoCard
@@ -306,7 +313,7 @@ export default function ResenhaDoGrupo() {
                 podeComentar={feed.podeComentar}
                 destacado={item.pedidoReplayId === video}
               />
-              {banner !== null && <BannerInstagram mensagem={banner} />}
+              {banner !== null && <BannerDoFeed banner={banner} campanhas={campanhas} />}
             </View>
           );
         }}
@@ -332,9 +339,24 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   lista: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 16 },
   cabecalho: { gap: 4, marginBottom: 2 },
-  // Card + banner do Instagram (quando cai ali), com o mesmo respiro da lista.
+  // Card + banner (Instagram ou campanha, quando cai ali), com o mesmo respiro da lista.
   item: { gap: 16 },
   tituloLinha: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
+  tituloComSelo: { flexDirection: "row", alignItems: "center", gap: 8 },
+  beta: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: cores.ambar,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: "rgba(251, 191, 36, 0.1)",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
   atualizarBtn: {
     width: 36,
     height: 36,

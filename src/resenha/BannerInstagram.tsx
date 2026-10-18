@@ -6,12 +6,12 @@ import {
   INSTAGRAM_URL,
   INSTAGRAM_USUARIO,
   MENSAGENS_BANNER_INSTAGRAM,
-} from "@/contrato/bannerInstagram";
+} from "@/contrato/bannersDoFeed";
 import { cores, raio } from "@/tema";
 
 // Faixa de divulgação do Instagram intercalada entre os vídeos da Resenha e de
 // Meus replays, espelhando weracha-site/components/banner-instagram.tsx. Onde
-// ela entra é decidido por bannerInstagramDepoisDe (src/contrato/bannerInstagram.ts);
+// ela entra é decidido por bannerDoFeedDepoisDe (src/contrato/bannersDoFeed.ts);
 // aqui é só o visual. O quadrado com o degradê do Instagram é a única cor de
 // marca de terceiro na tela, de propósito: é o que faz a faixa ser reconhecida
 // de relance no meio do feed.

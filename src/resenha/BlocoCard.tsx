@@ -8,8 +8,6 @@ import { ChatResenha } from "@/resenha/ChatResenha";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import {
   ArrowRight,
-  Camera,
-  Check,
   Download,
   EllipsisVertical,
   Goal,
@@ -20,6 +18,7 @@ import {
 } from "@/ui/Icone";
 import { baixarReplay, mensagemDownload, nomeArquivoReplay } from "@/replay/baixarReplay";
 import { PlayerReplay } from "@/replay/PlayerReplay";
+import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
 import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
@@ -33,7 +32,9 @@ type ChamarApi = <T>(
 // O mesmo card serve a tela /replays (meus gols, de qualquer grupo): lá quem chama
 // passa `meus`, que acrescenta o nome do grupo no cabeçalho, adiciona o atalho
 // "Ir para o grupo" ao menu e, se o jogador saiu do grupo, esconde os atalhos pro
-// grupo/resultado e a resenha (ele perdeu o acesso). Espelha ResenhaBlocoCard do site.
+// grupo/resultado e a resenha (ele perdeu o acesso). Gol/lance com mais de uma câmera
+// ganha os chips de câmera (SeletorCamera) à direita do título "Resenha". Espelha
+// ResenhaBlocoCard do site.
 export function BlocoCard({
   bloco,
   grupoId,
@@ -82,17 +83,20 @@ export function BlocoCard({
   const preview = comentarios.slice(-2);
   const faltam = total > preview.length;
 
+  const seletor =
+    video ? (
+      <SeletorCamera
+        videos={bloco.videos}
+        ativo={cam}
+        onTrocar={(i) => {
+          setCam(i);
+          setJaTocou(true);
+        }}
+      />
+    ) : null;
+
   // Action sheet próprio (MenuAcoes): o Alert.alert do RN corta em 3 botões no Android.
   const itensMenu: ItemMenu[] = [];
-  if (bloco.videos.length > 1) {
-    bloco.videos.forEach((v, i) => {
-      itensMenu.push({
-        rotulo: `Câmera ${v.idCamera}`,
-        Icone: i === cam ? Check : Camera,
-        onPress: () => setCam(i),
-      });
-    });
-  }
   if (meus && !grupoRemovido) {
     itensMenu.push({
       rotulo: "Ir para o grupo",
@@ -115,7 +119,10 @@ export function BlocoCard({
       // O menu fecha ao tocar, então o retorno vem num aviso (o botão do card mostra
       // "Baixando..." inline, aqui não tem onde).
       onPress: () =>
-        void baixarReplay(video.link, nomeArquivoReplay(bloco.tipo, bloco.pedidoReplayId)).then(
+        void baixarReplay(
+          video.link,
+          nomeArquivoReplay(bloco.tipo, bloco.criadoEm, video.idCamera)
+        ).then(
           (r) => {
             const { titulo, texto } = mensagemDownload(r);
             avisar(titulo, texto);
@@ -181,12 +188,12 @@ export function BlocoCard({
           <PlayerReplay
             key={video.link}
             link={video.link}
-            legenda={`Toque pra ver o replay${
-              bloco.videos.length > 1 ? ` · câmera ${video.idCamera}` : ""
-            }`}
+            legenda="Toque pra ver o replay"
             autoIniciar={jaTocou}
             aoIniciar={() => setJaTocou(true)}
           />
+          {/* Sem resenha (saiu do grupo), o seletor fica sozinho embaixo do vídeo. */}
+          {grupoRemovido && seletor && <View style={styles.seletorSozinho}>{seletor}</View>}
         </View>
       ) : (
         <View style={[styles.video, grupoRemovido && styles.videoSemResenha]}>
@@ -196,9 +203,14 @@ export function BlocoCard({
 
       {!grupoRemovido && (
         <View style={styles.resenha}>
-          <View style={styles.resenhaTituloLinha}>
-            <MessageCircle size={14} color={cores.teal} />
-            <Text style={styles.resenhaTitulo}>Resenha{total > 0 ? ` · ${total}` : ""}</Text>
+          {/* wrap-reverse: numa linha só, "Resenha" à esquerda e câmeras à direita; se não
+              couber, as câmeras ficam em cima e o título desce pra linha de baixo. */}
+          <View style={styles.resenhaCabecalho}>
+            <View style={styles.resenhaTituloLinha}>
+              <MessageCircle size={14} color={cores.teal} />
+              <Text style={styles.resenhaTitulo}>Resenha{total > 0 ? ` · ${total}` : ""}</Text>
+            </View>
+            {seletor}
           </View>
           {preview.map((c) => (
             <View key={c.id} style={styles.comentario}>
@@ -307,7 +319,16 @@ const styles = StyleSheet.create({
   videoSemResenha: { marginBottom: 14 },
   videoLegenda: { fontSize: 12, color: cores.slate400 },
   resenha: { padding: 14, gap: 10 },
+  resenhaCabecalho: {
+    flexDirection: "row",
+    flexWrap: "wrap-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    columnGap: 12,
+    rowGap: 8,
+  },
   resenhaTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  seletorSozinho: { marginTop: 10 },
   resenhaTitulo: {
     fontSize: 12,
     fontWeight: "700",

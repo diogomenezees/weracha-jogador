@@ -66,16 +66,27 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: campanhas de parceiro mescladas com o banner do Instagram (2026-10-16)
+
+Espelha o site (regra em `14-resenha.md` do site; o cadastro das campanhas é só no
+`/admin/parceiros/[id]` do site). Nos mesmos espaços do banner do Instagram, com campanha
+no ar, a cada 3 espaços 2 são do Instagram e 1 de parceiro (o primeiro é sempre nosso).
+`src/resenha/BannerCampanha.tsx` (foto do parceiro, nome + "PARCEIRO", texto, "Ver"; abre
+o link com `Linking.openURL`), `src/resenha/BannerDoFeed.tsx` (`useCampanhasNoAr` busca
+`GET /api/v1/campanhas` uma vez por tela, falha = só Instagram; `BannerDoFeed` escolhe o
+banner). FlatLists com `extraData={campanhas}` pra redesenhar quando a busca chega. A regra
+`src/contrato/bannerInstagram.ts` virou `src/contrato/bannersDoFeed.ts` (cópia literal de
+`weracha-site/lib/bannersDoFeed.ts`), teste em `__tests__/bannersDoFeed.test.ts`. Não rodou
+em device ainda.
+
 ## Feito: banner do Instagram entre os vídeos (2026-10-14)
 
 Espelha o site (mesmo dia; regra em `14-resenha.md` do site): faixa de divulgação do
 `@weracha.app` (`src/resenha/BannerInstagram.tsx`, ícone em `react-native-svg` com o
 degradê da marca) intercalada nos cards da Resenha (duas abas) e de Replays. Onde entra e
-os 3 textos vêm de `src/contrato/bannerInstagram.ts`, cópia literal de
-`weracha-site/lib/bannerInstagram.ts`: primeiro depois do 3º vídeo, depois a cada
-6, 5, 8, 7; lista curta e completa mostra no fim. Abre com `Linking.openURL` pra cair no
-app do Instagram quando instalado. Teste em `__tests__/bannerInstagram.test.ts`. Não
-rodou em device ainda.
+os 3 textos vêm hoje de `src/contrato/bannersDoFeed.ts` (era `bannerInstagram.ts`): primeiro
+depois do 3º vídeo, depois a cada 6, 5, 8, 7; lista curta e completa mostra no fim. Abre
+com `Linking.openURL` pra cair no app do Instagram quando instalado.
 
 ## Feito: Atalhos do grupo, Indicadores do grupo, artilheiros por grupo (2026-10-11)
 
@@ -89,8 +100,10 @@ Espelha o site (mesmo dia; contrato em `16-api-v1.md`):
   `GET /api/v1/grupos/{id}/indicadores?periodo=`): chips de mês (abre no corrente),
   resumo (jogos, gols, presentes por jogo), destaques do período (artilheiro, fiéis,
   melhor média, noite histórica, revelação, em alta, abre o placar, primeiro a
-  confirmar), gráfico de gols por jogo do grupo e
-  Repercussão (Beta: resenheiro, gol mais comentado). Corpo em
+  confirmar), gráfico de gols por jogo do grupo, gráfico de mensalistas por mês
+  (máximo de mensalistas num jogo do mês, nos meses dos chips; abaixo do link do ranking
+  de artilheiros; some se nenhum mês teve mensalista; sem "Ver jogos em lista" nos dois
+  gráficos desta tela; 2026-10-16) e Repercussão (Beta: resenheiro, gol mais comentado). Corpo em
   `src/estatisticas/TelaIndicadoresGrupo.tsx`; o gráfico virou genérico
   (`JogoNoGrafico`, `descrever`, `rotuloMedia`).
 - Artilheiros (menu): filtro por **grupo** no lugar de esporte (`ModalEscolha`), abre no
@@ -411,7 +424,9 @@ mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]).
   removida), com a prop `meus`: cabeçalho ganha o nome do grupo, o menu ⋮
   (`MenuAcoes`) ganha "Ir para o grupo" e o botão diz "Comentar" quando ainda não
   há comentário. Vídeo toca embutido (`PlayerReplay`) e "Baixar vídeo" do menu
-  salva na Galeria. `grupoRemovido` esconde atalhos + resenha. Antes era um card
+  salva na Galeria (o ângulo selecionado). Com mais de um vídeo, os chips "Câmeras:"
+  (`src/replay/SeletorCamera.tsx`) ficam à direita do título "Resenha" — a troca de
+  câmera saiu do menu ⋮ (2026-10-16). `grupoRemovido` esconde atalhos + resenha. Antes era um card
   próprio com "▶ Assistir" e atalhos "Grupo ›" / "Resultado ›".
 - `podeComentar` = tem data de nascimento (o servidor faz o gate 18+ de verdade).
   `podeModerar: false` — `/replays` não é escopado a grupo, então não há sinal de
@@ -434,8 +449,9 @@ Diferença que sobra: cancelar gol no app não pede confirmação (o site pede).
 
 A aba **Lances** e os replays inline usam o `src/partida/CardsReplay.tsx`, porte do
 `GolCard` do site: cabeçalho ("Lance importante" + grupo, ou "Gol marcado" + jogador) com
-hora completa, vídeo, "Registrado por", "Movido de…", "Baixar vídeo" (salva na Galeria,
-`src/replay/baixarReplay.ts`), chips de câmera, avisos de "salvo no celular" / "adicionado pelo admin" / "ainda
+hora completa, vídeo, chips "Câmeras:" à direita (`src/replay/SeletorCamera.tsx`, só com
+mais de um vídeo; o "Registrado por" saiu do card e fica só na aba Histórico), "Movido de…",
+"Baixar vídeo" (salva na Galeria, `src/replay/baixarReplay.ts`), avisos de "salvo no celular" / "adicionado pelo admin" / "ainda
 não chegou", e a resenha embaixo (`src/resenha/RespostaReplay.tsx`: preview dos 2 últimos
 comentários + "Comentar"/"Responder"). Lista vertical em vez do pager de Stories do site. O
 O Ao vivo usa os mesmos `PainelGols`, `CardsReplay` e `ReplaysDoJogadorInline`, sem

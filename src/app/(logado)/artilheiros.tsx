@@ -13,7 +13,7 @@ import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
-import type { DadosArtilheiros } from "@/contrato/tipos";
+import { CHAVE_GERAL, type DadosArtilheiros } from "@/contrato/tipos";
 
 export default function ArtilheirosGlobal() {
   // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
@@ -31,7 +31,7 @@ export default function ArtilheirosGlobal() {
       try {
         const [status, d] = await Promise.all([
           buscarStatusExclusao(chamarApi),
-          buscarArtilheiros(chamarApi),
+          buscarArtilheiros(chamarApi, { geral: true }),
         ]);
         if (!vivo) return;
         setContaPendente(status.solicitacaoPendente != null);
@@ -46,14 +46,15 @@ export default function ArtilheirosGlobal() {
     };
   }, [chamarApi, tentativa]);
 
-  // O ranking é sempre de UM grupo (o servidor abre no grupo onde o jogador jogou
-  // por último): somar grupos do mesmo esporte misturava rankings que não se
-  // comparam.
+  // A tela abre no chip "Geral" (soma de todos os grupos); os chips de grupo trocam
+  // pro ranking de um grupo só. null = Geral.
   const trocarGrupo = useCallback(
-    async (grupoId: string) => {
-      setTrocando(grupoId);
+    async (grupoId: string | null) => {
+      setTrocando(grupoId ?? CHAVE_GERAL);
       try {
-        setDados(await buscarArtilheiros(chamarApi, { grupoId }));
+        setDados(
+          await buscarArtilheiros(chamarApi, grupoId ? { grupoId } : { geral: true })
+        );
       } catch (e) {
         setErro(mensagemDoErro(e));
       } finally {
@@ -110,7 +111,6 @@ export default function ArtilheirosGlobal() {
         ) : (
           <TelaArtilheiros
             dados={dados}
-            key={dados.escopo.tipo === "grupo" ? (dados.escopo.grupoId ?? "grupo") : "esporte"}
             aoTrocarGrupo={trocarGrupo}
             grupoCarregando={trocando}
           />

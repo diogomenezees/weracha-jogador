@@ -43,6 +43,10 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   descrever,
   rotuloMedia = "sua média",
   comparacao = null,
+  unidade = { um: "gol", varios: "gols" },
+  lista = true,
+  coluna = { um: "jogo", varios: "jogos" },
+  rotular = (jogo: T) => formatarData(jogo.data),
 }: {
   jogos: T[];
   // "AAAA-MM" quando um mês está escolhido; null no Geral.
@@ -53,6 +57,15 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   // Segunda linha, tracejada, pra comparar (ex.: média dos outros jogadores nos
   // mesmos jogos). null/ausente: só a média do gráfico.
   comparacao?: { valor: number; rotulo: string } | null;
+  // O que a coluna conta. O campo continua `gols`: outro gráfico (ex.:
+  // mensalistas por mês) mapeia o valor pra ele e troca só o texto.
+  unidade?: { um: string; varios: string };
+  // "Ver jogos em lista" embaixo do gráfico. false: só o toque na coluna.
+  lista?: boolean;
+  // O que cada coluna é (padrão: um jogo) e o rótulo dela na leitura e na lista
+  // (padrão: a data). O gráfico de mensalistas usa uma coluna por mês.
+  coluna?: { um: string; varios: string };
+  rotular?: (jogo: T) => string;
 }) {
   const rolagem = useRef<ScrollView>(null);
   const [ativo, setAtivo] = useState<number | null>(null);
@@ -88,15 +101,15 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
         {jogoAtivo ? (
           <>
             <Text style={styles.leituraForte}>
-              {jogoAtivo.gols} {jogoAtivo.gols === 1 ? "gol" : "gols"}
+              {jogoAtivo.gols} {jogoAtivo.gols === 1 ? unidade.um : unidade.varios}
             </Text>
-            {` · ${formatarData(jogoAtivo.data)}${descrever ? ` · ${descrever(jogoAtivo)}` : ""}`}
+            {` · ${rotular(jogoAtivo)}${descrever ? ` · ${descrever(jogoAtivo)}` : ""}`}
           </>
         ) : (
           <>
-            {`${jogos.length} ${jogos.length === 1 ? "jogo" : "jogos"} · média de `}
+            {`${jogos.length} ${jogos.length === 1 ? coluna.um : coluna.varios} · média de `}
             <Text style={styles.leituraForte}>{formatarMedia(mediaGeral)}</Text>
-            {" gol por jogo"}
+            {` ${unidade.um} por ${coluna.um}`}
             {comparacao ? " · " + posicaoNaComparacao + " da " + comparacao.rotulo : ""}
           </>
         )}
@@ -220,28 +233,30 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
         ) : null}
       </View>
 
-      <View style={styles.listaBloco}>
-        <Pressable style={styles.listaToggle} onPress={() => setListaAberta((v) => !v)}>
-          {listaAberta ? (
-            <ChevronUp size={14} color={cores.slate400} />
-          ) : (
-            <ChevronDown size={14} color={cores.slate400} />
-          )}
-          <Text style={styles.listaToggleTexto}>Ver jogos em lista</Text>
-        </Pressable>
-        {listaAberta &&
-          [...jogos].reverse().map((j, i) => (
-            <View key={j.partidaId} style={[styles.listaLinha, i > 0 && styles.listaDivisoria]}>
-              <Text style={styles.listaEsq} numberOfLines={1}>
-                <Text style={styles.listaData}>{formatarData(j.data)}</Text>{" "}
-                {descrever?.(j)}
-              </Text>
-              <Text style={styles.listaGols}>
-                {j.gols} {j.gols === 1 ? "gol" : "gols"}
-              </Text>
-            </View>
-          ))}
-      </View>
+      {lista && (
+        <View style={styles.listaBloco}>
+          <Pressable style={styles.listaToggle} onPress={() => setListaAberta((v) => !v)}>
+            {listaAberta ? (
+              <ChevronUp size={14} color={cores.slate400} />
+            ) : (
+              <ChevronDown size={14} color={cores.slate400} />
+            )}
+            <Text style={styles.listaToggleTexto}>Ver jogos em lista</Text>
+          </Pressable>
+          {listaAberta &&
+            [...jogos].reverse().map((j, i) => (
+              <View key={j.partidaId} style={[styles.listaLinha, i > 0 && styles.listaDivisoria]}>
+                <Text style={styles.listaEsq} numberOfLines={1}>
+                  <Text style={styles.listaData}>{rotular(j)}</Text>{" "}
+                  {descrever?.(j)}
+                </Text>
+                <Text style={styles.listaGols}>
+                  {j.gols} {j.gols === 1 ? unidade.um : unidade.varios}
+                </Text>
+              </View>
+            ))}
+        </View>
+      )}
     </View>
   );
 }

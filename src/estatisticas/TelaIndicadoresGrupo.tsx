@@ -21,6 +21,7 @@ import {
   UserCheck,
   Users,
   Video,
+  Wallet,
   Zap,
   type LucideIcon,
 } from "@/ui/Icone";
@@ -34,8 +35,8 @@ import {
 } from "@/contrato/tipos";
 
 // Corpo da tela de indicadores do grupo: chips de período (o mês corrente vem
-// selecionado), resumo, destaques do grupo (mesmo cálculo do painel), gráfico de
-// gols por jogo e repercussão (Beta). Trocar o chip pede o período ao servidor
+// selecionado), resumo, destaques do grupo (mesmo cálculo do painel), gráficos de
+// gols por jogo e de mensalistas por mês e repercussão (Beta). Trocar o chip pede o período ao servidor
 // (a rota cuida disso). Espelha weracha-site/components/tela-indicadores-grupo.tsx.
 
 function plural(n: number, um: string, varios: string): string {
@@ -166,6 +167,24 @@ export function TelaIndicadoresGrupo({
   const jogos = doPeriodo.length;
   const gols = doPeriodo.reduce((s, p) => s + p.gols, 0);
   const presentes = doPeriodo.reduce((s, p) => s + p.presentes, 0);
+
+  // Mensalistas por MÊS, nos mesmos meses dos chips: o máximo de mensalistas
+  // num jogo do mês (mês sem jogo fica zerado). Mesmo gráfico de colunas, com
+  // o valor no campo `gols`. Grupo que não usa mensalista não vê a seção.
+  const mensalistasPorMes = dados.periodos
+    .filter((p) => p.chave !== CHAVE_GERAL)
+    .map((p) => {
+      const doMes = dados.partidas.filter((x) => x.mes === p.chave);
+      return {
+        partidaId: p.chave,
+        data: doMes[0]?.data ?? "",
+        mes: p.chave,
+        gols: Math.max(0, ...doMes.map((x) => x.mensalistas ?? 0)),
+        rotulo: p.rotuloCurto,
+        jogos: doMes.length,
+      };
+    });
+  const temMensalistas = mensalistasPorMes.some((m) => m.gols > 0);
 
   const d = dados.destaques;
   const destaquesDeJogo: CardDestaque[] = [];
@@ -332,6 +351,7 @@ export function TelaIndicadoresGrupo({
               mesDestacado={ehGeral ? null : dados.periodo}
               descrever={(p) => plural(p.presentes, "presente", "presentes")}
               rotuloMedia="média do grupo"
+              lista={false}
             />
           </View>
         )}
@@ -347,6 +367,24 @@ export function TelaIndicadoresGrupo({
           </View>
           <ChevronRight size={16} color={cores.slate500} />
         </Pressable>
+
+        {temMensalistas && (
+          <View>
+            <TituloSecao Icone={Wallet} titulo="Mensalistas por mês" />
+            <GraficoGolsPorJogo
+              jogos={mensalistasPorMes}
+              mesDestacado={ehGeral ? null : dados.periodo}
+              descrever={(m) =>
+                m.jogos > 0 ? `máximo em ${plural(m.jogos, "jogo", "jogos")}` : "sem jogo"
+              }
+              rotuloMedia="média dos meses"
+              unidade={{ um: "mensalista", varios: "mensalistas" }}
+              coluna={{ um: "mês", varios: "meses" }}
+              rotular={(m) => m.rotulo}
+              lista={false}
+            />
+          </View>
+        )}
 
         {destaquesDaResenha.length > 0 && (
           <View>

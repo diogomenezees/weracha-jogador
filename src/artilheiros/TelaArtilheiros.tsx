@@ -4,7 +4,7 @@ import { Text } from "@/ui/Texto";
 
 import { ModalEscolha } from "@/grupo/pickers";
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { Trophy, Users } from "@/ui/Icone";
+import { Trophy } from "@/ui/Icone";
 import { Podio } from "@/artilheiros/Podio";
 import {
   CHAVE_GERAL,
@@ -27,9 +27,10 @@ export function TelaArtilheiros({
   dados: DadosArtilheiros;
   aoTrocarEsporte?: (esporte: string) => void;
   esporteCarregando?: string | null;
-  /** Tela global de artilheiros: troca o grupo do ranking (o seletor só aparece
-   * com isso e com 2+ grupos). A tela de artilheiros DO grupo não passa. */
-  aoTrocarGrupo?: (grupoId: string) => void;
+  /** Tela global de artilheiros: troca o grupo do ranking; null = "Geral" (soma dos
+   * grupos). Os chips só aparecem com isso e com 2+ grupos. A tela de artilheiros DO
+   * grupo não passa. */
+  aoTrocarGrupo?: (grupoId: string | null) => void;
   grupoCarregando?: string | null;
   /** Reporta o período aberto + ranking dele pro pai montar o compartilhamento
    * (o botão mora no cabeçalho da tela, não aqui — mesmo desenho do site). */
@@ -39,8 +40,14 @@ export function TelaArtilheiros({
   const [zeradosAbertos, setZeradosAbertos] = useState(false);
   const [esporteAberto, setEsporteAberto] = useState(false);
 
+  // Trocar de grupo não remonta a tela (a tira de chips perderia a rolagem e o
+  // grupo tocado sumiria da vista): o mês marcado continua, e se o grupo novo
+  // não tem esse mês, cai no inicial dele.
   const periodo =
-    dados.periodos.find((p) => p.chave === periodoChave) ?? dados.periodos[0] ?? null;
+    dados.periodos.find((p) => p.chave === periodoChave) ??
+    dados.periodos.find((p) => p.chave === dados.periodoInicial) ??
+    dados.periodos[0] ??
+    null;
   const chave = periodo?.chave ?? CHAVE_GERAL;
 
   const ranking = useMemo(() => rankingDoPeriodo(dados, chave), [dados, chave]);
@@ -54,14 +61,20 @@ export function TelaArtilheiros({
   const ehGrupo = dados.escopo.tipo === "grupo";
   const esporteScope = dados.escopo.tipo === "esporte" ? dados.escopo : null;
   const nomeEsporte =
-    dados.escopo.tipo === "esporte" ? dados.escopo.esporteSelecionado : dados.escopo.esporte;
+    dados.escopo.tipo === "esporte"
+      ? dados.escopo.esporteSelecionado
+      : dados.escopo.tipo === "grupo"
+        ? dados.escopo.esporte
+        : null;
   const soGeral = dados.periodos.length <= 1;
   const trocando = !!esporteCarregando || !!grupoCarregando;
-  const [grupoAberto, setGrupoAberto] = useState(false);
-  const grupoScope = dados.escopo.tipo === "grupo" ? dados.escopo : null;
+  // Grupo aberto no ranking (null = "Geral") e os grupos pros chips.
+  const grupoAtivo = dados.escopo.tipo === "grupo" ? (dados.escopo.grupoId ?? null) : null;
+  const gruposDisponiveis =
+    dados.escopo.tipo === "esporte" ? undefined : dados.escopo.gruposDisponiveis;
   const gruposParaEscolher =
-    aoTrocarGrupo && grupoScope?.gruposDisponiveis && grupoScope.gruposDisponiveis.length > 1
-      ? grupoScope.gruposDisponiveis
+    aoTrocarGrupo && gruposDisponiveis && gruposDisponiveis.length > 1
+      ? [{ id: null, nome: "Geral" }, ...gruposDisponiveis]
       : null;
 
   function escolherEsporte() {
@@ -75,28 +88,33 @@ export function TelaArtilheiros({
 
   return (
     <View style={[styles.container, trocando && styles.trocando]}>
-      {gruposParaEscolher && grupoScope && (
+      {gruposParaEscolher && (
         <View style={styles.filtroLinha}>
-          <Text style={styles.filtroRotulo}>Grupo</Text>
-          <Pressable style={styles.chipSel} onPress={() => setGrupoAberto(true)} disabled={trocando}>
-            <Text style={styles.chipSelTexto} numberOfLines={1}>
-              {grupoScope.grupoNome}
-            </Text>
-            <Text style={styles.chipSelSeta}>{trocando ? "…" : "▾"}</Text>
-          </Pressable>
-          <ModalEscolha
-            aberto={grupoAberto}
-            onFechar={() => setGrupoAberto(false)}
-            Icone={Users}
-            titulo="Grupo"
-            descricao="Escolha o grupo pra ver o ranking de artilheiros dele."
-            opcoes={gruposParaEscolher.map((g) => g.nome)}
-            selecionado={gruposParaEscolher.findIndex((g) => g.id === grupoScope.grupoId)}
-            onEscolher={(i) => {
-              const g = gruposParaEscolher[i];
-              if (g.id !== grupoScope.grupoId) aoTrocarGrupo?.(g.id);
-            }}
-          />
+          <Text style={styles.filtroRotulo}>Grupos</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chips}
+          >
+            {gruposParaEscolher.map((g) => {
+              const ativo = g.id === grupoAtivo;
+              const carregando = grupoCarregando === (g.id ?? CHAVE_GERAL);
+              return (
+                <Pressable
+                  key={g.id ?? CHAVE_GERAL}
+                  style={[styles.chip, ativo && styles.chipAtivo]}
+                  disabled={trocando}
+                  onPress={() => {
+                    if (!ativo) aoTrocarGrupo?.(g.id);
+                  }}
+                >
+                  <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>
+                    {carregando ? `${g.nome} …` : g.nome}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
         </View>
       )}
 

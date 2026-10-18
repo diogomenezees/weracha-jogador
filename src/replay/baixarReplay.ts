@@ -33,8 +33,16 @@ export async function baixarReplay(link: string, nomeArquivo: string): Promise<R
   }
 }
 
-export function nomeArquivoReplay(tipo: "GOL" | "LANCE", id: string): string {
-  return `${tipo === "LANCE" ? "lance" : "gol"}-${id}.mp4`;
+// Nome legível e único por ângulo: tipo + data/hora do lance (fuso do celular) + câmera,
+// ex.: "weracha-gol-2026-10-15_22h41m10-cam-a1b2c3.mp4". Antes era "gol-<uuid>.mp4", e os
+// ângulos do mesmo lance saíam com o mesmo nome. Espelha nomeArquivoReplay do site
+// (weracha-site/components/gols-pager.tsx).
+export function nomeArquivoReplay(tipo: "GOL" | "LANCE", criadoEm: string, idCamera: string): string {
+  const d = new Date(criadoEm);
+  const p = (n: number) => String(n).padStart(2, "0");
+  const quando = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}h${p(d.getMinutes())}m${p(d.getSeconds())}`;
+  const camera = idCamera.replace(/[^a-zA-Z0-9_-]+/g, "-");
+  return `weracha-${tipo === "LANCE" ? "lance" : "gol"}-${quando}-${camera}.mp4`;
 }
 
 export function mensagemDownload(r: ResultadoDownload): { titulo: string; texto: string } {

@@ -3,7 +3,6 @@ import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router, type Href } from "expo-router";
 
 import { Text, FAMILIA_MONO } from "@/ui/Texto";
-import { ModalEscolha } from "@/grupo/pickers";
 import { GraficoGolsPorJogo } from "@/estatisticas/GraficoGolsPorJogo";
 import {
   BarChart3,
@@ -17,7 +16,6 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  Users,
   Video,
   type LucideIcon,
 } from "@/ui/Icone";
@@ -128,7 +126,6 @@ function SetaTendencia({ diferenca }: { diferenca: number }) {
 export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
   const [grupoId, setGrupoId] = useState<string | null>(null);
   const [periodo, setPeriodo] = useState(dados.periodoInicial);
-  const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
 
   const nomePorGrupo = useMemo(
     () => new Map(dados.grupos.map((g) => [g.id, g.nome])),
@@ -190,8 +187,7 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
     }
   }
 
-  const opcoesGrupo = ["Todos os grupos", ...dados.grupos.map((g) => g.nome)];
-  const indiceGrupo = grupoId ? dados.grupos.findIndex((g) => g.id === grupoId) + 1 : 0;
+  const opcoesGrupo = [{ id: null, nome: "Geral" }, ...dados.grupos];
 
   const comparacaoUltimo =
     ultimo && mediaAntesDoUltimo !== null
@@ -208,23 +204,25 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
       <View style={styles.filtros}>
         {dados.grupos.length > 1 && (
           <View style={styles.filtroLinha}>
-            <Text style={styles.filtroRotulo}>Grupo</Text>
-            <Pressable style={styles.chipSel} onPress={() => setEscolhendoGrupo(true)}>
-              <Text style={styles.chipSelTexto} numberOfLines={1}>
-                {opcoesGrupo[indiceGrupo]}
-              </Text>
-              <Text style={styles.chipSelSeta}>▾</Text>
-            </Pressable>
-            <ModalEscolha
-              aberto={escolhendoGrupo}
-              onFechar={() => setEscolhendoGrupo(false)}
-              Icone={Users}
-              titulo="Grupo"
-              descricao="Escolha o grupo pra ver seus números nele."
-              opcoes={opcoesGrupo}
-              selecionado={indiceGrupo}
-              onEscolher={(i) => setGrupoId(i === 0 ? null : dados.grupos[i - 1].id)}
-            />
+            <Text style={styles.filtroRotulo}>Grupos</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chips}
+            >
+              {opcoesGrupo.map((g) => {
+                const ativo = g.id === grupoId;
+                return (
+                  <Pressable
+                    key={g.id ?? CHAVE_GERAL}
+                    style={[styles.chip, ativo && styles.chipAtivo]}
+                    onPress={() => setGrupoId(g.id)}
+                  >
+                    <Text style={[styles.chipTexto, ativo && styles.chipTextoAtivo]}>{g.nome}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
         )}
         <View style={styles.filtroLinha}>
@@ -466,19 +464,6 @@ const styles = StyleSheet.create({
     color: cores.slate400,
     textTransform: "uppercase",
   },
-  chipSel: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: cores.avisoBorda,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    maxWidth: 220,
-  },
-  chipSelTexto: { fontSize: 12, fontWeight: "600", color: cores.branco, flexShrink: 1 },
-  chipSelSeta: { fontSize: 10, color: cores.slate400 },
   chips: { gap: 6, paddingRight: 8 },
   chip: {
     flexDirection: "row",

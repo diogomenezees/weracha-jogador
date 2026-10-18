@@ -33,6 +33,7 @@ import {
 } from "@/resenha/reconciliar";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { useBlurTarget } from "@/ui/BlurTarget";
+import { useAlturaTecladoAndroid } from "@/ui/useAlturaTecladoAndroid";
 import { cores, raio } from "@/tema";
 import type { ComentarioResenha, PodeComentar } from "@/contrato/tipos";
 
@@ -73,6 +74,8 @@ export function ChatResenha({
 }) {
   const blurTarget = useBlurTarget();
   const insets = useSafeAreaInsets();
+  // Android: sobe o composer acima do teclado (o Modal edge-to-edge não encolhe).
+  const alturaTeclado = useAlturaTecladoAndroid();
   const [comentarios, setComentarios] = useState<ComentarioResenha[]>(comentariosIniciais);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -253,7 +256,7 @@ export function ChatResenha({
         <Pressable style={styles.fundoToque} onPress={onFechar} />
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={[styles.folha, { paddingBottom: 24 + insets.bottom }]}
+          style={[styles.folha, { paddingBottom: 24 + insets.bottom, marginBottom: alturaTeclado }]}
         >
           <View style={styles.cabecalho}>
             <View style={styles.tituloLinha}>
@@ -419,6 +422,8 @@ const styles = StyleSheet.create({
   fundoToque: { flex: 1 },
   folha: {
     maxHeight: "85%",
+    // Com o teclado aberto (marginBottom), encolhe a lista em vez de passar do topo.
+    flexShrink: 1,
     backgroundColor: "#12161f",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

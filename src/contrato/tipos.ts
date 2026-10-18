@@ -223,6 +223,16 @@ export type Parceiro = {
   fotoUrl: string;
 };
 
+// ── GET /api/v1/campanhas ───────────────────────────────────────────────────
+// Cópia de weracha-site/lib/services/campanhas.ts (`CampanhaNoAr`).
+export type CampanhaNoAr = {
+  id: string;
+  parceiroNome: string;
+  parceiroFotoUrl: string;
+  texto: string;
+  link: string;
+};
+
 // ── GET /api/v1/artilheiros ─────────────────────────────────────────────────
 // Cópia de weracha-site/lib/artilheiros.ts (tipos e helpers puros).
 
@@ -271,7 +281,9 @@ export type DadosArtilheiros = {
         tipo: "esporte";
         esporteSelecionado: string | null;
         esportesDisponiveis: string[];
-      };
+      }
+    // Soma de todos os grupos do jogador (chip "Geral"), só quando pedido com `?geral=1`.
+    | { tipo: "geral"; gruposDisponiveis: { id: string; nome: string }[] };
   periodos: PeriodoArtilheiros[];
   periodoInicial: string;
   jogadores: JogadorArtilheiro[];
@@ -725,6 +737,8 @@ export type PartidaDoGrupoNoGrafico = {
   mes: string;
   gols: number;
   presentes: number;
+  // Check-ins cobrados como mensalista na partida. Opcional: site antigo não manda.
+  mensalistas?: number;
 };
 
 export type DadosIndicadoresDoGrupo = {

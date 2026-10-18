@@ -29,45 +29,61 @@ export function FileiraDeDatas({
     rolagemRef.current?.scrollTo({ x: Math.max(0, x), animated: false });
   }, [posicaoAtual, larguraFileira]);
 
+  // Rótulo fixo à esquerda e só as datas rolando, igual aos filtros "Grupos" e
+  // "Meses" de Artilheiros e Minha performance.
   return (
-    <ScrollView
-      ref={rolagemRef}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.fileira}
-      onLayout={(e) => setLarguraFileira(e.nativeEvent.layout.width)}
-    >
-      {partidas.map((p) => {
-        const data = new Date(p.data);
-        const atual = p.id === partidaAtualId;
-        return (
-          <Pressable
-            key={p.id}
-            disabled={atual}
-            onPress={() => onTrocar(p.id)}
-            onLayout={
-              atual
-                ? (e: LayoutChangeEvent) =>
-                    setPosicaoAtual({ x: e.nativeEvent.layout.x, largura: e.nativeEvent.layout.width })
-                : undefined
-            }
-            style={[styles.botao, atual && styles.botaoAtual]}
-          >
-            <View style={styles.centro}>
-              <Text style={[styles.data, atual && styles.textoAtual]}>
-                {String(data.getDate()).padStart(2, "0")}/{String(data.getMonth() + 1).padStart(2, "0")}
-              </Text>
-              {/* Hora sempre: distingue os jogos de um mesmo dia. */}
-              <Text style={[styles.hora, atual && styles.textoAtual]}>{formatarHora(data)}</Text>
-            </View>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+    <View style={styles.linha}>
+      <Text style={styles.rotulo}>Jogos</Text>
+      <ScrollView
+        ref={rolagemRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.rolagem}
+        contentContainerStyle={styles.fileira}
+        onLayout={(e) => setLarguraFileira(e.nativeEvent.layout.width)}
+      >
+        {partidas.map((p) => {
+          const data = new Date(p.data);
+          const atual = p.id === partidaAtualId;
+          return (
+            <Pressable
+              key={p.id}
+              disabled={atual}
+              onPress={() => onTrocar(p.id)}
+              onLayout={
+                atual
+                  ? (e: LayoutChangeEvent) =>
+                      setPosicaoAtual({ x: e.nativeEvent.layout.x, largura: e.nativeEvent.layout.width })
+                  : undefined
+              }
+              style={[styles.botao, atual && styles.botaoAtual]}
+            >
+              <View style={styles.centro}>
+                <Text style={[styles.data, atual && styles.textoAtual]}>
+                  {String(data.getDate()).padStart(2, "0")}/{String(data.getMonth() + 1).padStart(2, "0")}
+                </Text>
+                {/* Hora sempre: distingue os jogos de um mesmo dia. */}
+                <Text style={[styles.hora, atual && styles.textoAtual]}>{formatarHora(data)}</Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  linha: { flexDirection: "row", alignItems: "center", gap: 8 },
+  // Mesmo estilo do `filtroRotulo` de TelaArtilheiros / TelaEstatisticas.
+  rotulo: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1,
+    color: cores.slate400,
+    textTransform: "uppercase",
+  },
+  rolagem: { flex: 1 },
   fileira: { gap: 8 },
   botao: {
     width: 68,

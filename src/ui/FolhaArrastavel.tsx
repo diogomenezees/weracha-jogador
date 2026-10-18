@@ -81,6 +81,12 @@ export function FolhaArrastavel({
   const tecladoAberto = useSharedValue(false);
   // O gesto atual só serviu pra fechar o teclado: a folha não acompanha.
   const soTeclado = useSharedValue(false);
+  // Android: o Modal vai até a borda (edge-to-edge), então a janela não encolhe
+  // com o teclado e o KeyboardAvoidingView não tem o que fazer — a folha ficava
+  // inteira atrás do teclado. Sobe a folha na mão pela altura dele (que já vem
+  // sem a barra de navegação, coberta pela `folgaInferior`). No iOS quem faz é
+  // o KeyboardAvoidingView.
+  const alturaTeclado = useSharedValue(0);
 
   useEffect(() => {
     if (!aberto) return;
@@ -91,13 +97,21 @@ export function FolhaArrastavel({
   }, [aberto, fechando, arrasto, progresso]);
 
   useEffect(() => {
-    const mostrou = Keyboard.addListener("keyboardDidShow", () => tecladoAberto.set(true));
-    const escondeu = Keyboard.addListener("keyboardDidHide", () => tecladoAberto.set(false));
+    const mostrou = Keyboard.addListener("keyboardDidShow", (e) => {
+      tecladoAberto.set(true);
+      if (Platform.OS === "android") {
+        alturaTeclado.set(withTiming(Math.max(0, e.endCoordinates.height), { duration: 180 }));
+      }
+    });
+    const escondeu = Keyboard.addListener("keyboardDidHide", () => {
+      tecladoAberto.set(false);
+      alturaTeclado.set(withTiming(0, { duration: 180 }));
+    });
     return () => {
       mostrou.remove();
       escondeu.remove();
     };
-  }, [tecladoAberto]);
+  }, [tecladoAberto, alturaTeclado]);
 
   function concluir(depois?: () => void) {
     onFechar();
@@ -146,6 +160,7 @@ export function FolhaArrastavel({
 
   const estiloFolha = useAnimatedStyle(() => ({
     transform: [{ translateY: altura.get() * (1 - progresso.get()) + arrasto.get() }],
+    marginBottom: alturaTeclado.get(),
   }));
   const estiloFundo = useAnimatedStyle(() => ({
     opacity: interpolate(

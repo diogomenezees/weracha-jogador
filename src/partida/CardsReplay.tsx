@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import type { OpcoesRequisicao } from "@/api/cliente";
@@ -9,6 +9,7 @@ import { Ban, Clock, Goal, Smartphone, Sparkles, Users, VideoOff } from "@/ui/Ic
 import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
 import { nomeArquivoReplay } from "@/replay/baixarReplay";
 import { PlayerReplay } from "@/replay/PlayerReplay";
+import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
 import type { ComentarioResenha, GolComVideos, PodeComentar } from "@/contrato/tipos";
@@ -21,8 +22,8 @@ function formatarHoraCompleta(d: Date): string {
 
 // Lista vertical de replays (lances ou gols de um jogador) no formato do `GolCard` do
 // site (weracha-site/components/gols-pager.tsx): cabeçalho com quem/tipo + horário
-// completo, vídeo, "Registrado por", "Baixar vídeo", chips de câmera e a resenha
-// embaixo. O site mostra um por tela num pager de Stories; aqui é uma lista vertical
+// completo, vídeo, chips de câmera (SeletorCamera, à direita — "Registrado por" fica só
+// na aba Histórico), "Baixar vídeo" e a resenha embaixo. O site mostra um por tela num pager de Stories; aqui é uma lista vertical
 // (o app abandonou o pager, ver memória weracha_pager_replay_scroll_snap) e o vídeo toca
 // embutido no card (`PlayerReplay`, expo-video), igual ao <video> do site.
 export function CardsReplay({
@@ -30,6 +31,7 @@ export function CardsReplay({
   grupoNome,
   vazioTexto,
   comentar,
+  ocultarJogador = false,
 }: {
   gols: GolComVideos[];
   /** Só usado no card de lance (sem jogador vinculado). */
@@ -43,6 +45,8 @@ export function CardsReplay({
     porPedido: Record<string, ComentarioResenha[]>;
     onComentarios: (pedidoReplayId: string, lista: ComentarioResenha[]) => void;
   };
+  /** Replays de um jogador só (ReplaysDoJogadorInline): o cabeçalho já mostra foto e nome. */
+  ocultarJogador?: boolean;
 }) {
   if (gols.length === 0) {
     return (
@@ -55,7 +59,13 @@ export function CardsReplay({
   return (
     <View style={{ gap: 12 }}>
       {gols.map((g) => (
-        <CardReplay key={g.golId} gol={g} grupoNome={grupoNome} comentar={comentar} />
+        <CardReplay
+          key={g.golId}
+          gol={g}
+          grupoNome={grupoNome}
+          comentar={comentar}
+          ocultarJogador={ocultarJogador}
+        />
       ))}
     </View>
   );
@@ -65,10 +75,12 @@ function CardReplay({
   gol,
   grupoNome,
   comentar,
+  ocultarJogador,
 }: {
   gol: GolComVideos;
   grupoNome: string;
   comentar?: Parameters<typeof CardsReplay>[0]["comentar"];
+  ocultarJogador: boolean;
 }) {
   const [cam, setCam] = useState(0);
   // Trocar de câmera depois de já ter dado play continua tocando (o site faz igual).
@@ -121,7 +133,8 @@ function CardReplay({
               </Text>
             </View>
           ) : (
-            gol.jogador && (
+            gol.jogador &&
+            !ocultarJogador && (
               <View style={styles.subLinha}>
                 <AvatarJogador
                   id={gol.jogador.id}
@@ -157,17 +170,20 @@ function CardReplay({
           <PlayerReplay
             key={videoAtual.link}
             link={videoAtual.link}
-            legenda={`Toque pra ver o replay${
-              videosNuvem.length > 1 ? ` · câmera ${videoAtual.idCamera}` : ""
-            }`}
+            legenda="Toque pra ver o replay"
             autoIniciar={jaTocou}
             aoIniciar={() => setJaTocou(true)}
           />
-          {gol.marcadoPor && (
-            <Text style={styles.registrado}>
-              Registrado por <Text style={styles.registradoNome}>{gol.marcadoPor.nome}</Text>
-            </Text>
-          )}
+          {/* No lugar do antigo "Registrado por" (que segue na aba Histórico do resultado,
+              o lugar de auditoria de quem marcou): a troca de câmera, à direita. */}
+          <SeletorCamera
+            videos={videosNuvem}
+            ativo={cam}
+            onTrocar={(i) => {
+              setCam(i);
+              setJaTocou(true);
+            }}
+          />
           {gol.migracao && (
             <Text style={styles.migracao}>
               Movido de {gol.migracao.deNome} por {gol.migracao.porNome}
@@ -175,21 +191,8 @@ function CardReplay({
           )}
           <BotaoBaixarVideo
             link={videoAtual.link}
-            nomeArquivo={nomeArquivoReplay(gol.tipo, gol.golId)}
+            nomeArquivo={nomeArquivoReplay(gol.tipo, gol.criadoEm, videoAtual.idCamera)}
           />
-          {videosNuvem.length > 1 && (
-            <View style={styles.cams}>
-              {videosNuvem.map((v, i) => (
-                <Pressable
-                  key={v.link}
-                  style={[styles.camChip, i === cam && styles.camChipOn]}
-                  onPress={() => setCam(i)}
-                >
-                  <Text style={[styles.camTexto, i === cam && styles.camTextoOn]}>{v.idCamera}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
         </View>
       ) : videoLocal ? (
         <View style={[styles.aviso, styles.avisoTeal]}>
@@ -280,20 +283,7 @@ const styles = StyleSheet.create({
   horaLinha: { flexDirection: "row", alignItems: "center", gap: 5 },
   hora: { fontSize: 12, color: cores.slate400 },
   corpo: { paddingHorizontal: 14, gap: 8, paddingBottom: 14 },
-  registrado: { fontSize: 12, color: cores.slate400, textAlign: "right" },
-  registradoNome: { color: cores.slate200, fontWeight: "600" },
   migracao: { fontSize: 12, color: "rgba(251, 191, 36, 0.8)", textAlign: "right" },
-  cams: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  camChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  camChipOn: { backgroundColor: cores.teal, borderColor: cores.teal },
-  camTexto: { fontSize: 12, color: cores.slate300 },
-  camTextoOn: { color: cores.dark, fontWeight: "700" },
   aviso: {
     marginHorizontal: 14,
     marginBottom: 14,

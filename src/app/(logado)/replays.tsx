@@ -14,8 +14,8 @@ import { buscarStatusExclusao } from "@/api/conta";
 import { buscarMeusReplays } from "@/api/replays";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
-import { bannerInstagramDepoisDe } from "@/contrato/bannerInstagram";
-import { BannerInstagram } from "@/resenha/BannerInstagram";
+import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
+import { BannerDoFeed, useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -53,6 +53,7 @@ export default function Replays() {
   // Sem folga embaixo, a barra de botões do Android fica em cima do último card.
   const insets = useSafeAreaInsets();
   const { estado, chamarApi } = useSessao();
+  const campanhas = useCampanhasNoAr();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
 
   const [replays, setReplays] = useState<MeuReplay[] | null>(null);
@@ -150,6 +151,8 @@ export default function Replays() {
       <Navbar voltar="Painel" />
       <FlatList
         data={contaPendente ? [] : replays}
+        // Campanhas chegam numa busca à parte: redesenha os banners quando vierem.
+        extraData={campanhas}
         keyExtractor={(r) => r.pedidoReplayId}
         contentContainerStyle={[styles.lista, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
@@ -164,11 +167,12 @@ export default function Replays() {
         onEndReached={() => void carregarMais()}
         ListHeaderComponent={
           <View style={styles.cabecalho}>
-            <TituloTela Icone={Video}>Replays</TituloTela>
-            <Text style={styles.sub}>
-              Os replays dos seus gols em qualquer partida, de qualquer grupo, sem precisar entrar
-              em cada uma.
-            </Text>
+            <View style={styles.tituloComSelo}>
+              <TituloTela Icone={Video}>Replays</TituloTela>
+              {/* Mesmo selo da Resenha e da Repercussão em Minha performance. */}
+              <Text style={styles.beta}>Beta</Text>
+            </View>
+            <Text style={styles.sub}>Os replays de todos os seus gols estão concentrados aqui.</Text>
           </View>
         }
         ListEmptyComponent={
@@ -186,7 +190,7 @@ export default function Replays() {
           )
         }
         renderItem={({ item, index }) => {
-          const banner = bannerInstagramDepoisDe(index, replays.length, !temMais);
+          const banner = bannerDoFeedDepoisDe(index, replays.length, !temMais, campanhas.length);
           return (
             <View style={styles.item}>
               <BlocoCard
@@ -198,7 +202,7 @@ export default function Replays() {
                 podeComentar={podeComentar}
                 meus={{ grupoNome: item.grupoNome, grupoRemovido: item.grupoRemovido }}
               />
-              {banner !== null && <BannerInstagram mensagem={banner} />}
+              {banner !== null && <BannerDoFeed banner={banner} campanhas={campanhas} />}
             </View>
           );
         }}
@@ -228,7 +232,22 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   lista: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 16 },
   cabecalho: { gap: 4, marginBottom: 2 },
-  // Card + banner do Instagram (quando cai ali), com o mesmo respiro da lista.
+  tituloComSelo: { flexDirection: "row", alignItems: "center", gap: 8 },
+  beta: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: cores.ambar,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: "rgba(251, 191, 36, 0.1)",
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: "hidden",
+  },
+  // Card + banner (Instagram ou campanha, quando cai ali), com o mesmo respiro da lista.
   item: { gap: 16 },
   sub: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   box: {

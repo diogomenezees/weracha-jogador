@@ -47,6 +47,7 @@ export function ReplaysDoJogadorInline({
         grupoNome={grupoNome}
         vazioTexto="Nenhum replay desse jogador nessa partida."
         comentar={comentar}
+        ocultarJogador
       />
     </View>
   );

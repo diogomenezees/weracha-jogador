@@ -1,5 +1,5 @@
 import type { OpcoesRequisicao } from "@/api/cliente";
-import type { Parceiro } from "@/contrato/tipos";
+import type { CampanhaNoAr, Parceiro } from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
@@ -8,4 +8,11 @@ type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 export async function buscarParceiros(chamarApi: ChamarApi): Promise<Parceiro[]> {
   const { parceiros } = await chamarApi<{ parceiros: Parceiro[] }>("/api/v1/parceiros");
   return parceiros;
+}
+
+// GET /api/v1/campanhas — campanhas de parceiro no ar hoje, já embaralhadas,
+// pros banners entre os vídeos (Resenha e Meus replays). Ver 16-api-v1.md §3.
+export async function buscarCampanhasNoAr(chamarApi: ChamarApi): Promise<CampanhaNoAr[]> {
+  const { campanhas } = await chamarApi<{ campanhas: CampanhaNoAr[] }>("/api/v1/campanhas");
+  return campanhas;
 }

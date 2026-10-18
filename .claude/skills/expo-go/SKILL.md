@@ -6,7 +6,7 @@ description: Sobe o app de jogador (weracha-jogador) no Expo Go do celular Andro
 # Expo Go no celular
 
 Tudo está em [expo-go-celular.ps1](expo-go-celular.ps1). Rodar pela ferramenta PowerShell
-(timeout de ~4 min: ele espera até 90s o usuário autorizar o USB e até 90s o Metro subir):
+(timeout de ~5 min: ele espera até 90s o usuário autorizar o USB e até 180s o Metro subir; `--clear` só com `-Limpar`, porque sem cache a subida passa de 1 min):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "C:\Users\Diogo Oliveira\projetos\weracha-system\weracha-jogador\.claude\skills\expo-go\expo-go-celular.ps1"
