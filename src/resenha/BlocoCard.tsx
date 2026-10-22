@@ -17,6 +17,8 @@ import {
   Users,
 } from "@/ui/Icone";
 import { baixarReplay, mensagemDownload, nomeArquivoReplay } from "@/replay/baixarReplay";
+import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
+import { BotaoFavorito } from "@/replay/BotaoFavorito";
 import { PlayerReplay } from "@/replay/PlayerReplay";
 import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
@@ -31,9 +33,12 @@ type ChamarApi = <T>(
 
 // O mesmo card serve a tela /replays (meus gols, de qualquer grupo): lá quem chama
 // passa `meus`, que acrescenta o nome do grupo no cabeçalho, adiciona o atalho
-// "Ir para o grupo" ao menu e, se o jogador saiu do grupo, esconde os atalhos pro
-// grupo/resultado e a resenha (ele perdeu o acesso). Gol/lance com mais de uma câmera
-// ganha os chips de câmera (SeletorCamera) à direita do título "Resenha". Espelha
+// "Ir para o grupo" ao menu, troca o "Baixar vídeo" do menu pelo botão laranja embaixo
+// do vídeo e, se o jogador saiu do grupo, esconde os atalhos pro grupo/resultado e a
+// resenha (ele perdeu o acesso; aí o ⋮ some, sem item). Gol/lance com mais de uma câmera
+// ganha os chips de câmera (SeletorCamera) à direita do título "Resenha". A aba
+// Favoritos passa `favoritos` (mesmo tratamento de "fora do grupo", mas o replay pode ser
+// de qualquer pessoa). O coração (BotaoFavorito) fica ao lado do ⋮. Espelha
 // ResenhaBlocoCard do site.
 export function BlocoCard({
   bloco,
@@ -43,6 +48,7 @@ export function BlocoCard({
   meuJogadorId,
   podeComentar,
   meus,
+  favoritos,
   destacado = false,
 }: {
   bloco: BlocoFeedResenha;
@@ -52,6 +58,9 @@ export function BlocoCard({
   meuJogadorId: string | null;
   podeComentar: PodeComentar;
   meus?: { grupoNome: string; grupoRemovido: boolean };
+  // Aba Favoritos de /replays: replay de qualquer pessoa, fora da tela do grupo. Mostra
+  // o nome do grupo no cabeçalho, "Ir para o grupo" no menu e o botão laranja de baixar.
+  favoritos?: { grupoNome: string };
   // Borda teal: o bloco que a tela abriu de propósito (?video=, vindo das
   // "Atividades recentes" do painel).
   destacado?: boolean;
@@ -59,6 +68,10 @@ export function BlocoCard({
   const { avisar } = useDialogos();
   const ehLance = bloco.tipo === "LANCE";
   const grupoRemovido = meus?.grupoRemovido ?? false;
+  // Card fora da tela do grupo (Meus replays, Favoritos): nome do grupo, atalho pra ele
+  // e o "Baixar vídeo" como botão laranja embaixo do vídeo.
+  const grupoNoCabecalho = meus?.grupoNome ?? favoritos?.grupoNome;
+  const foraDoGrupo = !!grupoNoCabecalho;
   const tituloConversa = meus
     ? `Gol em ${meus.grupoNome}`
     : ehLance
@@ -97,7 +110,7 @@ export function BlocoCard({
 
   // Action sheet próprio (MenuAcoes): o Alert.alert do RN corta em 3 botões no Android.
   const itensMenu: ItemMenu[] = [];
-  if (meus && !grupoRemovido) {
+  if (foraDoGrupo && !grupoRemovido) {
     itensMenu.push({
       rotulo: "Ir para o grupo",
       Icone: ArrowRight,
@@ -111,7 +124,8 @@ export function BlocoCard({
       onPress: () => router.push(`/grupos/${grupoId}/partidas/${bloco.partidaId}/resultado`),
     });
   }
-  if (video) {
+  // Meus replays: o download é o botão laranja embaixo do vídeo, não item de menu.
+  if (video && !foraDoGrupo) {
     itensMenu.push({
       rotulo: "Baixar vídeo",
       Icone: Download,
@@ -163,13 +177,13 @@ export function BlocoCard({
             <Text style={styles.cabecalhoData}>
               {formatarDiaSemanaData(dataPartida)} · {formatarHora(dataPartida)}
             </Text>
-            {meus && (
+            {grupoNoCabecalho && (
               <View style={styles.cabecalhoGrupo}>
                 <Users size={12} color={cores.slate500} />
                 <Text style={styles.cabecalhoGrupoNome} numberOfLines={1}>
-                  {meus.grupoNome}
+                  {grupoNoCabecalho}
                 </Text>
-                {meus.grupoRemovido && (
+                {grupoRemovido && (
                   <View style={styles.badgeRemovido}>
                     <Text style={styles.badgeRemovidoTexto}>Removido</Text>
                   </View>
@@ -178,9 +192,15 @@ export function BlocoCard({
             )}
           </View>
         </View>
-        <Pressable hitSlop={8} onPress={() => setMenuAberto(true)}>
-          <EllipsisVertical size={18} color={cores.slate400} />
-        </Pressable>
+        <View style={styles.acoes}>
+          {/* Favoritar: só com vídeo e acesso ao grupo (quem saiu não favorita). */}
+          {video && !grupoRemovido && <BotaoFavorito pedidoReplayId={bloco.pedidoReplayId} />}
+          {itensMenu.length > 0 && (
+            <Pressable hitSlop={8} onPress={() => setMenuAberto(true)}>
+              <EllipsisVertical size={18} color={cores.slate400} />
+            </Pressable>
+          )}
+        </View>
       </View>
 
       {video ? (
@@ -194,6 +214,16 @@ export function BlocoCard({
           />
           {/* Sem resenha (saiu do grupo), o seletor fica sozinho embaixo do vídeo. */}
           {grupoRemovido && seletor && <View style={styles.seletorSozinho}>{seletor}</View>}
+          {/* Meus replays: o botão laranja fica à mostra embaixo do vídeo (igual ao card
+              de gol dos Artilheiros), em vez de escondido no menu ⋮. */}
+          {foraDoGrupo && (
+            <View style={styles.baixar}>
+              <BotaoBaixarVideo
+                link={video.link}
+                nomeArquivo={nomeArquivoReplay(bloco.tipo, bloco.criadoEm, video.idCamera)}
+              />
+            </View>
+          )}
         </View>
       ) : (
         <View style={[styles.video, grupoRemovido && styles.videoSemResenha]}>
@@ -278,6 +308,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  acoes: { flexDirection: "row", alignItems: "center", gap: 10 },
   cabecalhoEsq: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
   lanceIcone: {
     width: 26,
@@ -329,6 +360,7 @@ const styles = StyleSheet.create({
   },
   resenhaTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   seletorSozinho: { marginTop: 10 },
+  baixar: { marginTop: 10 },
   resenhaTitulo: {
     fontSize: 12,
     fontWeight: "700",

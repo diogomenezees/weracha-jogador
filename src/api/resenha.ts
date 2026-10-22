@@ -3,18 +3,19 @@ import type { AbaResenha, ComentarioResenha, FeedResenha } from "@/contrato/tipo
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
-// GET /api/v1/grupos/{grupoId}/resenha?pagina=<n>&aba=<destaques|todos> — feed
-// de replays do grupo, 3 blocos por página (pagina começa em 0). DESTAQUES: só
-// os comentados; TODOS: todo replay com vídeo. Corpo direto, sem wrapper. Ver
-// 16-api-v1.md §13.
+// GET /api/v1/grupos/{grupoId}/resenha?pagina=<n>&aba=<destaques|todos>&mes=<YYYY-MM>
+// — feed de replays do grupo, 3 blocos por página (pagina começa em 0). DESTAQUES: só
+// os comentados; TODOS: todo replay com vídeo. `mes` (null = todos) filtra as duas
+// abas pelo mês da partida. Corpo direto, sem wrapper. Ver 16-api-v1.md §13.
 export function buscarFeedResenha(
   chamarApi: ChamarApi,
   grupoId: string,
   pagina: number,
-  aba: AbaResenha = "DESTAQUES"
+  aba: AbaResenha = "DESTAQUES",
+  mes: string | null = null
 ): Promise<FeedResenha> {
   return chamarApi<FeedResenha>(
-    `/api/v1/grupos/${grupoId}/resenha?pagina=${pagina}&aba=${aba === "TODOS" ? "todos" : "destaques"}`
+    `/api/v1/grupos/${grupoId}/resenha?pagina=${pagina}&aba=${aba === "TODOS" ? "todos" : "destaques"}${mes ? `&mes=${mes}` : ""}`
   );
 }
 

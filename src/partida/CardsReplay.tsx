@@ -8,6 +8,7 @@ import { AvatarJogador } from "@/ui/AvatarJogador";
 import { Ban, Clock, Goal, Smartphone, Sparkles, Users, VideoOff } from "@/ui/Icone";
 import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
 import { nomeArquivoReplay } from "@/replay/baixarReplay";
+import { BotaoFavorito } from "@/replay/BotaoFavorito";
 import { PlayerReplay } from "@/replay/PlayerReplay";
 import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarHora } from "@/partidas";
@@ -152,6 +153,12 @@ function CardReplay({
         <View style={styles.horaLinha}>
           <Clock size={13} color={cores.slate400} />
           <Text style={styles.hora}>{formatarHoraCompleta(new Date(gol.criadoEm))}</Text>
+          {/* Favoritar: só replay com vídeo na nuvem (gol cancelado não conta pra nada). */}
+          {temVideoNuvem && gol.pedidoReplayId && !cancelado && (
+            <View style={styles.favorito}>
+              <BotaoFavorito pedidoReplayId={gol.pedidoReplayId} />
+            </View>
+          )}
         </View>
       </View>
 
@@ -282,6 +289,7 @@ const styles = StyleSheet.create({
   subTexto: { flexShrink: 1, fontSize: 12, color: cores.slate400 },
   horaLinha: { flexDirection: "row", alignItems: "center", gap: 5 },
   hora: { fontSize: 12, color: cores.slate400 },
+  favorito: { marginLeft: 6 },
   corpo: { paddingHorizontal: 14, gap: 8, paddingBottom: 14 },
   migracao: { fontSize: 12, color: "rgba(251, 191, 36, 0.8)", textAlign: "right" },
   aviso: {

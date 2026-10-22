@@ -35,6 +35,8 @@ export const cores = {
 
   // Erro (red-300 / red-500)
   erroTexto: "#fca5a5",
+  // Coração de favorito (red-500, mesmo `fill-red-500` do site)
+  favorito: "#ef4444",
   erroBorda: "rgba(239, 68, 68, 0.3)",
   erroFundo: "rgba(239, 68, 68, 0.1)",
 

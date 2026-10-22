@@ -340,6 +340,12 @@ export type FeedResenha = {
   temMais: boolean;
   totalBlocos: number;
   totais?: Record<AbaResenha, number>;
+  // Filtro por mês (`?mes=YYYY-MM`, vale pras duas abas e pros totais). `meses`: os
+  // meses com vídeo no grupo, do mais antigo pro mais recente, sem o "Geral" (o app
+  // põe na frente). `mes`: o mês desta página, ou null = todos. Opcionais: site
+  // anterior ao filtro não manda (e ignora o `?mes=`).
+  meses?: PeriodoArtilheiros[];
+  mes?: string | null;
   podeModerar: boolean;
   meuJogadorId: string;
   podeComentar: PodeComentar;
@@ -368,10 +374,33 @@ export type MeuReplay = {
   comentariosPreview: ComentarioResenha[];
 };
 
+// `?grupo=<grupoId>&mes=<YYYY-MM>` filtram (total já é do filtro). `grupos`: todo
+// grupo com replay meu, por uso, igual aos Artilheiros (ignora os filtros). `meses`: meses com replay meu
+// no grupo filtrado, do mais antigo pro mais recente, sem o "Geral". Opcionais: site
+// anterior aos filtros não manda.
+// GET /api/v1/replays/favoritos — aba "Favoritos" da tela Replays. Cópia de
+// `PaginaFavoritos` em weracha-site/lib/services/favoritos.ts. Replays que o jogador
+// marcou com o coração (de qualquer pessoa), só de grupos em que ele está, da partida
+// mais recente pra mais antiga, 5 por página. Mesmos filtros/opções de Meus replays.
+export type ItemFavorito = { grupoId: string; grupoNome: string; bloco: BlocoFeedResenha };
+
+export type PaginaFavoritos = {
+  itens: ItemFavorito[];
+  temMais: boolean;
+  total: number;
+  grupos: { id: string; nome: string }[];
+  meses: PeriodoArtilheiros[];
+  podeModerar: boolean;
+  meuJogadorId: string;
+  podeComentar: PodeComentar;
+};
+
 export type PaginaMeusReplays = {
   replays: MeuReplay[];
   temMais: boolean;
   total: number;
+  grupos?: { id: string; nome: string }[];
+  meses?: PeriodoArtilheiros[];
 };
 
 // ── Enquetes (16-api-v1.md §6) ─────────────────────────────────────────────

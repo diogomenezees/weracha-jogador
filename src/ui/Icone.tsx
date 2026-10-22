@@ -136,4 +136,6 @@ export {
   Target,
   CalendarCheck,
   Goal as Bola,
+  // favoritos (coração nos cards de vídeo)
+  Heart,
 } from "lucide-react-native";

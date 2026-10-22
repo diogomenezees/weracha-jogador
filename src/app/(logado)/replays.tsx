@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,7 +11,8 @@ import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { buscarStatusExclusao } from "@/api/conta";
-import { buscarMeusReplays } from "@/api/replays";
+import { buscarFavoritos } from "@/api/favoritos";
+import { buscarMeusReplays, type FiltroMeusReplays } from "@/api/replays";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
@@ -20,15 +21,27 @@ import { BlocoCard } from "@/resenha/BlocoCard";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
-import { Video } from "@/ui/Icone";
+import { FiltroChips, opcoesDeMeses } from "@/ui/FiltroChips";
+import { Heart, Video } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import type {
   AutorComentario,
   BlocoFeedResenha,
   MeuReplay,
+  PeriodoArtilheiros,
   PodeComentar,
 } from "@/contrato/tipos";
+
+// Abas: "Meus vídeos" (os replays dos meus gols, de qualquer grupo) e "Favoritos" (os
+// replays que marquei com o coração, de qualquer pessoa). Espelha
+// weracha-site/app/replays/page.tsx.
+type Aba = "MEUS" | "FAVORITOS";
+
+const ABAS: { valor: Aba; rotulo: string }[] = [
+  { valor: "MEUS", rotulo: "Meus vídeos" },
+  { valor: "FAVORITOS", rotulo: "Favoritos" },
+];
 
 // Adapta um gol meu ao "post" da resenha, pra reusar o mesmo card do feed
 // (src/resenha/BlocoCard). O jogador é sempre eu; a prévia da resenha já vem no próprio
@@ -49,6 +62,25 @@ function comoBloco(r: MeuReplay, eu: AutorComentario): BlocoFeedResenha {
   };
 }
 
+// Um card da lista, nas duas abas.
+type Item = {
+  grupoId: string;
+  grupoNome: string;
+  bloco: BlocoFeedResenha;
+  // Só em "Meus vídeos": saí do grupo (o replay segue, sem atalhos nem resenha).
+  grupoRemovido: boolean;
+};
+
+type Pagina = {
+  itens: Item[];
+  temMais: boolean;
+  total: number;
+  grupos?: { id: string; nome: string }[];
+  meses?: PeriodoArtilheiros[];
+};
+
+const FILTRO_VAZIO: FiltroMeusReplays = { grupoId: null, mes: null };
+
 export default function Replays() {
   // Sem folga embaixo, a barra de botões do Android fica em cima do último card.
   const insets = useSafeAreaInsets();
@@ -56,7 +88,8 @@ export default function Replays() {
   const campanhas = useCampanhasNoAr();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
 
-  const [replays, setReplays] = useState<MeuReplay[] | null>(null);
+  const [aba, setAba] = useState<Aba>("MEUS");
+  const [itens, setItens] = useState<Item[] | null>(null);
   const [temMais, setTemMais] = useState(false);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(0);
@@ -65,18 +98,64 @@ export default function Replays() {
   const [tentativa, setTentativa] = useState(0);
   const [atualizando, setAtualizando] = useState(false);
   const [carregandoMais, setCarregandoMais] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroMeusReplays>(FILTRO_VAZIO);
+  const [opcoes, setOpcoes] = useState<Pick<Pagina, "grupos" | "meses">>({});
+  const [trocando, setTrocando] = useState(false);
+  // Aba/filtro vigentes + contador de cargas: resposta de uma aba/filtro antigo (troca
+  // no meio de uma carga, ou do scroll infinito) é descartada.
+  const abaRef = useRef(aba);
+  const filtroRef = useRef(filtro);
+  const cargaRef = useRef(0);
+
+  const buscarPagina = useCallback(
+    async (abaAlvo: Aba, n: number, f: FiltroMeusReplays): Promise<Pagina> => {
+      if (abaAlvo === "FAVORITOS") {
+        const p = await buscarFavoritos(chamarApi, n, f);
+        return {
+          itens: p.itens.map((i) => ({ ...i, grupoRemovido: false })),
+          temMais: p.temMais,
+          total: p.total,
+          grupos: p.grupos,
+          meses: p.meses,
+        };
+      }
+      const p = await buscarMeusReplays(chamarApi, n, f);
+      return {
+        itens: jogador
+          ? p.replays.map((r) => ({
+              grupoId: r.grupoId,
+              grupoNome: r.grupoNome,
+              bloco: comoBloco(r, jogador),
+              grupoRemovido: r.grupoRemovido,
+            }))
+          : [],
+        temMais: p.temMais,
+        total: p.total,
+        grupos: p.grupos,
+        meses: p.meses,
+      };
+    },
+    [chamarApi, jogador]
+  );
+
+  const aplicarPrimeiraPagina = useCallback((p: Pagina) => {
+    setItens(p.itens);
+    setTemMais(p.temMais);
+    setTotal(p.total);
+    setPagina(0);
+    setOpcoes({ grupos: p.grupos, meses: p.meses });
+  }, []);
 
   const carregar = useCallback(async () => {
+    const carga = ++cargaRef.current;
     const [status, primeira] = await Promise.all([
       buscarStatusExclusao(chamarApi),
-      buscarMeusReplays(chamarApi, 0),
+      buscarPagina(abaRef.current, 0, filtroRef.current),
     ]);
+    if (carga !== cargaRef.current) return;
     setContaPendente(status.solicitacaoPendente != null);
-    setReplays(primeira.replays);
-    setTemMais(primeira.temMais);
-    setTotal(primeira.total);
-    setPagina(0);
-  }, [chamarApi]);
+    aplicarPrimeiraPagina(primeira);
+  }, [chamarApi, buscarPagina, aplicarPrimeiraPagina]);
 
   useEffect(() => {
     let vivo = true;
@@ -91,9 +170,10 @@ export default function Replays() {
     return () => {
       vivo = false;
     };
-  }, [carregar, tentativa]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tentativa]);
 
-  const recarregar = useCallback(async () => {
+  const recarregarPull = useCallback(async () => {
     setAtualizando(true);
     try {
       await carregar();
@@ -105,15 +185,51 @@ export default function Replays() {
     }
   }, [carregar]);
 
+  // Troca de aba ou de filtro. Os filtros (acima das abas) valem pras duas abas; se o
+  // grupo escolhido não existe na aba nova, o servidor ignora e o chip volta pra "Geral".
+  async function recarregar(novaAba: Aba, novoFiltro: FiltroMeusReplays) {
+    abaRef.current = novaAba;
+    filtroRef.current = novoFiltro;
+    setAba(novaAba);
+    setFiltro(novoFiltro);
+    setTrocando(true);
+    const carga = ++cargaRef.current;
+    try {
+      const p = await buscarPagina(novaAba, 0, novoFiltro);
+      if (carga !== cargaRef.current) return;
+      if (novoFiltro.grupoId && !p.grupos?.some((g) => g.id === novoFiltro.grupoId)) {
+        filtroRef.current = { ...novoFiltro, grupoId: null };
+        setFiltro(filtroRef.current);
+      }
+      aplicarPrimeiraPagina(p);
+      setErro(null);
+    } catch (e) {
+      if (carga === cargaRef.current) setErro(mensagemDoErro(e));
+    } finally {
+      if (carga === cargaRef.current) setTrocando(false);
+    }
+  }
+
+  function trocarAba(nova: Aba) {
+    if (nova === abaRef.current) return;
+    void recarregar(nova, filtroRef.current);
+  }
+
+  function trocarFiltro(mudanca: Partial<FiltroMeusReplays>) {
+    void recarregar(abaRef.current, { ...filtroRef.current, ...mudanca });
+  }
+
   async function carregarMais() {
-    if (carregandoMais || !temMais) return;
+    if (carregandoMais || trocando || !temMais) return;
     setCarregandoMais(true);
+    const carga = cargaRef.current;
     try {
       const prox = pagina + 1;
-      const p = await buscarMeusReplays(chamarApi, prox);
-      setReplays((prev) => {
-        const vistos = new Set((prev ?? []).map((r) => r.golId));
-        return [...(prev ?? []), ...p.replays.filter((r) => !vistos.has(r.golId))];
+      const p = await buscarPagina(abaRef.current, prox, filtroRef.current);
+      if (carga !== cargaRef.current) return;
+      setItens((prev) => {
+        const vistos = new Set((prev ?? []).map((i) => i.bloco.pedidoReplayId));
+        return [...(prev ?? []), ...p.itens.filter((i) => !vistos.has(i.bloco.pedidoReplayId))];
       });
       setTemMais(p.temMais);
       setTotal(p.total);
@@ -125,7 +241,7 @@ export default function Replays() {
     }
   }
 
-  if (erro && !replays) {
+  if (erro && !itens) {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         <Navbar voltar="Painel" />
@@ -133,7 +249,7 @@ export default function Replays() {
       </SafeAreaView>
     );
   }
-  if (!jogador || !replays) {
+  if (!jogador || !itens) {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         <Navbar voltar="Painel" />
@@ -146,20 +262,28 @@ export default function Replays() {
     ? { ok: true }
     : { ok: false, motivo: "sem-data-nascimento" };
 
+  const favoritos = aba === "FAVORITOS";
+  const gruposDosChips = opcoes.grupos ?? [];
+  const mesesDosChips = opcoes.meses ?? [];
+  const filtrando = !!filtro.grupoId || !!filtro.mes;
+  // Grupos só com 2+; meses só com 2+ (com 1, "Geral" e o mês mostram a mesma coisa).
+  const mostraGrupos = !contaPendente && gruposDosChips.length > 1;
+  const mostraMeses = !contaPendente && (mesesDosChips.length > 1 || !!filtro.mes);
+
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Painel" />
       <FlatList
-        data={contaPendente ? [] : replays}
+        data={contaPendente || trocando ? [] : itens}
         // Campanhas chegam numa busca à parte: redesenha os banners quando vierem.
         extraData={campanhas}
-        keyExtractor={(r) => r.pedidoReplayId}
+        keyExtractor={(i) => i.bloco.pedidoReplayId}
         contentContainerStyle={[styles.lista, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={atualizando}
-            onRefresh={() => void recarregar()}
+            onRefresh={() => void recarregarPull()}
             tintColor={cores.teal}
           />
         }
@@ -172,7 +296,60 @@ export default function Replays() {
               {/* Mesmo selo da Resenha e da Repercussão em Minha performance. */}
               <Text style={styles.beta}>Beta</Text>
             </View>
-            <Text style={styles.sub}>Os replays de todos os seus gols estão concentrados aqui.</Text>
+            <Text style={styles.sub}>
+              Os vídeos dos seus gols e os que você favoritou, de todos os grupos, num lugar só.
+            </Text>
+            {(mostraGrupos || mostraMeses) && (
+              <View style={styles.filtros}>
+                {mostraGrupos && (
+                  <FiltroChips
+                    rotulo="Grupos"
+                    opcoes={[
+                      { valor: null, rotulo: "Geral" },
+                      ...gruposDosChips.map((g) => ({ valor: g.id, rotulo: g.nome })),
+                    ]}
+                    ativo={filtro.grupoId}
+                    carregando={trocando}
+                    onEscolher={(grupoId) => trocarFiltro({ grupoId })}
+                  />
+                )}
+                {mostraMeses && (
+                  <FiltroChips
+                    rotulo="Meses"
+                    opcoes={opcoesDeMeses(mesesDosChips)}
+                    ativo={filtro.mes}
+                    carregando={trocando}
+                    onEscolher={(mes) => trocarFiltro({ mes })}
+                  />
+                )}
+              </View>
+            )}
+            {!contaPendente && (
+              <View style={styles.abas}>
+                {ABAS.map(({ valor, rotulo }) => {
+                  const selecionada = aba === valor;
+                  return (
+                    <Pressable
+                      key={valor}
+                      style={[styles.aba, selecionada && styles.abaSelecionada]}
+                      onPress={() => trocarAba(valor)}
+                      accessibilityState={{ selected: selecionada }}
+                    >
+                      {valor === "FAVORITOS" && (
+                        <Heart
+                          size={13}
+                          color={selecionada ? cores.favorito : cores.slate400}
+                          fill={selecionada ? cores.favorito : "transparent"}
+                        />
+                      )}
+                      <Text style={[styles.abaTexto, selecionada && styles.abaTextoSelecionada]}>
+                        {rotulo}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -180,6 +357,25 @@ export default function Replays() {
             <View style={styles.box}>
               <Text style={styles.boxTexto}>
                 Sua conta está marcada para exclusão. Reative no perfil pra ver seus replays.
+              </Text>
+            </View>
+          ) : trocando ? (
+            <ActivityIndicator style={styles.trocando} color={cores.teal} />
+          ) : filtrando ? (
+            // Ex.: trocou de grupo mantendo um mês sem vídeo nesse grupo.
+            <View style={styles.box}>
+              <Text style={styles.boxTexto}>Nenhum vídeo nesse filtro.</Text>
+              <Pressable style={styles.limpar} onPress={() => trocarFiltro(FILTRO_VAZIO)}>
+                <Text style={styles.limparTexto}>Ver todos</Text>
+              </Pressable>
+            </View>
+          ) : favoritos ? (
+            <View style={styles.box}>
+              <Heart size={24} color={cores.favorito} />
+              <Text style={styles.boxTitulo}>Nenhum vídeo favorito ainda.</Text>
+              <Text style={styles.boxTexto}>
+                Toque no coração de qualquer vídeo, na Resenha, no resultado da partida ou aqui,
+                pra guardar ele nesta aba.
               </Text>
             </View>
           ) : (
@@ -190,24 +386,26 @@ export default function Replays() {
           )
         }
         renderItem={({ item, index }) => {
-          const banner = bannerDoFeedDepoisDe(index, replays.length, !temMais, campanhas.length);
+          const banner = bannerDoFeedDepoisDe(index, itens.length, !temMais, campanhas.length);
           return (
             <View style={styles.item}>
               <BlocoCard
-                bloco={comoBloco(item, jogador)}
+                bloco={item.bloco}
                 grupoId={item.grupoId}
                 chamarApi={chamarApi}
                 podeModerar={false}
                 meuJogadorId={jogador.id}
                 podeComentar={podeComentar}
-                meus={{ grupoNome: item.grupoNome, grupoRemovido: item.grupoRemovido }}
+                {...(favoritos
+                  ? { favoritos: { grupoNome: item.grupoNome } }
+                  : { meus: { grupoNome: item.grupoNome, grupoRemovido: item.grupoRemovido } })}
               />
               {banner !== null && <BannerDoFeed banner={banner} campanhas={campanhas} />}
             </View>
           );
         }}
         ListFooterComponent={
-          temMais && !contaPendente ? (
+          temMais && !contaPendente && !trocando ? (
             <Pressable
               style={styles.mais}
               onPress={() => void carregarMais()}
@@ -217,7 +415,7 @@ export default function Replays() {
                 <ActivityIndicator color={cores.slate400} />
               ) : (
                 <Text style={styles.maisTexto}>
-                  Carregar mais ({replays.length} de {total})
+                  Carregar mais ({itens.length} de {total})
                 </Text>
               )}
             </Pressable>
@@ -250,6 +448,31 @@ const styles = StyleSheet.create({
   // Card + banner (Instagram ou campanha, quando cai ali), com o mesmo respiro da lista.
   item: { gap: 16 },
   sub: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
+
+  // Abas (mesmo desenho das abas da Resenha).
+  abas: {
+    flexDirection: "row",
+    gap: 4,
+    padding: 4,
+    marginTop: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+  },
+  aba: {
+    flex: 1,
+    height: 32,
+    borderRadius: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  abaSelecionada: { backgroundColor: "rgba(31, 179, 163, 0.15)" },
+  abaTexto: { fontSize: 12, fontWeight: "500", color: cores.slate400 },
+  abaTextoSelecionada: { color: cores.teal },
+
   box: {
     borderRadius: raio.card,
     borderWidth: 1,
@@ -259,7 +482,20 @@ const styles = StyleSheet.create({
     gap: 6,
     alignItems: "center",
   },
+  boxTitulo: { fontSize: 14, color: cores.slate300, textAlign: "center" },
   boxTexto: { fontSize: 14, lineHeight: 20, color: cores.slate400, textAlign: "center" },
+  filtros: { gap: 8, marginTop: 10 },
+  trocando: { paddingVertical: 40 },
+  limpar: {
+    marginTop: 6,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: raio.campo,
+    backgroundColor: cores.teal,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  limparTexto: { fontSize: 14, fontWeight: "700", color: cores.dark },
   mais: { height: 44, alignItems: "center", justifyContent: "center" },
   maisTexto: { fontSize: 13, fontWeight: "600", color: cores.slate400 },
 });

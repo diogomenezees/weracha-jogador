@@ -70,7 +70,8 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 
 Espelha o site (regra em `14-resenha.md` do site; o cadastro das campanhas é só no
 `/admin/parceiros/[id]` do site). Nos mesmos espaços do banner do Instagram, com campanha
-no ar, a cada 3 espaços 2 são do Instagram e 1 de parceiro (o primeiro é sempre nosso).
+no ar, o ciclo é Instagram, todas as campanhas, Instagram de novo (o primeiro é sempre nosso;
+era 2 do Instagram pra 1 de parceiro até 2026-10-22).
 `src/resenha/BannerCampanha.tsx` (foto do parceiro, nome + "PARCEIRO", texto, "Ver"; abre
 o link com `Linking.openURL`), `src/resenha/BannerDoFeed.tsx` (`useCampanhasNoAr` busca
 `GET /api/v1/campanhas` uma vez por tela, falha = só Instagram; `BannerDoFeed` escolhe o
@@ -85,7 +86,8 @@ Espelha o site (mesmo dia; regra em `14-resenha.md` do site): faixa de divulgaç
 `@weracha.app` (`src/resenha/BannerInstagram.tsx`, ícone em `react-native-svg` com o
 degradê da marca) intercalada nos cards da Resenha (duas abas) e de Replays. Onde entra e
 os 3 textos vêm hoje de `src/contrato/bannersDoFeed.ts` (era `bannerInstagram.ts`): primeiro
-depois do 3º vídeo, depois a cada 6, 5, 8, 7; lista curta e completa mostra no fim. Abre
+a cada 3 vídeos (era 1º depois do 3º e depois a cada 6, 5, 8, 7 até 2026-10-22); lista curta e
+completa mostra no fim. Abre
 com `Linking.openURL` pra cair no app do Instagram quando instalado.
 
 ## Feito: Atalhos do grupo, Indicadores do grupo, artilheiros por grupo (2026-10-11)
@@ -432,6 +434,21 @@ mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]).
   `podeModerar: false` — `/replays` não é escopado a grupo, então não há sinal de
   admin; um master no app só apaga o próprio comentário (janela de 5min).
 - **Sem mudança no site** (a rota já existia da fatia 5a).
+- **Filtros + botão de baixar à mostra** (2026-10-21, junto com o site): chips "Grupos"
+  (só com 2+ grupos) e "Meses" (só com 2+ meses) embaixo do título, via `?grupo=`/`?mes=`
+  (opções em `grupos`/`meses` da resposta; `src/ui/FiltroChips.tsx`, mesmo visual dos
+  Artilheiros). Filtro sem resultado mostra "Nenhum replay seu nesse filtro" + "Ver todos
+  os replays". No card com `meus`, "Baixar vídeo" saiu do menu ⋮ e virou o botão laranja
+  (`BotaoBaixarVideo`) embaixo do vídeo; sem item no menu (saiu do grupo), o ⋮ some.
+  A Resenha do grupo ganhou o mesmo chip "Meses" acima das abas, filtrando as duas
+  (`?mes=` em `buscarFeedResenha`).
+- **Favoritos** (2026-10-22, junto com o site; regra em `14-resenha.md` do site): coração
+  (`src/replay/BotaoFavorito.tsx`, vermelho preenchido = favorito, cor `cores.favorito`) no
+  `BlocoCard` (ao lado do ⋮) e no `CardsReplay` (ao lado da hora). Store único dos ids
+  (`GET /api/v1/replays/favoritos/ids`, recarrega se trocar o jogador logado), toque
+  otimista. A tela ganhou abas "Meus vídeos" e "Favoritos" (`GET /api/v1/replays/favoritos`,
+  `src/api/favoritos.ts`, tipos `PaginaFavoritos`/`ItemFavorito` no contrato); o `BlocoCard`
+  ganhou a prop `favoritos` (nome do grupo + "Ir para o grupo" + botão laranja de baixar).
 
 ## Feito: aba Artilheiros do resultado no paridade com o site (2026-09-19)
 

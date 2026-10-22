@@ -11,6 +11,7 @@ import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
 import { BannerDoFeed, useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
+import { FiltroChips, opcoesDeMeses } from "@/ui/FiltroChips";
 import { MessageCircle, RefreshCw, Users } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
@@ -50,9 +51,12 @@ export default function ResenhaDoGrupo() {
   const [aba, setAba] = useState<AbaResenha>(
     video || abaParam === "destaques" ? "DESTAQUES" : "TODOS"
   );
-  // Aba vigente pra descartar resposta de página que chegou depois de uma troca
-  // de aba (a rolagem infinita pode estar no meio de uma carga).
+  // Mês da partida (null = todos). Filtra as duas abas.
+  const [mes, setMes] = useState<string | null>(null);
+  // Aba/mês vigentes pra descartar resposta de página que chegou depois de uma troca
+  // (a rolagem infinita pode estar no meio de uma carga).
   const abaRef = useRef(aba);
+  const mesRef = useRef(mes);
 
   const [feed, setFeed] = useState<FeedResenha | undefined>(undefined);
   const [blocos, setBlocos] = useState<BlocoFeedResenha[]>([]);
@@ -62,15 +66,21 @@ export default function ResenhaDoGrupo() {
   const [tentativa, setTentativa] = useState(0);
   const [atualizando, setAtualizando] = useState(false);
   const [carregandoMais, setCarregandoMais] = useState(false);
+  // Trocando aba ou mês: a lista dá lugar ao spinner. `trocandoMes` só põe o spinner
+  // no chip do mês.
   const [trocandoAba, setTrocandoAba] = useState(false);
+  const [trocandoMes, setTrocandoMes] = useState(false);
 
-  // Site anterior às abas não manda `aba` (o feed é sempre o de Destaques).
-  const daAbaAtual = (f: FeedResenha) => (f.aba ?? "DESTAQUES") === abaRef.current || !f.aba;
+  // Site anterior às abas não manda `aba` (o feed é sempre o de Destaques), e um
+  // anterior ao filtro de mês não manda `mes`.
+  const daAbaAtual = (f: FeedResenha) =>
+    (!f.aba || f.aba === abaRef.current) &&
+    (f.mes === undefined || f.mes === mesRef.current);
 
   const carregarPrimeira = useCallback(async () => {
     const [dados, f] = await Promise.all([
       buscarDadosDoGrupo(chamarApi, id),
-      buscarFeedResenha(chamarApi, id, 0, abaRef.current),
+      buscarFeedResenha(chamarApi, id, 0, abaRef.current, mesRef.current),
     ]);
     return { nome: dados.grupo?.nome ?? "", f };
   }, [chamarApi, id]);
@@ -112,13 +122,19 @@ export default function ResenhaDoGrupo() {
     }
   }
 
-  async function trocarAba(nova: AbaResenha) {
-    if (nova === abaRef.current) return;
-    abaRef.current = nova;
-    setAba(nova);
+  async function trocarFiltro(mudanca: { aba?: AbaResenha; mes?: string | null }) {
+    const novaAba = mudanca.aba ?? abaRef.current;
+    const novoMes = mudanca.mes !== undefined ? mudanca.mes : mesRef.current;
+    if (novaAba === abaRef.current && novoMes === mesRef.current) return;
+    const mudouMes = novoMes !== mesRef.current;
+    abaRef.current = novaAba;
+    mesRef.current = novoMes;
+    setAba(novaAba);
+    setMes(novoMes);
     setTrocandoAba(true);
+    if (mudouMes) setTrocandoMes(true);
     try {
-      const f = await buscarFeedResenha(chamarApi, id, 0, nova);
+      const f = await buscarFeedResenha(chamarApi, id, 0, novaAba, novoMes);
       if (!daAbaAtual(f)) return;
       setFeed(f);
       setBlocos(f.blocos);
@@ -127,8 +143,15 @@ export default function ResenhaDoGrupo() {
     } catch (e) {
       setErro(mensagemDoErro(e));
     } finally {
-      setTrocandoAba(false);
+      if (abaRef.current === novaAba && mesRef.current === novoMes) {
+        setTrocandoAba(false);
+        setTrocandoMes(false);
+      }
     }
+  }
+
+  function trocarAba(nova: AbaResenha) {
+    return trocarFiltro({ aba: nova });
   }
 
   async function carregarMais() {
@@ -136,7 +159,7 @@ export default function ResenhaDoGrupo() {
     setCarregandoMais(true);
     try {
       const prox = pagina + 1;
-      const f = await buscarFeedResenha(chamarApi, id, prox, abaRef.current);
+      const f = await buscarFeedResenha(chamarApi, id, prox, abaRef.current, mesRef.current);
       if (!daAbaAtual(f)) return;
       setFeed(f);
       setBlocos((prev) => {
@@ -193,8 +216,13 @@ export default function ResenhaDoGrupo() {
 
   // Grupo sem vídeo nenhum na nuvem: sem abas, só o aviso de que o recurso está
   // chegando. (Site anterior às abas, sem `totais`: vazio = sem comentário.)
+  // Com mês filtrado o total é só do mês; os chips só oferecem mês com vídeo, então
+  // ali nunca é "sem vídeo".
   const totais = feed.totais;
-  const semVideos = totais ? totais.TODOS === 0 : blocos.length === 0;
+  const semVideos = !mes && (totais ? totais.TODOS === 0 : blocos.length === 0);
+  const meses = feed.meses ?? [];
+  // Só com 2+ meses (com 1, "Geral" e o mês mostrariam a mesma coisa).
+  const mostraMeses = !semVideos && (meses.length > 1 || !!mes);
 
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
@@ -252,6 +280,18 @@ export default function ResenhaDoGrupo() {
                   : "Os vídeos que a galera já comentou, com a conversa mais recente no topo."}
               </Text>
             )}
+            {/* Filtro de mês acima das abas: vale pra "Todos os vídeos" e "Destaques". */}
+            {mostraMeses && (
+              <View style={styles.meses}>
+                <FiltroChips
+                  rotulo="Meses"
+                  opcoes={opcoesDeMeses(meses)}
+                  ativo={mes}
+                  carregando={trocandoMes}
+                  onEscolher={(valor) => void trocarFiltro({ mes: valor })}
+                />
+              </View>
+            )}
             {!semVideos && totais && (
               <View style={styles.abas}>
                 {ABAS.map(({ valor, rotulo }) => {
@@ -287,10 +327,12 @@ export default function ResenhaDoGrupo() {
               <ActivityIndicator color={cores.slate400} />
             </View>
           ) : (
-            // Só acontece em Destaques: tem vídeo, mas ninguém comentou ainda.
+            // Só acontece em Destaques: tem vídeo (no mês filtrado), mas ninguém comentou ainda.
             <View style={styles.semComentario}>
               <MessageCircle size={24} color={cores.slate500} />
-              <Text style={styles.semComentarioTitulo}>Nenhum vídeo comentado ainda.</Text>
+              <Text style={styles.semComentarioTitulo}>
+                {mes ? "Nenhum vídeo comentado neste mês." : "Nenhum vídeo comentado ainda."}
+              </Text>
               <Text style={styles.semComentarioTexto}>
                 Os vídeos que receberem comentários aparecem aqui. Que tal puxar a resenha?
               </Text>
@@ -367,6 +409,8 @@ const styles = StyleSheet.create({
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
   sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
   desc: { fontSize: 13, lineHeight: 19, color: cores.slate500, marginTop: 4 },
+
+  meses: { marginTop: 12 },
 
   // Abas (mesmo desenho das abas Ativos/Aguardando de "Seus grupos").
   abas: {

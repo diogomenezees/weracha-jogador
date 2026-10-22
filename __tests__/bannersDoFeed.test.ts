@@ -1,8 +1,7 @@
 import { bannerDoFeedDepoisDe, type BannerDoFeed } from "../src/contrato/bannersDoFeed";
 
-// Mesma regra do site (weracha-site/lib/bannersDoFeed.ts): primeiro banner
-// depois do 3º vídeo, depois a cada 6, 5, 8, 7; com campanha no ar, a cada 3
-// espaços 2 são do Instagram e 1 de parceiro.
+// Mesma regra do site (weracha-site/lib/bannersDoFeed.ts): um banner a cada 3
+// vídeos; ciclo Instagram, todas as campanhas no ar, Instagram de novo.
 
 // Banners de uma lista de `total` vídeos, com a posição (1-based) do vídeo
 // que vem antes.
@@ -23,13 +22,13 @@ const ig = (mensagem: number): BannerDoFeed => ({ tipo: "instagram", mensagem })
 const camp = (campanha: number): BannerDoFeed => ({ tipo: "campanha", campanha });
 
 describe("bannerDoFeedDepoisDe", () => {
-  it("segue a sequência fixa de posições", () => {
-    expect(banners(40, true).map(([p]) => p)).toEqual([3, 9, 14, 22, 29, 35, 40]);
+  it("põe um banner a cada 3 vídeos", () => {
+    expect(banners(16, true).map(([p]) => p)).toEqual([3, 6, 9, 12, 15]);
   });
 
   it("não põe banner depois do último enquanto tem página pra carregar", () => {
     expect(banners(3, false)).toEqual([]);
-    expect(banners(9, false).map(([p]) => p)).toEqual([3]);
+    expect(banners(6, false).map(([p]) => p)).toEqual([3]);
   });
 
   it("lista curta e completa mostra o banner no fim, sempre do Instagram", () => {
@@ -38,26 +37,30 @@ describe("bannerDoFeedDepoisDe", () => {
   });
 
   it("sem campanha, todos são do Instagram, alternando as mensagens", () => {
-    expect(banners(22, true).map(([, b]) => b)).toEqual([ig(0), ig(1), ig(2), ig(0)]);
+    expect(banners(12, true).map(([, b]) => b)).toEqual([ig(0), ig(1), ig(2), ig(0)]);
   });
 
-  it("com campanha, 2 do Instagram pra cada 1 de parceiro, sem pular mensagem", () => {
-    expect(banners(40, true, 2).map(([, b]) => b)).toEqual([
+  it("com campanhas, Instagram e depois todas elas antes de voltar pro Instagram", () => {
+    expect(banners(27, true, 3).map(([, b]) => b)).toEqual([
       ig(0),
       camp(0),
-      ig(1),
-      ig(2),
       camp(1),
-      ig(0),
+      camp(2),
       ig(1),
+      camp(0),
+      camp(1),
+      camp(2),
+      ig(2),
     ]);
   });
 
-  it("com uma campanha só, ela se repete nos espaços de parceiro", () => {
-    expect(
-      banners(40, true, 1)
-        .map(([, b]) => b)
-        .filter((b) => b.tipo === "campanha")
-    ).toEqual([camp(0), camp(0)]);
+  it("com uma campanha só, alterna Instagram e ela", () => {
+    expect(banners(15, true, 1).map(([, b]) => b)).toEqual([
+      ig(0),
+      camp(0),
+      ig(1),
+      camp(0),
+      ig(2),
+    ]);
   });
 });
