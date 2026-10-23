@@ -7,6 +7,7 @@ import type {
   ModoSorteio,
   PreAlocacaoPartida,
   ResultadoSalvo,
+  ResumoExpiracaoDaPartida,
 } from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
@@ -165,7 +166,7 @@ export async function buscarGols(
   partidaId: string,
   opcoes: { incluirCancelados?: boolean } = {}
 ): Promise<GolComVideos[]> {
-  const query = opcoes.incluirCancelados ? "?incluirCancelados=true" : "";
+  const query = opcoes.incluirCancelados ? "?incluirCancelados=1" : "";
   const { gols } = await chamarApi<{ gols: GolComVideos[] }>(
     `/api/v1/partidas/${partidaId}/gols${query}`
   );
@@ -181,6 +182,18 @@ export async function buscarLances(
     `/api/v1/partidas/${partidaId}/lances`
   );
   return lances;
+}
+
+// GET /api/v1/partidas/{partidaId}/replays-expirados — linha "X replays expiraram ·
+// Y guardados com ❤" do resultado. null = nada expirou (ou site anterior à rota).
+export async function buscarResumoExpiracao(
+  chamarApi: ChamarApi,
+  partidaId: string
+): Promise<ResumoExpiracaoDaPartida | null> {
+  const { resumo } = await chamarApi<{ resumo: ResumoExpiracaoDaPartida | null }>(
+    `/api/v1/partidas/${partidaId}/replays-expirados`
+  );
+  return resumo;
 }
 
 // PUT /api/v1/partidas/{partidaId}/cronometro — play/pause.

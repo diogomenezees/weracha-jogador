@@ -11,6 +11,7 @@ import {
   buscarGols,
   buscarLances,
   buscarResultadoAtivo,
+  buscarResumoExpiracao,
   corrigirGols,
   editarDescricaoPartida,
   refazerSorteio,
@@ -24,6 +25,7 @@ import { ModalCartao, ModalConfirmar, ModalTexto } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { CardsReplay } from "@/partida/CardsReplay";
 import { PainelGols } from "@/partida/PainelGols";
+import { LinhaReplaysExpirados } from "@/partida/LinhaReplaysExpirados";
 import { ReplaysDoJogadorInline } from "@/partida/ReplaysDoJogadorInline";
 import { montarResultado, type JogadorNoTime, type ResultadoMontado } from "@/partida/montarResultado";
 import {
@@ -75,6 +77,7 @@ import { cores, raio } from "@/tema";
 import { useVoltarDoCelular } from "@/ui/useVoltarDoCelular";
 import type {
   ComentarioResenha,
+  ResumoExpiracaoDaPartida,
   GolComVideos,
   Grupo,
   PartidaResumo,
@@ -103,6 +106,8 @@ export default function TelaResultado() {
   const [gols, setGols] = useState<GolComVideos[]>([]);
   const [lances, setLances] = useState<GolComVideos[]>([]);
   const [comentarios, setComentarios] = useState<Record<string, ComentarioResenha[]>>({});
+  // Linha "X replays expiraram" (null = nada expirou).
+  const [replaysExpirados, setReplaysExpirados] = useState<ResumoExpiracaoDaPartida | null>(null);
   // Do estado "ao vivo" da partida: se o We Racha Cam avisou que gravou (liga os ícones
   // de replay por gol) e quantos replays cada jogador tem. Null = não deu pra buscar.
   const [aoVivoDaPartida, setAoVivoDaPartida] = useState<{
@@ -137,14 +142,17 @@ export default function TelaResultado() {
   useVoltarDoCelular(replayInline !== null, () => setReplayInline(null));
 
   const carregar = useCallback(async () => {
-    const [dados, resultado, gs, ls, apoio, aoVivo] = await Promise.all([
+    const [dados, resultado, gs, ls, apoio, aoVivo, expirados] = await Promise.all([
       buscarDadosDoGrupo(chamarApi, id),
       buscarResultadoAtivo(chamarApi, partidaId),
       buscarGols(chamarApi, partidaId, { incluirCancelados: true }),
       buscarLances(chamarApi, partidaId),
       buscarApoioDaPartida(chamarApi, partidaId),
       buscarEstadoAoVivo(chamarApi, partidaId).catch(() => null),
+      // Acessório: falha (ou site anterior à rota) só não mostra a linha.
+      buscarResumoExpiracao(chamarApi, partidaId).catch(() => null),
     ]);
+    setReplaysExpirados(expirados);
     setAoVivoDaPartida(
       aoVivo
         ? {
@@ -542,6 +550,7 @@ export default function TelaResultado() {
                 pra não perder a posição da lista ao voltar. Artilheiros = agrupado por
                 jogador; Histórico = linha do tempo. */}
             <View style={replayInline ? styles.escondido : undefined}>
+              {replaysExpirados && <LinhaReplaysExpirados resumo={replaysExpirados} />}
               <PainelGols
                 modoFixo={abaVisivel === "HISTORICO" ? "CRONOLOGICO" : "AGRUPADO"}
                 gols={gols}
@@ -551,7 +560,13 @@ export default function TelaResultado() {
                 meuId={meuId}
                 dataPartida={new Date(p.data)}
                 mostrarScore={!!souAdmin && verScore}
-                mostrarStatusGravacao={aoVivoDaPartida?.cameraAtiva ?? golsAtivos.some((x) => x.videos.length > 0)}
+                // Sessão de gravação registrada OU vídeo já chegado: partida gravada antes
+                // de o Cam registrar sessão (24/08/2026) tem vídeo e nenhuma sessão.
+                mostrarStatusGravacao={
+                  !!aoVivoDaPartida?.cameraAtiva ||
+                  gols.some((x) => x.videos.length > 0) ||
+                  lances.some((x) => x.videos.length > 0)
+                }
                 slotDireita={
                   souAdmin ? <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} /> : undefined
                 }

@@ -18,12 +18,13 @@ import {
 } from "@/ui/Icone";
 import { baixarReplay, mensagemDownload, nomeArquivoReplay } from "@/replay/baixarReplay";
 import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
-import { BotaoFavorito } from "@/replay/BotaoFavorito";
+import { BotaoFavorito, SeloExpiracao } from "@/replay/BotaoFavorito";
 import { PlayerReplay } from "@/replay/PlayerReplay";
 import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
 import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
+import { MESES_COMUNICADOS } from "@/contrato/expiracaoReplays";
 import type { BlocoFeedResenha, ComentarioResenha, PodeComentar } from "@/contrato/tipos";
 
 type ChamarApi = <T>(
@@ -203,6 +204,10 @@ export function BlocoCard({
         </View>
       </View>
 
+      {video && !grupoRemovido && (
+        <SeloExpiracao pedidoReplayId={bloco.pedidoReplayId} expiraEm={bloco.expiraEm} />
+      )}
+
       {video ? (
         <View style={[styles.videoWrap, grupoRemovido && styles.videoSemResenha]}>
           <PlayerReplay
@@ -256,15 +261,24 @@ export function BlocoCard({
               </View>
             </View>
           ))}
-          {faltam && (
-            <Pressable onPress={() => setChatAberto(true)}>
-              <Text style={styles.verTodos}>ver todos os {total} comentários</Text>
-            </Pressable>
+          {/* Vencido (só na aba Favoritos de quem deu ❤): comentários fechados. */}
+          {bloco.vencido ? (
+            <Text style={styles.fechados}>
+              Comentários fechados: replay com mais de {MESES_COMUNICADOS} meses.
+            </Text>
+          ) : (
+            <>
+              {faltam && (
+                <Pressable onPress={() => setChatAberto(true)}>
+                  <Text style={styles.verTodos}>ver todos os {total} comentários</Text>
+                </Pressable>
+              )}
+              <Pressable style={styles.responder} onPress={() => setChatAberto(true)}>
+                <MessageCircle size={13} color={cores.slate300} />
+                <Text style={styles.responderTexto}>{total === 0 ? "Comentar" : "Responder"}</Text>
+              </Pressable>
+            </>
           )}
-          <Pressable style={styles.responder} onPress={() => setChatAberto(true)}>
-            <MessageCircle size={13} color={cores.slate300} />
-            <Text style={styles.responderTexto}>{total === 0 ? "Comentar" : "Responder"}</Text>
-          </Pressable>
         </View>
       )}
 
@@ -372,6 +386,7 @@ const styles = StyleSheet.create({
   comentarioCorpo: { flex: 1, gap: 1 },
   comentarioAutor: { fontSize: 12, fontWeight: "600", color: cores.teal },
   comentarioTexto: { fontSize: 14, lineHeight: 19, color: cores.slate200 },
+  fechados: { fontSize: 12, color: cores.slate500, marginTop: 4 },
   verTodos: { fontSize: 12, fontWeight: "600", color: cores.teal },
   responder: {
     height: 40,

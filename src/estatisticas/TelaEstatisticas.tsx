@@ -414,7 +414,7 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
               Icone={Video}
               rotulo="Gols em vídeo"
               valor={String(replays)}
-              detalhe={replays === 1 ? "replay salvo" : "replays salvos"}
+              detalhe={replays === 1 ? "gravado" : "gravados"}
               rota={replays > 0 ? "/replays" : undefined}
             />
             <CardIndicador

@@ -69,6 +69,8 @@ function destinoDaNotificacao(data: Record<string, unknown> | undefined): Href |
   const partidaId = typeof data?.partidaId === "string" ? data.partidaId : undefined;
   const pedidoReplayId =
     typeof data?.pedidoReplayId === "string" ? data.pedidoReplayId : undefined;
+  // Único tipo sem grupo (é de vários): Meus vídeos filtrado nos que vão ser apagados.
+  if (tipo === "REPLAYS_EXPIRANDO") return "/replays?expirando=1";
   if (!grupoId) return null;
   if (tipo === "CHECKIN_ABERTO" && partidaId) {
     return `/grupos/${grupoId}/partidas/${partidaId}/checkin`;

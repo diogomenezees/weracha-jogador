@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLocalSearchParams } from "expo-router";
 
 import { buscarStatusExclusao } from "@/api/conta";
 import { buscarFavoritos } from "@/api/favoritos";
@@ -16,15 +17,22 @@ import { buscarMeusReplays, type FiltroMeusReplays } from "@/api/replays";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
+import {
+  MESES_COMUNICADOS,
+  TEXTO_AVISO_EXPIRACAO,
+  TEXTO_AVISO_FAVORITOS,
+} from "@/contrato/expiracaoReplays";
 import { BannerDoFeed, useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { BlocoCard } from "@/resenha/BlocoCard";
+import { AjudaExpiracao } from "@/resenha/AjudaExpiracao";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
 import { FiltroChips, opcoesDeMeses } from "@/ui/FiltroChips";
-import { Heart, Video } from "@/ui/Icone";
+import { Heart, Hourglass, Video, X } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
+import { useCarregarNoFim } from "@/ui/useCarregarNoFim";
 import type {
   AutorComentario,
   BlocoFeedResenha,
@@ -59,6 +67,7 @@ function comoBloco(r: MeuReplay, eu: AutorComentario): BlocoFeedResenha {
     totalComentarios: r.totalComentarios,
     comentariosPreview: r.comentariosPreview,
     ultimaAtividade: r.comentariosPreview.at(-1)?.criadoEm ?? r.criadoEm,
+    expiraEm: r.expiraEm,
   };
 }
 
@@ -75,11 +84,13 @@ type Pagina = {
   itens: Item[];
   temMais: boolean;
   total: number;
+  // Meus vídeos vazio, mas já teve gol em vídeo (todos venceram).
+  temVencidos?: boolean;
   grupos?: { id: string; nome: string }[];
   meses?: PeriodoArtilheiros[];
 };
 
-const FILTRO_VAZIO: FiltroMeusReplays = { grupoId: null, mes: null };
+const FILTRO_VAZIO: FiltroMeusReplays = { grupoId: null, mes: null, expirando: false };
 
 export default function Replays() {
   // Sem folga embaixo, a barra de botões do Android fica em cima do último card.
@@ -87,6 +98,8 @@ export default function Replays() {
   const { estado, chamarApi } = useSessao();
   const campanhas = useCampanhasNoAr();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
+  // ?expirando=1: vem do push "N replays seus vão ser apagados".
+  const params = useLocalSearchParams<{ expirando?: string }>();
 
   const [aba, setAba] = useState<Aba>("MEUS");
   const [itens, setItens] = useState<Item[] | null>(null);
@@ -98,9 +111,19 @@ export default function Replays() {
   const [tentativa, setTentativa] = useState(0);
   const [atualizando, setAtualizando] = useState(false);
   const [carregandoMais, setCarregandoMais] = useState(false);
-  const [filtro, setFiltro] = useState<FiltroMeusReplays>(FILTRO_VAZIO);
+  // Falhou ao puxar a próxima página: para o automático até tocar no botão.
+  const [falhouMais, setFalhouMais] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroMeusReplays>(() => ({
+    ...FILTRO_VAZIO,
+    expirando: params.expirando === "1",
+  }));
   const [opcoes, setOpcoes] = useState<Pick<Pagina, "grupos" | "meses">>({});
   const [trocando, setTrocando] = useState(false);
+  // Já veio vídeo em alguma aba/filtro: liga o "!" da expiração e não desliga mais
+  // (trocar pra uma aba ou filtro vazio não esconde). Quem não tem nenhum não vê.
+  const [temVideo, setTemVideo] = useState(false);
+  // Meus vídeos vazio porque todos os gols em vídeo passaram dos 4 meses.
+  const [temVencidos, setTemVencidos] = useState(false);
   // Aba/filtro vigentes + contador de cargas: resposta de uma aba/filtro antigo (troca
   // no meio de uma carga, ou do scroll infinito) é descartada.
   const abaRef = useRef(aba);
@@ -133,6 +156,7 @@ export default function Replays() {
         total: p.total,
         grupos: p.grupos,
         meses: p.meses,
+        temVencidos: p.temVencidos,
       };
     },
     [chamarApi, jogador]
@@ -144,6 +168,8 @@ export default function Replays() {
     setTotal(p.total);
     setPagina(0);
     setOpcoes({ grupos: p.grupos, meses: p.meses });
+    setTemVencidos(!!p.temVencidos);
+    if (p.itens.length > 0 || (p.grupos?.length ?? 0) > 0 || p.temVencidos) setTemVideo(true);
   }, []);
 
   const carregar = useCallback(async () => {
@@ -212,7 +238,8 @@ export default function Replays() {
 
   function trocarAba(nova: Aba) {
     if (nova === abaRef.current) return;
-    void recarregar(nova, filtroRef.current);
+    // "Vão ser apagados" só existe em Meus vídeos (favorito nunca expira).
+    void recarregar(nova, { ...filtroRef.current, expirando: false });
   }
 
   function trocarFiltro(mudanca: Partial<FiltroMeusReplays>) {
@@ -234,12 +261,19 @@ export default function Replays() {
       setTemMais(p.temMais);
       setTotal(p.total);
       setPagina(prox);
+      setFalhouMais(false);
     } catch {
       // silencioso: o botão continua clicável
+      setFalhouMais(true);
     } finally {
       setCarregandoMais(false);
     }
   }
+
+  const noFim = useCarregarNoFim(
+    temMais && !carregandoMais && !trocando && !contaPendente && !falhouMais,
+    () => void carregarMais()
+  );
 
   if (erro && !itens) {
     return (
@@ -265,7 +299,7 @@ export default function Replays() {
   const favoritos = aba === "FAVORITOS";
   const gruposDosChips = opcoes.grupos ?? [];
   const mesesDosChips = opcoes.meses ?? [];
-  const filtrando = !!filtro.grupoId || !!filtro.mes;
+  const filtrando = !!filtro.grupoId || !!filtro.mes || !!filtro.expirando;
   // Grupos só com 2+; meses só com 2+ (com 1, "Geral" e o mês mostram a mesma coisa).
   const mostraGrupos = !contaPendente && gruposDosChips.length > 1;
   const mostraMeses = !contaPendente && (mesesDosChips.length > 1 || !!filtro.mes);
@@ -287,8 +321,7 @@ export default function Replays() {
             tintColor={cores.teal}
           />
         }
-        onEndReachedThreshold={0.6}
-        onEndReached={() => void carregarMais()}
+        {...noFim}
         ListHeaderComponent={
           <View style={styles.cabecalho}>
             <View style={styles.tituloComSelo}>
@@ -296,9 +329,24 @@ export default function Replays() {
               {/* Mesmo selo da Resenha e da Repercussão em Minha performance. */}
               <Text style={styles.beta}>Beta</Text>
             </View>
-            <Text style={styles.sub}>
-              Os vídeos dos seus gols e os que você favoritou, de todos os grupos, num lugar só.
-            </Text>
+            <View style={styles.subLinha}>
+              <Text style={[styles.sub, { flex: 1 }]}>
+                Os vídeos dos seus gols e os que você favoritou, de todos os grupos, num lugar só.
+              </Text>
+              {temVideo && !contaPendente && <AjudaExpiracao />}
+            </View>
+            {!contaPendente && filtro.expirando && !favoritos && (
+              <Pressable
+                style={styles.chipExpirando}
+                onPress={() => trocarFiltro({ expirando: false })}
+                accessibilityRole="button"
+                accessibilityLabel="Tirar filtro: só os que vão sumir"
+              >
+                <Hourglass size={13} color={cores.ambar} />
+                <Text style={styles.chipExpirandoTexto}>Só os que vão sumir</Text>
+                <X size={13} color={cores.ambar} />
+              </Pressable>
+            )}
             {(mostraGrupos || mostraMeses) && (
               <View style={styles.filtros}>
                 {mostraGrupos && (
@@ -350,6 +398,16 @@ export default function Replays() {
                 })}
               </View>
             )}
+            {/* Aviso da expiração só pra quem tem vídeo na aba: os replays ainda não
+                estão liberados pra todo mundo. Espelha o site. */}
+            {!contaPendente && !trocando && itens.length > 0 && (
+              <View style={styles.aviso}>
+                <Hourglass size={14} color={cores.ambar} style={{ marginTop: 2 }} />
+                <Text style={styles.avisoTexto}>
+                  {favoritos ? TEXTO_AVISO_FAVORITOS : TEXTO_AVISO_EXPIRACAO}
+                </Text>
+              </View>
+            )}
           </View>
         }
         ListEmptyComponent={
@@ -377,6 +435,20 @@ export default function Replays() {
                 Toque no coração de qualquer vídeo, na Resenha, no resultado da partida ou aqui,
                 pra guardar ele nesta aba.
               </Text>
+            </View>
+          ) : temVencidos ? (
+            <View style={styles.box}>
+              <Hourglass size={24} color="rgba(245, 158, 11, 0.7)" />
+              <Text style={styles.boxTitulo}>
+                Nenhum gol seu em vídeo nos últimos {MESES_COMUNICADOS} meses
+              </Text>
+              <Text style={styles.boxTexto}>
+                Os vídeos mais antigos somem automaticamente. Os que você favoritou estão em
+                Favoritos.
+              </Text>
+              <Pressable style={styles.limpar} onPress={() => trocarAba("FAVORITOS")}>
+                <Text style={styles.limparTexto}>Ver Favoritos</Text>
+              </Pressable>
             </View>
           ) : (
             <EmDesenvolvimento
@@ -408,7 +480,10 @@ export default function Replays() {
           temMais && !contaPendente && !trocando ? (
             <Pressable
               style={styles.mais}
-              onPress={() => void carregarMais()}
+              onPress={() => {
+                setFalhouMais(false);
+                void carregarMais();
+              }}
               disabled={carregandoMais}
             >
               {carregandoMais ? (
@@ -448,6 +523,7 @@ const styles = StyleSheet.create({
   // Card + banner (Instagram ou campanha, quando cai ali), com o mesmo respiro da lista.
   item: { gap: 16 },
   sub: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
+  subLinha: { flexDirection: "row", alignItems: "center", gap: 12 },
 
   // Abas (mesmo desenho das abas da Resenha).
   abas: {
@@ -485,6 +561,32 @@ const styles = StyleSheet.create({
   boxTitulo: { fontSize: 14, color: cores.slate300, textAlign: "center" },
   boxTexto: { fontSize: 14, lineHeight: 20, color: cores.slate400, textAlign: "center" },
   filtros: { gap: 8, marginTop: 10 },
+  aviso: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: cores.ambarFundo,
+  },
+  avisoTexto: { flex: 1, fontSize: 12, lineHeight: 18, color: cores.ambar },
+  chipExpirando: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    height: 32,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: cores.ambarFundo,
+  },
+  chipExpirandoTexto: { fontSize: 12, fontWeight: "500", color: cores.ambar },
   trocando: { paddingVertical: 40 },
   limpar: {
     marginTop: 6,

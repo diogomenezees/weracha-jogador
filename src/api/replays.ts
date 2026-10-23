@@ -3,8 +3,9 @@ import type { PaginaMeusReplays } from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
-// Filtros da tela Meus replays (null = sem filtro).
-export type FiltroMeusReplays = { grupoId: string | null; mes: string | null };
+// Filtros da tela Meus replays (null = sem filtro). `expirando` (só Meus vídeos): só
+// os replays que vão ser apagados, é onde o push REPLAYS_EXPIRANDO leva.
+export type FiltroMeusReplays = { grupoId: string | null; mes: string | null; expirando?: boolean };
 
 // GET /api/v1/replays?pagina=<n>&grupo=<grupoId>&mes=<YYYY-MM> — os gols do próprio
 // jogador (qualquer grupo/partida) que já têm vídeo, do mais recente pro mais antigo, 5
@@ -18,5 +19,8 @@ export function buscarMeusReplays(
 ): Promise<PaginaMeusReplays> {
   const grupo = filtro.grupoId ? `&grupo=${encodeURIComponent(filtro.grupoId)}` : "";
   const mes = filtro.mes ? `&mes=${filtro.mes}` : "";
-  return chamarApi<PaginaMeusReplays>(`/api/v1/replays?pagina=${pagina}${grupo}${mes}`);
+  const expirando = filtro.expirando ? "&expirando=1" : "";
+  return chamarApi<PaginaMeusReplays>(
+    `/api/v1/replays?pagina=${pagina}${grupo}${mes}${expirando}`
+  );
 }

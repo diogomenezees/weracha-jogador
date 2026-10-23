@@ -325,6 +325,11 @@ export type BlocoFeedResenha = {
   totalComentarios: number;
   comentariosPreview: ComentarioResenha[];
   ultimaAtividade: string;
+  // Selo "some em N dias" (ver GolComVideos.expiraEm).
+  expiraEm?: string;
+  // true = passou dos 4 meses (só na aba Favoritos de quem deu ❤): comentários
+  // fechados, o card não mostra "Comentar"/"Responder".
+  vencido?: boolean;
 };
 
 // Abas do feed da resenha do grupo (`?aba=destaques|todos`). DESTAQUES: só os
@@ -346,6 +351,8 @@ export type FeedResenha = {
   // anterior ao filtro não manda (e ignora o `?mes=`).
   meses?: PeriodoArtilheiros[];
   mes?: string | null;
+  // Feed do grupo sem nada em dia, mas que já teve replay na nuvem (todos vencidos).
+  temVencidos?: boolean;
   podeModerar: boolean;
   meuJogadorId: string;
   podeComentar: PodeComentar;
@@ -372,6 +379,8 @@ export type MeuReplay = {
   grupoRemovido: boolean;
   totalComentarios: number;
   comentariosPreview: ComentarioResenha[];
+  // Selo "some em N dias" (ver GolComVideos.expiraEm).
+  expiraEm?: string;
 };
 
 // `?grupo=<grupoId>&mes=<YYYY-MM>` filtram (total já é do filtro). `grupos`: todo
@@ -401,6 +410,8 @@ export type PaginaMeusReplays = {
   total: number;
   grupos?: { id: string; nome: string }[];
   meses?: PeriodoArtilheiros[];
+  // Lista vazia, mas o jogador já teve gol em vídeo (todos passaram dos 4 meses).
+  temVencidos?: boolean;
 };
 
 // ── Enquetes (16-api-v1.md §6) ─────────────────────────────────────────────
@@ -615,7 +626,26 @@ export type GolComVideos = {
   origem?: "AO_VIVO" | "CORRECAO";
   migracao?: { deNome: string; porNome: string; em: string };
   cancelado?: { porNome: string; em: string };
+  // Quando o vídeo vai ser apagado (ISO): só no último mês antes de expirar e se
+  // ninguém além de quem pede deu ❤. O card mostra o selo e esconde se o próprio
+  // leitor favoritar. Site anterior à expiração não manda. Ver
+  // weracha-site/docs/especificacao/17-expiracao-de-replays.md.
+  expiraEm?: string;
+  // true = o gol teve vídeo, mas expirou: a linha do tempo mostra "Replay expirado"
+  // em vez de "Sem replay". Só em /gols.
+  expirado?: boolean;
+  // true = passou da idade de expirar, mas o vídeo segue porque alguém deu ❤: a
+  // linha do tempo mostra ampulheta + coração. Só em /gols.
+  guardado?: boolean;
+  // true = passou dos 4 meses e só tinha o vídeo salvo no celular (não expira): a
+  // linha do tempo mantém o ícone de celular, sem o caminho. Só em /gols.
+  celular?: boolean;
 };
+
+// GET /api/v1/partidas/{id}/replays-expirados — linha "X replays expiraram · Y
+// guardados com ❤" do resultado. Cópia de `ResumoExpiracaoDaPartida` em
+// weracha-site/lib/services/expiracaoReplays.ts. `resumo: null` = nada expirou.
+export type ResumoExpiracaoDaPartida = { expirados: number; guardados: number };
 
 // ── Painel (GET /api/v1/painel) ────────────────────────────────────────────
 // Cópia de weracha-site/lib/services/painel.ts (`DadosDoPainel` e tipos).

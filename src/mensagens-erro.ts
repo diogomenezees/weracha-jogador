@@ -1,4 +1,5 @@
 import { ErroApi } from "@/api/erros";
+import { MESES_COMUNICADOS } from "@/contrato/expiracaoReplays";
 
 // Formata "aguarde X" a partir do `detalhe` (segundos), nunca do texto PT-BR da
 // API. Espelha `formatarDuracao` do site.
@@ -86,6 +87,7 @@ const POR_CODIGO: Record<string, string> = {
     "Só dá pra aumentar a quantidade de gols. Pra tirar um gol, cancele ele no menu da linha do tempo.",
   GOL_NAO_ENCONTRADO: "Esse gol não existe mais.",
   GOL_JA_CANCELADO: "Esse gol já está cancelado.",
+  REPLAY_VENCIDO: `Esse replay passou de ${MESES_COMUNICADOS} meses e não recebe mais comentários.`,
   GOL_NAO_CANCELADO: "Esse gol não está cancelado.",
   GOL_JA_DESSE_JOGADOR: "Esse gol já é desse jogador.",
   GOL_CANCELADO_MIGRACAO_BLOQUEADA: "Reative o gol antes de migrar.",

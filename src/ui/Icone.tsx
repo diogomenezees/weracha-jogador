@@ -46,6 +46,7 @@ export {
   Goal,
   Video,
   VideoOff,
+  Hourglass,
   BarChart3,
   Store,
   Mail,
@@ -60,6 +61,7 @@ export {
   Wrench,
   CircleCheck,
   CircleQuestionMark,
+  CircleAlert,
   // ações
   Plus,
   Minus,

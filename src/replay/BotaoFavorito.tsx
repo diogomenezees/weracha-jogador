@@ -1,10 +1,12 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import { Platform, Pressable, StyleSheet, ToastAndroid, View } from "react-native";
+import { Text } from "@/ui/Texto";
 
 import { buscarIdsFavoritos, definirFavorito } from "@/api/favoritos";
 import { useSessao } from "@/sessao/contexto";
-import { cores } from "@/tema";
-import { Heart } from "@/ui/Icone";
+import { textoPrazoExpiracao } from "@/contrato/expiracaoReplays";
+import { cores, raio } from "@/tema";
+import { Heart, Hourglass } from "@/ui/Icone";
 
 type ChamarApi = ReturnType<typeof useSessao>["chamarApi"];
 
@@ -80,7 +82,9 @@ export function useFavorito(pedidoReplayId: string | null | undefined): boolean 
   );
 }
 
-// Coração vermelho: preenchido = favorito.
+// Coração vermelho: preenchido = favorito. Ao favoritar, toast "Guardado nos
+// favoritos ❤" (o site mostra um balão): ❤ é o que livra o replay da expiração
+// (ver src/contrato/expiracaoReplays.ts).
 export function BotaoFavorito({ pedidoReplayId }: { pedidoReplayId: string }) {
   const { chamarApi } = useSessao();
   const favorito = useFavorito(pedidoReplayId);
@@ -88,7 +92,12 @@ export function BotaoFavorito({ pedidoReplayId }: { pedidoReplayId: string }) {
     <Pressable
       hitSlop={8}
       style={styles.botao}
-      onPress={() => void alternar(pedidoReplayId, chamarApi)}
+      onPress={() => {
+        if (!favorito && Platform.OS === "android") {
+          ToastAndroid.show("Guardado nos favoritos", ToastAndroid.SHORT);
+        }
+        void alternar(pedidoReplayId, chamarApi);
+      }}
       accessibilityRole="button"
       accessibilityLabel={favorito ? "Tirar dos favoritos" : "Favoritar"}
       accessibilityState={{ selected: favorito }}
@@ -102,6 +111,43 @@ export function BotaoFavorito({ pedidoReplayId }: { pedidoReplayId: string }) {
   );
 }
 
+// Selo "⏳ Este replay some em N dias. Dê o ❤ pra guardar." dos cards de vídeo, no
+// último mês antes de expirar. `expiraEm` vem do site só quando ninguém além do leitor
+// favoritou; o ❤ do próprio leitor é lido do store acima, então o selo some na hora em
+// que ele favorita e volta se desfavoritar. Espelha `SeloExpiracao` do site.
+export function SeloExpiracao({
+  pedidoReplayId,
+  expiraEm,
+}: {
+  pedidoReplayId: string | null | undefined;
+  expiraEm: string | null | undefined;
+}) {
+  const favorito = useFavorito(pedidoReplayId);
+  if (!expiraEm || !pedidoReplayId || favorito) return null;
+  return (
+    <View style={styles.selo}>
+      <Hourglass size={13} color={cores.ambar} />
+      <Text style={styles.seloTexto}>
+        Este replay {textoPrazoExpiracao(expiraEm)}. Toque no coração pra guardar.
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   botao: { padding: 2 },
+  selo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: cores.ambarFundo,
+  },
+  seloTexto: { flex: 1, fontSize: 12, color: cores.ambar },
 });

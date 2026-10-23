@@ -8,7 +8,7 @@ import { AvatarJogador } from "@/ui/AvatarJogador";
 import { Ban, Clock, Goal, Smartphone, Sparkles, Users, VideoOff } from "@/ui/Icone";
 import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
 import { nomeArquivoReplay } from "@/replay/baixarReplay";
-import { BotaoFavorito } from "@/replay/BotaoFavorito";
+import { BotaoFavorito, SeloExpiracao } from "@/replay/BotaoFavorito";
 import { PlayerReplay } from "@/replay/PlayerReplay";
 import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarHora } from "@/partidas";
@@ -170,6 +170,10 @@ function CardReplay({
             gol não conta no placar nem no ranking. O replay fica aqui só como registro.
           </Text>
         </View>
+      )}
+
+      {temVideoNuvem && !cancelado && (
+        <SeloExpiracao pedidoReplayId={gol.pedidoReplayId} expiraEm={gol.expiraEm} />
       )}
 
       {temVideoNuvem ? (

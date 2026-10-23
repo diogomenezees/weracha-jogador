@@ -43,7 +43,8 @@ npm run lint
 ```
 
 Pra falar com o site local (`next dev` na porta 3000), escolha "Local" na
-engrenagem da tela de login:
+engrenagem da tela de login. Ela só aparece em dev (`__DEV__`, Expo Go/Metro): o
+build da Play fala só com Produção, sem engrenagem.
 - Emulador Android: o app usa `http://10.0.2.2:3000` (localhost do host).
 - Device físico via USB: rode `adb reverse tcp:3000 tcp:3000` e o app usa
   `http://localhost:3000`.

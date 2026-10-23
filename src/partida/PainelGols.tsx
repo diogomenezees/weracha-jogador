@@ -10,6 +10,8 @@ import {
   Ban,
   EllipsisVertical,
   Goal,
+  Heart,
+  Hourglass,
   MonitorPlay,
   PenLine,
   Smartphone,
@@ -21,6 +23,9 @@ import {
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
 import type { GolComVideos } from "@/contrato/tipos";
+
+// Âmbar apagado (site: text-amber-500/70) do ícone "Replay expirado".
+const COR_EXPIRADO = "rgba(245, 158, 11, 0.7)";
 
 type Modo = "AGRUPADO" | "CRONOLOGICO";
 
@@ -264,15 +269,26 @@ export function PainelGols({
                   </Text>
                   {/* Gol cancelado não leva ícone próprio aqui: a linha já fica vermelha e diz
                       "Cancelado por". Sem replay, some o "Sem replay" também. */}
-                  {!mostrarStatusGravacao ? null : temVideoNuvem ? (
+                  {/* Passou dos 4 meses e alguém deu ❤: só o coração (não abre o vídeo,
+                      quem favoritou assiste pela aba Favoritos). */}
+                  {!mostrarStatusGravacao ? null : g.guardado && !cancelado ? (
+                    <Heart
+                      size={16}
+                      color={cores.favorito}
+                      fill={cores.favorito}
+                      accessibilityLabel="Guardado por alguém do grupo"
+                    />
+                  ) : temVideoNuvem ? (
                     <MonitorPlay size={16} color={cores.teal} accessibilityLabel="Replay na nuvem" />
-                  ) : soLocal ? (
+                  ) : soLocal || g.celular ? (
                     <Smartphone
                       size={16}
                       color={cores.teal}
                       accessibilityLabel="Replay salvo no celular"
                     />
-                  ) : cancelado ? null : (
+                  ) : cancelado ? null : g.expirado ? (
+                    <Hourglass size={16} color={COR_EXPIRADO} accessibilityLabel="Replay expirado" />
+                  ) : (
                     <VideoOff size={16} color={cores.slate500} accessibilityLabel="Sem replay" />
                   )}
                 </View>
@@ -317,6 +333,10 @@ export function PainelGols({
           <ItemLegenda Icone={MonitorPlay} corIcone={cores.teal} texto="Replay na nuvem" />
           <ItemLegenda Icone={Smartphone} corIcone={cores.teal} texto="Salvo no celular que gravou" />
           <ItemLegenda Icone={VideoOff} corIcone={cores.slate500} texto="Sem replay" />
+          {/* Fixos, mesmo em partida nova: a galera se acostuma que depois de 4 meses
+              o replay vira ampulheta (ou coração, se alguém guardou). Espelha o site. */}
+          <ItemLegenda Icone={Hourglass} corIcone={COR_EXPIRADO} texto="Replay expirado" />
+          <ItemLegenda Icone={Heart} corIcone={cores.favorito} texto="Guardado por alguém do grupo" preenchido />
         </View>
       )}
     </View>
@@ -327,14 +347,16 @@ function ItemLegenda({
   Icone,
   corIcone,
   texto,
+  preenchido = false,
 }: {
   Icone: typeof MonitorPlay;
   corIcone: string;
   texto: string;
+  preenchido?: boolean;
 }) {
   return (
     <View style={styles.legendaItem}>
-      <Icone size={13} color={corIcone} />
+      <Icone size={13} color={corIcone} fill={preenchido ? corIcone : "transparent"} />
       <Text style={styles.legendaTexto}>{texto}</Text>
     </View>
   );

@@ -10,11 +10,14 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
 import { BannerDoFeed, useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { BlocoCard } from "@/resenha/BlocoCard";
+import { AjudaExpiracao } from "@/resenha/AjudaExpiracao";
 import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
 import { FiltroChips, opcoesDeMeses } from "@/ui/FiltroChips";
-import { MessageCircle, RefreshCw, Users } from "@/ui/Icone";
+import { Hourglass, MessageCircle, RefreshCw, Users } from "@/ui/Icone";
+import { MESES_COMUNICADOS } from "@/contrato/expiracaoReplays";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
+import { useCarregarNoFim } from "@/ui/useCarregarNoFim";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -66,6 +69,9 @@ export default function ResenhaDoGrupo() {
   const [tentativa, setTentativa] = useState(0);
   const [atualizando, setAtualizando] = useState(false);
   const [carregandoMais, setCarregandoMais] = useState(false);
+  // Falhou ao puxar a próxima página: para o automático (senão tentaria em loop
+  // parado no fim) até tocar no "Carregar mais".
+  const [falhouMais, setFalhouMais] = useState(false);
   // Trocando aba ou mês: a lista dá lugar ao spinner. `trocandoMes` só põe o spinner
   // no chip do mês.
   const [trocandoAba, setTrocandoAba] = useState(false);
@@ -167,12 +173,19 @@ export default function ResenhaDoGrupo() {
         return [...prev, ...f.blocos.filter((b) => !vistos.has(b.pedidoReplayId))];
       });
       setPagina(prox);
+      setFalhouMais(false);
     } catch {
       // silencioso: o botão continua clicável
+      setFalhouMais(true);
     } finally {
       setCarregandoMais(false);
     }
   }
+
+  const noFim = useCarregarNoFim(
+    !!feed?.temMais && !carregandoMais && !trocandoAba && !trocandoMes && !falhouMais,
+    () => void carregarMais()
+  );
 
   // Rola até o ?video= uma vez só. Se ele ainda não está nas páginas
   // carregadas (o feed vem de 3 em 3), puxa a próxima até achar ou acabar. Se
@@ -220,6 +233,9 @@ export default function ResenhaDoGrupo() {
   // ali nunca é "sem vídeo".
   const totais = feed.totais;
   const semVideos = !mes && (totais ? totais.TODOS === 0 : blocos.length === 0);
+  // Sem nada em dia, mas o grupo já gravou: os replays venceram (mais de 4 meses).
+  // Não é "a resenha está chegando"; o "!" continua. Espelha o site.
+  const soVencidos = semVideos && !!feed.temVencidos;
   const meses = feed.meses ?? [];
   // Só com 2+ meses (com 1, "Geral" e o mês mostrariam a mesma coisa).
   const mostraMeses = !semVideos && (meses.length > 1 || !!mes);
@@ -244,8 +260,7 @@ export default function ResenhaDoGrupo() {
         refreshControl={
           <RefreshControl refreshing={atualizando} onRefresh={atualizar} tintColor={cores.teal} />
         }
-        onEndReachedThreshold={0.6}
-        onEndReached={() => void carregarMais()}
+        {...noFim}
         ListHeaderComponent={
           <View style={styles.cabecalho}>
             <View style={styles.tituloLinha}>
@@ -273,12 +288,18 @@ export default function ResenhaDoGrupo() {
                 {grupoNome}
               </Text>
             </View>
-            {!semVideos && (
-              <Text style={styles.desc}>
-                {aba === "TODOS"
-                  ? "Todos os vídeos gravados nas partidas do grupo, do jogo mais recente pro mais antigo. Comente qualquer lance."
-                  : "Os vídeos que a galera já comentou, com a conversa mais recente no topo."}
-              </Text>
+            {(!semVideos || soVencidos) && (
+              <View style={styles.descLinha}>
+                <Text style={[styles.desc, { flex: 1 }]}>
+                  {soVencidos
+                    ? `Os vídeos gravados nas partidas do grupo ficam aqui por ${MESES_COMUNICADOS} meses.`
+                    : aba === "TODOS"
+                      ? "Todos os vídeos gravados nas partidas do grupo, do jogo mais recente pro mais antigo. Comente qualquer lance."
+                      : "Os vídeos que a galera já comentou, com a conversa mais recente no topo."}
+                </Text>
+                {/* Só com vídeo no grupo (mesma condição da descrição). */}
+                <AjudaExpiracao />
+              </View>
             )}
             {/* Filtro de mês acima das abas: vale pra "Todos os vídeos" e "Destaques". */}
             {mostraMeses && (
@@ -317,7 +338,18 @@ export default function ResenhaDoGrupo() {
           </View>
         }
         ListEmptyComponent={
-          semVideos ? (
+          soVencidos ? (
+            <View style={styles.semComentario}>
+              <Hourglass size={24} color="rgba(245, 158, 11, 0.7)" />
+              <Text style={styles.semComentarioTitulo}>
+                Nenhum replay dos últimos {MESES_COMUNICADOS} meses
+              </Text>
+              <Text style={styles.semComentarioTexto}>
+                Os vídeos mais antigos somem automaticamente. Os lances da próxima partida gravada
+                aparecem aqui.
+              </Text>
+            </View>
+          ) : semVideos ? (
             <EmDesenvolvimento
               titulo="A resenha está chegando"
               texto="Estamos preparando os replays dos gols para liberar em breve. Quando estiver pronto, a galera vai poder ver e comentar cada lance aqui."
@@ -361,7 +393,14 @@ export default function ResenhaDoGrupo() {
         }}
         ListFooterComponent={
           feed.temMais && !trocandoAba && !semVideos ? (
-            <Pressable style={styles.mais} onPress={() => void carregarMais()} disabled={carregandoMais}>
+            <Pressable
+              style={styles.mais}
+              onPress={() => {
+                setFalhouMais(false);
+                void carregarMais();
+              }}
+              disabled={carregandoMais}
+            >
               {carregandoMais ? (
                 <ActivityIndicator color={cores.slate400} />
               ) : (
@@ -408,7 +447,8 @@ const styles = StyleSheet.create({
   },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
   sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
-  desc: { fontSize: 13, lineHeight: 19, color: cores.slate500, marginTop: 4 },
+  desc: { fontSize: 13, lineHeight: 19, color: cores.slate500 },
+  descLinha: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
 
   meses: { marginTop: 12 },
 

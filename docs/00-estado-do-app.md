@@ -451,12 +451,30 @@ mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]).
   A Resenha do grupo ganhou o mesmo chip "Meses" acima das abas, filtrando as duas
   (`?mes=` em `buscarFeedResenha`).
 - **Favoritos** (2026-10-22, junto com o site; regra em `14-resenha.md` do site): coração
-  (`src/replay/BotaoFavorito.tsx`, vermelho preenchido = favorito, cor `cores.favorito`) no
+  (`src/replay/BotaoFavorito.tsx`, laranja preenchido = favorito, cor `cores.favorito` = laranja da marca desde 2026-10-23) no
   `BlocoCard` (ao lado do ⋮) e no `CardsReplay` (ao lado da hora). Store único dos ids
   (`GET /api/v1/replays/favoritos/ids`, recarrega se trocar o jogador logado), toque
   otimista. A tela ganhou abas "Meus vídeos" e "Favoritos" (`GET /api/v1/replays/favoritos`,
   `src/api/favoritos.ts`, tipos `PaginaFavoritos`/`ItemFavorito` no contrato); o `BlocoCard`
   ganhou a prop `favoritos` (nome do grupo + "Ir para o grupo" + botão laranja de baixar).
+- **Expiração dos replays** (2026-10-23, junto com o site; regra completa em
+  `17-expiracao-de-replays.md` do site): replay vence aos 4 meses (comunicado "acima de 3").
+  Vencido some pra todo mundo (resultado, Resenha, Meus vídeos); com ❤ só quem favoritou assiste,
+  na aba Favoritos, com comentários fechados (`BlocoFeedResenha.vencido`, erro `REPLAY_VENCIDO`).
+  Regra e textos copiados em `src/contrato/expiracaoReplays.ts` (constantes de meses). O app só
+  mostra; os cortes rodam no site.
+  - Selo "some em N dias" (`SeloExpiracao` em `src/replay/BotaoFavorito.tsx`) no `BlocoCard` e
+    no `CardsReplay`, some quando o próprio leitor favorita; toast Android "Guardado nos
+    favoritos ❤" ao favoritar.
+  - Tela Replays: aviso âmbar abaixo das abas só quando a aba tem vídeo, "!" (`src/resenha/AjudaExpiracao.tsx`)
+    ao lado da descrição, filtro `?expirando=1` (chip "Só os que vão sumir") aberto pelo push
+    `REPLAYS_EXPIRANDO`, e vazio próprio quando tudo venceu (`temVencidos`, botão "Ver Favoritos").
+  - Resenha: "!" ao lado da descrição e vazio "Nenhum replay dos últimos 3 meses" (`temVencidos`).
+  - Resultado: frase `LinhaReplaysExpirados` (`GET /api/v1/partidas/{id}/replays-expirados`) e,
+    no Histórico (`PainelGols`), ícones ampulheta (expirado), coração (guardado por alguém do
+    grupo) e celular sem clique (`expirado`/`guardado`/`celular` em `GolComVideos`).
+  - Performance: card "Gols em vídeo" diz "gravados".
+  - Sem modal de novidade no painel (existiu e saiu no mesmo dia: aparecia pra quem nem tem replay).
 
 ## Feito: aba Artilheiros do resultado no paridade com o site (2026-09-19)
 
