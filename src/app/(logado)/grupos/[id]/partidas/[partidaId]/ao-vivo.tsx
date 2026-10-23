@@ -380,6 +380,15 @@ export default function TelaAoVivo() {
           titulo="Ao vivo"
           Icone={Radio}
           grupoNome={g.nome}
+          // Regra da rodada ao lado do grupo, igual ao site. "ou": a rodada
+          // acaba no que vier primeiro, tempo ou gols.
+          aoLadoDoGrupo={
+            config.duracaoRodadaMin > 0
+              ? config.golsParaEncerrarRodada > 0
+                ? `${config.duracaoRodadaMin} min ou ${config.golsParaEncerrarRodada} gol${config.golsParaEncerrarRodada > 1 ? "s" : ""}`
+                : `Rodadas de ${config.duracaoRodadaMin} min`
+              : undefined
+          }
           descricao={p.descricao}
           direita={
             itensMenu.length > 0 ? (

@@ -66,6 +66,14 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: regra da rodada ao lado do grupo no Ao vivo (2026-10-23)
+
+Igual ao site: com cronômetro, o cabeçalho do Ao vivo mostra "Amigos do bairro ·
+Rodadas de 10 min" (ou "· 10 min ou 2 gols" com meta de gols). No site a regra
+saiu do título, que quebrava a linha; no app o título já era só "Ao vivo". Prop
+`aoLadoDoGrupo` do `Cabecalho` (`src/partida/ui.tsx`): a regra nunca corta, quem
+corta é o nome do grupo e a descrição.
+
 ## Feito: campanhas de parceiro mescladas com o banner do Instagram (2026-10-16)
 
 Espelha o site (regra em `14-resenha.md` do site; o cadastro das campanhas é só no

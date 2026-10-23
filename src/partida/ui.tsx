@@ -43,6 +43,7 @@ export function Cabecalho({
   Icone,
   grupoNome,
   meuScore,
+  aoLadoDoGrupo,
   descricao,
   direita,
 }: {
@@ -51,6 +52,9 @@ export function Cabecalho({
   grupoNome: string;
   /** Só o check-in passa: o próprio score, entre o grupo e a descrição. */
   meuScore?: number;
+  /** Só o ao vivo passa: a regra da rodada ("Rodadas de 10 min"), logo depois
+   * do grupo. Nunca corta; quem corta é o nome do grupo e a descrição. */
+  aoLadoDoGrupo?: string;
   descricao?: string | null;
   direita?: ReactNode;
 }) {
@@ -62,7 +66,22 @@ export function Cabecalho({
           {Icone ? <Icone size={20} color={cores.branco} /> : null}
           <Text style={styles.h1}>{titulo}</Text>
         </View>
-        {meuScore === undefined ? (
+        {aoLadoDoGrupo ? (
+          <View style={styles.subLinha}>
+            <Users size={12} color={cores.slate400} />
+            <Text style={styles.sub} numberOfLines={1}>
+              {grupoNome}
+            </Text>
+            <Text style={[styles.sub, styles.subFixo]} numberOfLines={1}>
+              {`·  ${aoLadoDoGrupo}`}
+            </Text>
+            {descricaoTexto ? (
+              <Text style={styles.sub} numberOfLines={1}>
+                {descricaoTexto.trimStart()}
+              </Text>
+            ) : null}
+          </View>
+        ) : meuScore === undefined ? (
           <View style={styles.subLinha}>
             <Users size={12} color={cores.slate400} />
             <Text style={styles.sub} numberOfLines={1}>
@@ -387,6 +406,7 @@ const styles = StyleSheet.create({
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
   sub: { flexShrink: 1, fontSize: 13, color: cores.slate400 },
+  subFixo: { flexShrink: 0 },
   subLinhaQuebra: { alignItems: "flex-start" },
   // lineHeight fixo pra o ícone de fora do texto centralizar na 1ª linha:
   // (18 - 12) / 2 = 3.
