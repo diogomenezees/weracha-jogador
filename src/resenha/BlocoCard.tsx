@@ -213,6 +213,8 @@ export function BlocoCard({
           <PlayerReplay
             key={video.link}
             link={video.link}
+            largura={video.largura}
+            altura={video.altura}
             legenda="Toque pra ver o replay"
             autoIniciar={jaTocou}
             aoIniciar={() => setJaTocou(true)}

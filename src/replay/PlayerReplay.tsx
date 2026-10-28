@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useEvent } from "expo";
 import { Image } from "expo-image";
 import { Text } from "@/ui/Texto";
@@ -68,13 +75,23 @@ function pedirCapa(link: string, aindaQuer: () => boolean): Promise<Capa | null>
   return tarefa;
 }
 
+// Proporção padrão do We Racha Cam (1280x720), usada enquanto não se sabe a do vídeo.
+const PROPORCAO_PADRAO = 16 / 9;
+// Vídeo em pé não passa disso da altura da tela (mesmo 55vh do site), com faixas dos lados.
+const ALTURA_MAXIMA_TELA = 0.55;
+
 export function PlayerReplay({
   link,
+  largura,
+  altura,
   legenda,
   autoIniciar = false,
   aoIniciar,
 }: {
   link: string;
+  /** Dimensões na tela que o Cam mandou (null/ausente em vídeo antigo). */
+  largura?: number | null;
+  altura?: number | null;
   /** Texto do pôster (ex.: "Toque pra ver o replay · câmera 2"). */
   legenda: string;
   /** Já começa tocando (troca de câmera de um vídeo que o jogador já tinha aberto). */
@@ -83,7 +100,25 @@ export function PlayerReplay({
 }) {
   const [ativo, setAtivo] = useState(autoIniciar);
   const [capa, setCapa] = useState<Capa | null>(() => capas.get(link) ?? null);
+  const [larguraCaixa, setLarguraCaixa] = useState<number | null>(null);
+  const { height: alturaTela } = useWindowDimensions();
   const idRef = useRef({});
+
+  // Proporção da caixa: a que o Cam mandou; senão a da capa (primeiro quadro, que já vem
+  // com as dimensões do vídeo); senão 16:9. Vídeo antigo ajusta uma vez quando a capa
+  // chega e não muda mais (a capa fica guardada por link). Em pé, a altura é limitada.
+  const proporcao =
+    largura && altura
+      ? largura / altura
+      : capa && capa.width > 0 && capa.height > 0
+        ? capa.width / capa.height
+        : PROPORCAO_PADRAO;
+  const alturaMaxima = alturaTela * ALTURA_MAXIMA_TELA;
+  const limitada = larguraCaixa !== null && larguraCaixa / proporcao > alturaMaxima;
+  const tamanho =
+    larguraCaixa === null
+      ? { aspectRatio: proporcao }
+      : { height: Math.min(larguraCaixa / proporcao, alturaMaxima) };
 
   // Sem capa enquanto toca (o vídeo ocupa o lugar) e na troca de câmera (o pai remonta o
   // componente por `key`).
@@ -125,7 +160,10 @@ export function PlayerReplay({
   }, []);
 
   return (
-    <View style={styles.caixa}>
+    <View
+      style={[styles.caixa, tamanho]}
+      onLayout={(e) => setLarguraCaixa(e.nativeEvent.layout.width)}
+    >
       {ativo && expoVideo ? (
         <VideoAtivo link={link} expoVideo={expoVideo} />
       ) : (
@@ -135,7 +173,7 @@ export function PlayerReplay({
               <Image
                 source={capa}
                 style={StyleSheet.absoluteFill}
-                contentFit="cover"
+                contentFit={limitada ? "contain" : "cover"}
                 transition={200}
               />
               <View style={styles.veuCapa} />
@@ -183,11 +221,10 @@ function VideoAtivo({ link, expoVideo }: { link: string; expoVideo: ExpoVideo })
 }
 
 const styles = StyleSheet.create({
-  // 16:9 fixo (o Cam grava 1280x720): a altura não depende do arquivo, então montar o
-  // vídeo depois do toque não faz a lista pular.
+  // Altura pela proporção do vídeo (ver `proporcao` no PlayerReplay), não pelo arquivo
+  // tocando: montar o vídeo depois do toque não faz a lista pular.
   caixa: {
     width: "100%",
-    aspectRatio: 16 / 9,
     borderRadius: raio.campo,
     backgroundColor: "#000",
     overflow: "hidden",

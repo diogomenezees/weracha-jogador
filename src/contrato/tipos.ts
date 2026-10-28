@@ -317,6 +317,16 @@ export type ComentarioResenha = {
 export type MotivoNaoPodeComentar = "sem-data-nascimento" | "menor" | "cancelada";
 export type PodeComentar = { ok: true } | { ok: false; motivo: MotivoNaoPodeComentar };
 
+// Vídeo de um replay. largura/altura (desde 2026-10-28): dimensões na tela que o We
+// Racha Cam mandou, pro player desenhar a caixa na proporção certa. Opcionais: vídeo
+// antigo vem null e servidor antigo nem manda. Ver PlayerReplay.
+export type VideoDoReplay = {
+  idCamera: string;
+  link: string;
+  largura?: number | null;
+  altura?: number | null;
+};
+
 export type BlocoFeedResenha = {
   pedidoReplayId: string;
   partidaId: string;
@@ -325,7 +335,7 @@ export type BlocoFeedResenha = {
   criadoEm: string;
   jogador: AutorComentario | null;
   marcadoPor: string | null;
-  videos: { idCamera: string; link: string }[];
+  videos: VideoDoReplay[];
   totalComentarios: number;
   comentariosPreview: ComentarioResenha[];
   ultimaAtividade: string;
@@ -379,7 +389,7 @@ export type MeuReplay = {
   partidaId: string;
   partidaData: string;
   marcadoPor: { nome: string };
-  videos: { idCamera: string; link: string }[];
+  videos: VideoDoReplay[];
   grupoRemovido: boolean;
   totalComentarios: number;
   comentariosPreview: ComentarioResenha[];
@@ -623,7 +633,7 @@ export type GolComVideos = {
   golId: string;
   criadoEm: string;
   pedidoReplayId: string | null;
-  videos: { idCamera: string; link: string; origem: "NUVEM" | "LOCAL" }[];
+  videos: (VideoDoReplay & { origem: "NUVEM" | "LOCAL" })[];
   tipo: "GOL" | "LANCE";
   jogador?: { id: string; nome: string; apelido: string | null; fotoUrl: string | null };
   marcadoPor?: { id: string; nome: string };

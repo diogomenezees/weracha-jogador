@@ -639,6 +639,8 @@ marketing/SEO, `/admin/*`, páginas legais.
   `generateThumbnailsAsync` do próprio expo-video, gerada numa fila de 1 em 1 e guardada
   por link), `BotaoBaixarVideo` + `baixarReplay.ts` (`expo-file-system` baixa do
   R2 pro cache, `expo-media-library/legacy` grava na Galeria, só escrita/só vídeo).
-  Ligado em `CardsReplay` e `BlocoCard`. Deps novas + plugin
+  Ligado em `CardsReplay` e `BlocoCard`. **2026-10-28:** a caixa deixou de ser 16:9 fixo:
+  usa a proporção de `largura`/`altura` que o Cam manda (via API), senão a da capa, senão
+  16:9; vídeo em pé fica limitado a 55% da altura da tela (ainda sem build). Deps novas + plugin
   `expo-media-library` em `app.json`: **exige rebuild do dev client/APK** (Expo Go já
   traz `expo-video`). R2 não precisou de mudança (mp4 com `Accept-Ranges` e faststart).

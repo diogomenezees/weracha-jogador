@@ -181,6 +181,8 @@ function CardReplay({
           <PlayerReplay
             key={videoAtual.link}
             link={videoAtual.link}
+            largura={videoAtual.largura}
+            altura={videoAtual.altura}
             legenda="Toque pra ver o replay"
             autoIniciar={jaTocou}
             aoIniciar={() => setJaTocou(true)}
