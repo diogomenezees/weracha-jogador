@@ -326,7 +326,7 @@ export default function Perfil() {
               {grupos.map((g) => {
                 const prox = proximaPartidaPeloHorario(g);
                 const souAdmin = g.meuPapel === "ADMIN";
-                const congelado = !souAdmin && scoreCongelado(prox);
+                const congelado = !souAdmin && !g.souNovato && scoreCongelado(prox);
                 const editando = grupoAberto === g.id && !congelado;
                 const valor = edicoesScore[g.id] ?? g.meuScore;
                 const avisoOrigem =

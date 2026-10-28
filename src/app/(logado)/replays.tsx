@@ -17,11 +17,7 @@ import { buscarMeusReplays, type FiltroMeusReplays } from "@/api/replays";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
-import {
-  MESES_COMUNICADOS,
-  TEXTO_AVISO_EXPIRACAO,
-  TEXTO_AVISO_FAVORITOS,
-} from "@/contrato/expiracaoReplays";
+import { MESES_COMUNICADOS } from "@/contrato/expiracaoReplays";
 import { BannerDoFeed, useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { AjudaExpiracao } from "@/resenha/AjudaExpiracao";
@@ -398,16 +394,6 @@ export default function Replays() {
                 })}
               </View>
             )}
-            {/* Aviso da expiração só pra quem tem vídeo na aba: os replays ainda não
-                estão liberados pra todo mundo. Espelha o site. */}
-            {!contaPendente && !trocando && itens.length > 0 && (
-              <View style={styles.aviso}>
-                <Hourglass size={14} color={cores.ambar} style={{ marginTop: 2 }} />
-                <Text style={styles.avisoTexto}>
-                  {favoritos ? TEXTO_AVISO_FAVORITOS : TEXTO_AVISO_EXPIRACAO}
-                </Text>
-              </View>
-            )}
           </View>
         }
         ListEmptyComponent={
@@ -458,7 +444,13 @@ export default function Replays() {
           )
         }
         renderItem={({ item, index }) => {
-          const banner = bannerDoFeedDepoisDe(index, itens.length, !temMais, campanhas.length);
+          const banner = bannerDoFeedDepoisDe(
+            index,
+            itens.length,
+            !temMais,
+            campanhas.length,
+            !favoritos
+          );
           return (
             <View style={styles.item}>
               <BlocoCard
@@ -561,18 +553,6 @@ const styles = StyleSheet.create({
   boxTitulo: { fontSize: 14, color: cores.slate300, textAlign: "center" },
   boxTexto: { fontSize: 14, lineHeight: 20, color: cores.slate400, textAlign: "center" },
   filtros: { gap: 8, marginTop: 10 },
-  aviso: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.ambarBorda,
-    backgroundColor: cores.ambarFundo,
-  },
-  avisoTexto: { flex: 1, fontSize: 12, lineHeight: 18, color: cores.ambar },
   chipExpirando: {
     alignSelf: "flex-start",
     flexDirection: "row",

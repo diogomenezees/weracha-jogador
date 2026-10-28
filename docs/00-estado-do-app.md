@@ -409,8 +409,9 @@ Porta de `weracha-site/app/perfil/page.tsx`.
 - **Score / posição por grupo**: cada grupo lista score + posição; toca e abre
   `ModalScore` / `ModalPosicao` (reusados de `src/jogadores/modais.tsx`) →
   `PUT .../membros/{meuId}/{score,posicao}`. Score fica travado (🔒) de 1h antes
-  da próxima partida pra quem não é admin (`scoreCongelado` portado pra
-  `src/partidas.ts`).
+  da próxima partida pra quem não é admin nem novato no grupo (`scoreCongelado` portado pra
+  `src/partidas.ts`; `Grupo.souNovato` desde 2026-10-27, quando o card "Meu score" também
+  fica em primeiro e laranja pro novato).
 - **Mudança no site**: rota nova **`POST /api/v1/perfil/foto/upload-url`**
   (presigned R2, Bearer) — o `POST /api/perfil/foto` do site é só-cookie. Os dois
   passaram a usar `gerarUrlUploadFoto` em `lib/services/jogadores.ts`. Sem
@@ -466,7 +467,8 @@ mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]).
   - Selo "some em N dias" (`SeloExpiracao` em `src/replay/BotaoFavorito.tsx`) no `BlocoCard` e
     no `CardsReplay`, some quando o próprio leitor favorita; toast Android "Guardado nos
     favoritos ❤" ao favoritar.
-  - Tela Replays: aviso âmbar abaixo das abas só quando a aba tem vídeo, "!" (`src/resenha/AjudaExpiracao.tsx`)
+  - Banner "Os replays duram 3 meses" no rodízio dos banners nossos do feed (`BannerExpiracao`), fora da aba Favoritos.
+  - Tela Replays: "!" (`src/resenha/AjudaExpiracao.tsx`)
     ao lado da descrição, filtro `?expirando=1` (chip "Só os que vão sumir") aberto pelo push
     `REPLAYS_EXPIRANDO`, e vazio próprio quando tudo venceu (`temVencidos`, botão "Ver Favoritos").
   - Resenha: "!" ao lado da descrição e vazio "Nenhum replay dos últimos 3 meses" (`temVencidos`).

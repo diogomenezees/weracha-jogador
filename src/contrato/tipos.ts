@@ -161,6 +161,10 @@ export type Grupo = {
   meuScore: number;
   meuScoreOrigem: string;
   meuPosicaoId: string | null;
+  // Ainda não jogou nenhuma partida do grupo até o fim: a autoavaliação de
+  // score não trava pra ele (ehNovatoNoGrupo em weracha-site/lib/partidas.ts).
+  // Opcional: servidor antigo não manda (vira "não é novato").
+  souNovato?: boolean;
   lembreteQuadraFechadoEm: string | null;
 };
 

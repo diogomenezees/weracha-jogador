@@ -48,8 +48,3 @@ export function textoPrazoExpiracao(expiraEm: string | Date, agora: Date = new D
   if (dias === 1) return "some amanhã";
   return `some em ${dias} dias`;
 }
-
-// Texto do banner da tela de Replays (site e app usam o mesmo).
-export const TEXTO_AVISO_EXPIRACAO = `Replays com mais de ${MESES_COMUNICADOS} meses somem automaticamente. Toque no coração dos que você quer guardar por mais tempo.`;
-// Na aba Favoritos o mesmo aviso vem pelo lado de quem já guardou.
-export const TEXTO_AVISO_FAVORITOS = `Os vídeos favoritados ficam guardados aqui por mais tempo. Os outros somem depois de ${MESES_COMUNICADOS} meses.`;

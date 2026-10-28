@@ -11,7 +11,12 @@
 // O QUE entra em cada espaço: um ciclo que começa no Instagram e passa por TODAS
 // as campanhas no ar antes de voltar pro Instagram (Instagram, campanha 1,
 // campanha 2, …, campanha N, Instagram, campanha 1…). O primeiro é sempre nosso.
-// Sem campanha, todos são do Instagram.
+// Sem campanha, todos são nossos.
+//
+// Nos espaços nossos, um a cada 3 é o aviso de que os replays duram 3 meses
+// (Instagram, aviso, Instagram, Instagram, aviso…). Ele ficava num banner fixo
+// no topo de Replays, que chamava atenção demais (saiu em 2026-10-27). Quem
+// passa `comAvisoExpiracao` false (aba Favoritos) fica só com o Instagram.
 
 export const INSTAGRAM_USUARIO = "weracha.app";
 export const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_USUARIO}`;
@@ -42,7 +47,12 @@ export const MENSAGENS_BANNER_INSTAGRAM: MensagemBannerInstagram[] = [
 // inteira a cada ciclo, na ordem em que veio (o servidor embaralha).
 export type BannerDoFeed =
   | { tipo: "instagram"; mensagem: number }
+  | { tipo: "expiracao" }
   | { tipo: "campanha"; campanha: number };
+
+// Posição do aviso no rodízio dos espaços nossos: o 2º de cada 3.
+const NOSSOS_POR_AVISO = 3;
+const POSICAO_DO_AVISO = 1;
 
 // Número (0-based) do espaço de banner logo depois do vídeo na posição
 // `indice` (0-based) da lista, ou null se não vai banner ali.
@@ -68,7 +78,8 @@ export function bannerDoFeedDepoisDe(
   indice: number,
   totalCarregado: number,
   listaCompleta: boolean,
-  totalCampanhas: number
+  totalCampanhas: number,
+  comAvisoExpiracao = true
 ): BannerDoFeed | null {
   const espaco = espacoDeBannerDepoisDe(indice, totalCarregado, listaCompleta);
   if (espaco === null) return null;
@@ -77,8 +88,17 @@ export function bannerDoFeedDepoisDe(
   const ciclo = Math.floor(espaco / tamanhoCiclo);
   const posicao = espaco % tamanhoCiclo;
   if (posicao === 0) {
-    // Um Instagram por ciclo: as mensagens seguem em sequência sem pular.
-    return { tipo: "instagram", mensagem: ciclo % MENSAGENS_BANNER_INSTAGRAM.length };
+    // `ciclo` é o número do espaço nosso. Tirando os do aviso, as mensagens
+    // do Instagram seguem em sequência sem pular.
+    if (!comAvisoExpiracao) {
+      return { tipo: "instagram", mensagem: ciclo % MENSAGENS_BANNER_INSTAGRAM.length };
+    }
+    if (ciclo % NOSSOS_POR_AVISO === POSICAO_DO_AVISO) return { tipo: "expiracao" };
+    const avisosAntes = Math.floor((ciclo + NOSSOS_POR_AVISO - 1 - POSICAO_DO_AVISO) / NOSSOS_POR_AVISO);
+    return {
+      tipo: "instagram",
+      mensagem: (ciclo - avisosAntes) % MENSAGENS_BANNER_INSTAGRAM.length,
+    };
   }
   return { tipo: "campanha", campanha: posicao - 1 };
 }

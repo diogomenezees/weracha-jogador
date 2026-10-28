@@ -652,24 +652,6 @@ export default function TelaGrupo() {
           />
         )}
 
-        {renovar && souAdmin && (
-          <Banner
-            cor="teal"
-            Icone={RefreshCw}
-            titulo="Nenhuma partida agendada ainda."
-            chamada={`Criar as partidas de ${proximoMes}`}
-            onPress={() => void handleRenovar()}
-          />
-        )}
-        {renovar && !souAdmin && (
-          <Banner
-            cor="red"
-            Icone={Share2}
-            titulo="As partidas acabaram, mas o grupo não."
-            chamada="Chamar todo mundo pra jogar"
-            onPress={() => void chamarGalera()}
-          />
-        )}
         {/* Atalhos do grupo em carrossel (antes ficavam presos num rodapé fixo),
             logo abaixo dos alertas. "Adicionar partida" (grupo avulso) aparece aqui
             e no menu ⋮ do topo. */}
@@ -692,12 +674,34 @@ export default function TelaGrupo() {
               <CalendarClock size={14} color={cores.teal} />
               <Text style={styles.secaoTitulo}>Próximas partidas</Text>
             </View>
-            {proximas.length > 0 && (
+            {/* Partida cancelada continua na lista até o horário passar; sozinha,
+                não é partida pra jogar, então não leva a frase do check-in. */}
+            {proximas.some((p) => !p.cancelada) && (
               <Text style={styles.secaoSub}>
                 O check-in abre {JANELA_CHECKIN_ANTES_HORAS} horas antes de cada partida.
               </Text>
             )}
           </View>
+          {/* Grupo semanal sem partida pela frente: renovar (admin) ou chamar a
+              galera (membro). Mesmo lugar e formato do alerta do avulso abaixo. */}
+          {renovar && souAdmin && (
+            <Banner
+              cor="orange"
+              Icone={RefreshCw}
+              titulo="Nenhuma partida agendada ainda."
+              chamada={`Criar as partidas de ${proximoMes}`}
+              onPress={() => void handleRenovar()}
+            />
+          )}
+          {renovar && !souAdmin && (
+            <Banner
+              cor="orange"
+              Icone={Share2}
+              titulo="As partidas acabaram, mas o grupo não."
+              chamada="Chamar todo mundo pra jogar"
+              onPress={() => void chamarGalera()}
+            />
+          )}
           {!renovar && proximas.length === 0 && grupo.tipo === "AVULSO" && (
             <Banner
               cor="orange"

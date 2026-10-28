@@ -23,44 +23,50 @@ export function AjudaExpiracao() {
       >
         <CircleAlert size={16} color={cores.slate400} />
       </Pressable>
-
-      <ModalCartao aberto={aberto} onFechar={() => setAberto(false)}>
-        <View style={styles.eyebrowLinha}>
-          <Hourglass size={16} color={cores.ambar} />
-          <Text style={styles.eyebrow}>Replays</Text>
-        </View>
-        <Text style={styles.titulo}>Os vídeos não ficam pra sempre</Text>
-        <Text style={styles.desc}>Guarde nos favoritos os que você não quer perder.</Text>
-        <View style={styles.opcao}>
-          <View style={styles.opcaoTopo}>
-            <View style={[styles.icone, { backgroundColor: cores.ambarFundo }]}>
-              <Hourglass size={16} color={cores.ambar} />
-            </View>
-            <Text style={styles.opcaoTitulo}>Duram {MESES_COMUNICADOS} meses</Text>
-          </View>
-          <Text style={styles.opcaoTexto}>
-            Replays com mais de {MESES_COMUNICADOS} meses somem automaticamente. Antes, o
-            card avisa quantos dias faltam.
-          </Text>
-        </View>
-        <View style={styles.opcao}>
-          <View style={styles.opcaoTopo}>
-            <View style={[styles.icone, { backgroundColor: "rgba(242, 140, 30, 0.15)" }]}>
-              <Heart size={16} color={cores.favorito} />
-            </View>
-            <Text style={styles.opcaoTitulo}>Favoritou, fica guardado</Text>
-          </View>
-          <Text style={styles.opcaoTexto}>
-            Toque no coração do vídeo: o seu gol, o de um amigo ou um lance. Depois de{" "}
-            {MESES_COMUNICADOS} meses ele sai do grupo, mas continua pra você na aba Favoritos da
-            tela Replays.
-          </Text>
-        </View>
-        <Pressable style={[styles.botaoLaranja, { marginTop: 4 }]} onPress={() => setAberto(false)}>
-          <Text style={styles.botaoLaranjaTexto}>Entendi</Text>
-        </Pressable>
-      </ModalCartao>
+      <ModalExpiracao aberto={aberto} onFechar={() => setAberto(false)} />
     </>
+  );
+}
+
+// O modal sozinho, aberto também pelo banner do feed (BannerExpiracao.tsx).
+export function ModalExpiracao({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
+  return (
+    <ModalCartao aberto={aberto} onFechar={onFechar}>
+      <View style={styles.eyebrowLinha}>
+        <Hourglass size={16} color={cores.ambar} />
+        <Text style={styles.eyebrow}>Replays</Text>
+      </View>
+      <Text style={styles.titulo}>Os vídeos não ficam pra sempre</Text>
+      <Text style={styles.desc}>Guarde nos favoritos os que você não quer perder.</Text>
+      <View style={styles.opcao}>
+        <View style={styles.opcaoTopo}>
+          <View style={[styles.icone, { backgroundColor: cores.ambarFundo }]}>
+            <Hourglass size={16} color={cores.ambar} />
+          </View>
+          <Text style={styles.opcaoTitulo}>Duram {MESES_COMUNICADOS} meses</Text>
+        </View>
+        <Text style={styles.opcaoTexto}>
+          Replays com mais de {MESES_COMUNICADOS} meses somem automaticamente. Antes, o
+          card avisa quantos dias faltam.
+        </Text>
+      </View>
+      <View style={styles.opcao}>
+        <View style={styles.opcaoTopo}>
+          <View style={[styles.icone, { backgroundColor: "rgba(242, 140, 30, 0.15)" }]}>
+            <Heart size={16} color={cores.favorito} />
+          </View>
+          <Text style={styles.opcaoTitulo}>Favoritou, fica guardado</Text>
+        </View>
+        <Text style={styles.opcaoTexto}>
+          Toque no coração do vídeo: o seu gol, o de um amigo ou um lance. Depois de{" "}
+          {MESES_COMUNICADOS} meses ele sai do grupo, mas continua pra você na aba Favoritos da
+          tela Replays.
+        </Text>
+      </View>
+      <Pressable style={[styles.botaoLaranja, { marginTop: 4 }]} onPress={onFechar}>
+        <Text style={styles.botaoLaranjaTexto}>Entendi</Text>
+      </Pressable>
+    </ModalCartao>
   );
 }
 

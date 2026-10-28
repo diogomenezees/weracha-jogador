@@ -152,11 +152,15 @@ export function proximaPartidaPeloHorario(grupo: Grupo): Date | null {
 //   é a última chance de acertar o score antes do sorteio;
 // - "travado": daí até o check-in fechar, pra quem não é admin — o card volta
 //   pro lugar de sempre com cadeado;
+// - "novato": jogador novo no grupo (grupo.souNovato), em qualquer momento —
+//   primeira posição em laranja, como no check-in, e nunca trava: ele entra
+//   com o score padrão e precisa de um empurrão pra ajustar;
 // - "normal": o resto (inclusive o admin na reta final, que nunca é travado).
 // Espelha momentoDoMeuScore em weracha-site/lib/grupos.ts.
-export type MomentoDoMeuScore = "normal" | "checkin" | "travado";
+export type MomentoDoMeuScore = "normal" | "checkin" | "travado" | "novato";
 
 export function momentoDoMeuScore(grupo: Grupo, agora: Date = new Date()): MomentoDoMeuScore {
+  if (grupo.souNovato && grupo.meuPapel !== "ADMIN") return "novato";
   const emCheckin = partidasEmAndamento(grupo)[0];
   if (!emCheckin) return "normal";
   if (!scoreCongelado(new Date(emCheckin.data), agora)) return "checkin";

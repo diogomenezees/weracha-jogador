@@ -341,6 +341,15 @@ Sem isto, um bug em aparelho de terceiro é invisível e não dá pra forçar at
       publicada, porque versão antiga sem o gate não pode ser forçada a atualizar. **Falta:** o
       link da loja (`URL_LOJA_ANDROID`) só funciona depois do app publicado; definir quantas
       versões pra trás são suportadas; decidir se o Cam precisa do mesmo.
+      **2026-10-27:** a mínima saiu do código e foi pro /admin do site (bloco "App de
+      jogador", colunas `configuracoes_site.versao_minima_app`/`versao_recomendada_app`, migr
+      0073), junto de uma **versão recomendada**: abaixo dela o app (a partir do 1.1.0) mostra
+      "Tem versão nova" com Atualizar/Agora não, que volta a cada abertura do zero. App foi pra
+      `1.1.0`. **Fluxo de cada versão nova:** subir `version` no `app.json` (o gate compara
+      ela, não o versionCode), mandar pra Play com as versões do /admin como estão (quem está na
+      antiga segue normal durante a revisão) e, quando a Play liberar pra todo mundo, subir a
+      recomendada (aviso) ou a mínima (trava) no /admin. Subir antes da loja mostrar a versão
+      nova tranca quem clicar em Atualizar e não achar nada.
 - [ ] **Analytics de uso:** decidir (doc 10 §6). Se entrar, atualizar as declarações da fase 2.
 - [ ] **Deep link (`assetlinks.json`):** o SHA-256 em
       `weracha-site/app/.well-known/assetlinks.json/route.ts` ainda é **placeholder** (doc 10 §3).

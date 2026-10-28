@@ -65,7 +65,8 @@ export function ModalMeuScore({
   const repeticao = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const souAdmin = grupo.meuPapel === "ADMIN";
-  const congelado = !souAdmin && scoreCongelado(proximaPartidaPeloHorario(grupo));
+  const congelado =
+    !souAdmin && !grupo.souNovato && scoreCongelado(proximaPartidaPeloHorario(grupo));
   const faixa = faixaDoScore(score);
   const posicaoEscolhida = posicoes.find((p) => p.id === posicaoId);
 

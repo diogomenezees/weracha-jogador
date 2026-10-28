@@ -25,8 +25,9 @@ import type { MomentoDoMeuScore } from "@/grupos";
 // ModalMeuScore: o score é o que equilibra os times. Fica na penúltima posição
 // (antes de "Convidar"), mas com o check-in aberto sobe pra primeira, em
 // laranja; quando o score congela (1h antes) volta pro lugar com cadeado — o
-// modal ainda abre (a posição não congela) e explica a trava. Ver
-// momentoDoMeuScore em src/grupos.ts. Espelha
+// modal ainda abre (a posição não congela) e explica a trava. Jogador novo no
+// grupo também tem o card em primeiro e em laranja, o tempo todo, até jogar a
+// 1ª partida. Ver momentoDoMeuScore em src/grupos.ts. Espelha
 // weracha-site/components/funcoes-do-grupo.tsx.
 
 type Funcao = {
@@ -55,6 +56,8 @@ export function FuncoesDoGrupo({
 }) {
   const ir = (rota: Href) => () => router.push(rota);
   const noCheckin = momentoMeuScore === "checkin";
+  const novato = momentoMeuScore === "novato";
+  const emDestaque = noCheckin || novato;
   const cardMeuScore: Funcao =
     momentoMeuScore === "travado"
       ? {
@@ -65,24 +68,22 @@ export function FuncoesDoGrupo({
         }
       : {
           titulo: "Meu score",
-          subtitulo: noCheckin ? `Confira: ${meuScore}` : `Está em ${meuScore}`,
+          subtitulo: novato
+            ? `Ajuste: ${meuScore}`
+            : noCheckin
+              ? `Confira: ${meuScore}`
+              : `Está em ${meuScore}`,
           Icone: Star,
-          destaque: noCheckin,
+          destaque: emDestaque,
           onPress: onMeuScore,
         };
   const funcoes: Funcao[] = [
-    ...(noCheckin ? [cardMeuScore] : []),
+    ...(emDestaque ? [cardMeuScore] : []),
     {
       titulo: "Artilheiros",
       subtitulo: "Ranking de gols",
       Icone: Trophy,
       onPress: ir(`/grupos/${grupoId}/artilheiros`),
-    },
-    {
-      titulo: "Indicadores",
-      subtitulo: "Destaques do mês",
-      Icone: Activity,
-      onPress: ir(`/grupos/${grupoId}/indicadores`),
     },
     {
       titulo: "Resenha",
@@ -91,6 +92,12 @@ export function FuncoesDoGrupo({
       // Depende dos replays do We Racha Cam, que nem todo grupo usa.
       selo: "Beta",
       onPress: ir(`/grupos/${grupoId}/resenha`),
+    },
+    {
+      titulo: "Indicadores",
+      subtitulo: "Destaques do mês",
+      Icone: Activity,
+      onPress: ir(`/grupos/${grupoId}/indicadores`),
     },
     {
       titulo: "Enquetes",
@@ -108,7 +115,7 @@ export function FuncoesDoGrupo({
           },
         ]
       : []),
-    ...(noCheckin ? [] : [cardMeuScore]),
+    ...(emDestaque ? [] : [cardMeuScore]),
     { titulo: "Convidar", subtitulo: "Chame a galera", Icone: UserPlus, onPress: onConvidar },
   ];
 

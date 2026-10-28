@@ -4,6 +4,7 @@ import Constants from "expo-constants";
 import { Text } from "@/ui/Texto";
 
 import { buscarVersaoMinima, type VersaoMinima } from "@/api/versao";
+import { ModalCartao } from "@/grupo/modais";
 import { useSessao } from "@/sessao/contexto";
 import { abaixoDaMinima } from "@/versao/comparar";
 import { cores, raio } from "@/tema";
@@ -14,6 +15,11 @@ import { cores, raio } from "@/tema";
 // estranho) deixa o app abrir normal: uma falha do site não pode trancar todo
 // mundo pra fora. Precisa estar na 1ª versão publicada, senão versão antiga
 // nunca poderia ser forçada a atualizar. Ver docs/11-roteiro-de-publicacao.md.
+//
+// Abaixo só da RECOMENDADA (desde o 1.1.0), o app abre normal com um aviso
+// "tem versão nova" por cima. "Agora não" esconde até o app ser aberto do zero
+// de novo (fica só na memória): volta a cada abertura, pra ninguém ficar
+// esquecido numa versão velha, sem atrapalhar quem está no meio do uso.
 
 const versaoAtual = Constants.expoConfig?.version ?? null;
 
@@ -23,6 +29,7 @@ export function PortaoDeVersao({ children }: { children: ReactNode }) {
   // URL certa só existe depois disso.
   const pronto = estado.fase !== "carregando";
   const [exigida, setExigida] = useState<VersaoMinima | null>(null);
+  const [avisoFechado, setAvisoFechado] = useState(false);
 
   useEffect(() => {
     if (!pronto || !versaoAtual) return;
@@ -47,7 +54,32 @@ export function PortaoDeVersao({ children }: { children: ReactNode }) {
   if (versaoAtual && exigida && abaixoDaMinima(versaoAtual, exigida.versaoMinima)) {
     return <TelaAtualizar urlLoja={exigida.urlLoja} />;
   }
-  return <>{children}</>;
+  const temVersaoNova =
+    !!versaoAtual &&
+    !!exigida?.versaoRecomendada &&
+    abaixoDaMinima(versaoAtual, exigida.versaoRecomendada);
+  return (
+    <>
+      {children}
+      {exigida && (
+        <ModalCartao
+          aberto={temVersaoNova && !avisoFechado}
+          onFechar={() => setAvisoFechado(true)}
+        >
+          <Text style={styles.avisoTitulo}>Tem versão nova do WeRacha</Text>
+          <Text style={styles.avisoTexto}>
+            Atualize pela loja pra ter as novidades e as correções mais recentes.
+          </Text>
+          <Pressable style={styles.botao} onPress={() => void Linking.openURL(exigida.urlLoja)}>
+            <Text style={styles.botaoTexto}>Atualizar</Text>
+          </Pressable>
+          <Pressable style={styles.botaoSecundario} onPress={() => setAvisoFechado(true)}>
+            <Text style={styles.botaoSecundarioTexto}>Agora não</Text>
+          </Pressable>
+        </ModalCartao>
+      )}
+    </>
+  );
 }
 
 function TelaAtualizar({ urlLoja }: { urlLoja: string }) {
@@ -85,4 +117,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   botaoTexto: { fontSize: 16, fontWeight: "700", color: cores.dark },
+  avisoTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
+  avisoTexto: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
+  botaoSecundario: { height: 44, alignItems: "center", justifyContent: "center" },
+  botaoSecundarioTexto: { fontSize: 15, color: cores.slate400 },
 });

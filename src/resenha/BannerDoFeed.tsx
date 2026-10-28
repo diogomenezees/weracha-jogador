@@ -4,6 +4,7 @@ import { buscarCampanhasNoAr } from "@/api/parceiros";
 import type { BannerDoFeed as Banner } from "@/contrato/bannersDoFeed";
 import type { CampanhaNoAr } from "@/contrato/tipos";
 import { BannerCampanha } from "@/resenha/BannerCampanha";
+import { BannerExpiracao } from "@/resenha/BannerExpiracao";
 import { BannerInstagram } from "@/resenha/BannerInstagram";
 import { useSessao } from "@/sessao/contexto";
 
@@ -36,5 +37,6 @@ export function BannerDoFeed({ banner, campanhas }: { banner: Banner; campanhas:
     const campanha = campanhas[banner.campanha];
     return campanha ? <BannerCampanha campanha={campanha} /> : null;
   }
+  if (banner.tipo === "expiracao") return <BannerExpiracao />;
   return <BannerInstagram mensagem={banner.mensagem} />;
 }
