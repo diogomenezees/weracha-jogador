@@ -46,6 +46,7 @@ import {
   AvisoPartida,
   Cabecalho,
   CardJogadorPartida,
+  DicaSubtitulo,
   Eyebrow,
   BotaoPrimario,
   Stepper,
@@ -483,7 +484,12 @@ export default function TelaAoVivo() {
               />
             )}
             <View style={styles.tituloLinha}>
-              <Eyebrow>Lista de artilheiros ({ordenados.length})</Eyebrow>
+              <View style={{ flexShrink: 1 }}>
+                <Eyebrow>Lista de artilheiros ({ordenados.length})</Eyebrow>
+                <DicaSubtitulo>
+                  Toque em Gol pra marcar na hora.
+                </DicaSubtitulo>
+              </View>
               <View style={styles.ordGrupo}>
                 {(
                   [
@@ -552,7 +558,10 @@ export default function TelaAoVivo() {
             <Text style={styles.vazio}>Carregando lances...</Text>
           ) : (
             <View style={{ gap: 10 }}>
-              <Eyebrow>Lances importantes</Eyebrow>
+              <View>
+                <Eyebrow>Lances importantes</Eyebrow>
+                <DicaSubtitulo>Jogadas marcadas durante a partida pra rever depois.</DicaSubtitulo>
+              </View>
               <CardsReplay
                 gols={lancesComVideo}
                 grupoNome={g.nome}

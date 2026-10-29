@@ -149,7 +149,7 @@ export default function Painel() {
         {!temGrupo && !onboardingConcluido && <HeroSemOnboarding nome={primeiroNome} />}
         {!temGrupo && onboardingConcluido && <HeroSemGrupo nome={primeiroNome} />}
         {temGrupo && (
-          <View style={styles.bloco}>
+          <View style={[styles.bloco, styles.saudacao]}>
             <Text style={styles.h1}>Olá, {primeiroNome}</Text>
             <Text style={styles.paragrafo}>Que bom ver você por aqui de novo!</Text>
           </View>
@@ -354,7 +354,7 @@ function Rodape({
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
+    <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
       <Text style={styles.rodapeNota}>{nota}</Text>
       {botao}
     </View>
@@ -363,9 +363,12 @@ function Rodape({
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
-  scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 28 },
+  // 20 entre seções (= mt-5 da tela do grupo no site) e 16 da saudação até a 1ª
+  // seção (saudacao.marginBottom). Mesmos números do site (mt-4 + gap-5).
+  scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 20 },
 
   bloco: { gap: 4 },
+  saudacao: { marginBottom: -4 },
   heroBloco: { gap: 10, borderBottomWidth: 1, borderBottomColor: cores.linhaSutil, paddingBottom: 20 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   hero: { fontSize: 28, lineHeight: 33, fontWeight: "700", color: cores.branco },
@@ -428,7 +431,7 @@ const styles = StyleSheet.create({
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
     gap: 10,
   },
   rodapeNota: { fontSize: 13, color: cores.slate400, textAlign: "center" },

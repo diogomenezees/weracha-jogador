@@ -116,6 +116,8 @@ export function ProximoJogo({ jogo, agora }: { jogo: ProximoJogoPainel; agora: n
   const abre = new Date(jogo.checkinAbreEm);
   const checkinAberto = agora >= abre.getTime() && agora <= new Date(jogo.checkinFechaEm).getTime();
   const antesDeAbrir = agora < abre.getTime();
+  const limite = jogo.limiteCheckins ?? null;
+  const lotado = limite != null && jogo.confirmados >= limite;
   const quandoAbre = ehHoje(abre)
     ? `às ${formatarHora(abre)}`
     : `${abreviarDiaSemana(abre.getDay())} ${formatarHora(abre)}`;
@@ -182,11 +184,17 @@ export function ProximoJogo({ jogo, agora }: { jogo: ProximoJogoPainel; agora: n
               </Text>
             </View>
             {/* Confirmados só com o check-in aberto (antes disso é sempre 0). */}
+            {/* Com limite (Configurações do grupo): "4 de 20 confirmados", e em
+                vermelho quando lota. Igual o site. */}
             {checkinAberto && (
               <View style={[styles.info, styles.margemLinha]}>
-                <Users size={14} color={cores.teal} />
-                <Text style={styles.confirmados}>
-                  {plural(jogo.confirmados, "confirmado", "confirmados")}
+                <Users size={14} color={lotado ? "#f87171" : cores.teal} />
+                <Text style={[styles.confirmados, lotado && styles.confirmadosLotado]}>
+                  {limite == null
+                    ? plural(jogo.confirmados, "confirmado", "confirmados")
+                    : lotado
+                      ? `${jogo.confirmados} de ${limite} · Lotado`
+                      : `${jogo.confirmados} de ${limite} confirmados`}
                 </Text>
               </View>
             )}
@@ -732,6 +740,10 @@ export function SeusGrupos({
   return (
     <View>
       <TituloSecao Icone={Users} titulo="Seus grupos" />
+      {/* Colada no título (descontando o marginBottom do TituloSecao), não nas abas. */}
+      {abaEfetiva === "aguardando" && !bloqueado && (
+        <Text style={styles.aviso}>Renove ou crie uma nova partida pra continuar jogando.</Text>
+      )}
       {comAbas && (
         <View style={styles.abas}>
           {(
@@ -767,9 +779,6 @@ export function SeusGrupos({
             );
           })}
         </View>
-      )}
-      {abaEfetiva === "aguardando" && !bloqueado && (
-        <Text style={styles.aviso}>Renove ou crie uma nova partida pra continuar jogando.</Text>
       )}
       <View style={styles.listaGrupos}>
         {lista.map((g) => (
@@ -969,6 +978,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   confirmados: { fontSize: 12, fontWeight: "600", color: cores.teal },
+  confirmadosLotado: { color: "#f87171" },
   botao: {
     height: 44,
     borderRadius: 8,
@@ -1072,7 +1082,7 @@ const styles = StyleSheet.create({
   abaContador: { borderRadius: 999, paddingHorizontal: 6, backgroundColor: "rgba(255, 255, 255, 0.1)" },
   abaContadorTexto: { fontSize: 10, color: cores.slate300 },
   listaGrupos: { gap: 12 },
-  aviso: { marginBottom: 12, fontSize: 12, color: cores.slate400 },
+  aviso: { marginTop: -8, marginBottom: 12, fontSize: 12, color: cores.slate400 },
   criarGrupo: {
     flexDirection: "row",
     alignItems: "center",

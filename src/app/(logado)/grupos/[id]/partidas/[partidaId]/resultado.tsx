@@ -32,6 +32,7 @@ import {
   Abas,
   AvisoPartida,
   Cabecalho,
+  DicaSubtitulo,
   Eyebrow,
   Rodape,
   BotaoPrimario,
@@ -56,17 +57,18 @@ import {
   Star,
   TriangleAlert,
   Volleyball,
+  UserCheck,
   UserPlus,
   X,
 } from "@/ui/Icone";
-import { buscarPartida, duracaoDaPartida, partidasPassadas } from "@/grupos";
+import { buscarPartida, duracaoDaPartida, horasDoCheckin, partidasPassadas } from "@/grupos";
 import { FileiraDeDatas } from "@/partida/FileiraDeDatas";
 import {
   dentroDoPrazoDeEdicaoDeGols,
   formatarDiaSemanaData,
   formatarHora,
   formatarPartidaResumo,
-  JANELA_CHECKIN_ANTES_HORAS,
+  textoHorasAntes,
   partidaAindaNaoComecou,
   partidaEncerrada,
   PRAZO_EDICAO_GOLS_HORAS,
@@ -227,6 +229,9 @@ export default function TelaResultado() {
   }
 
   const souAdmin = grupo?.meuPapel === "ADMIN";
+  // Admin sempre; o resto só se o grupo liberou nas Configurações (o servidor
+  // manda o score dos outros null nos demais casos).
+  const vejoScore = souAdmin || !!grupo?.scoreVisivelTodos;
   const encerrada =
     !!partida && !!grupo && partidaEncerrada(new Date(partida.data), duracaoDaPartida(grupo, partida));
   const podeEditarGols =
@@ -325,11 +330,11 @@ export default function TelaResultado() {
       </TelaPartida>
     );
   }
-  if (partidaAindaNaoComecou(new Date(p.data), duracaoDaPartida(g, p))) {
+  if (partidaAindaNaoComecou(new Date(p.data), duracaoDaPartida(g, p), horasDoCheckin(g))) {
     return (
       <TelaPartida voltar="Grupo">
         <AvisoPartida
-          mensagem={`Essa tela abre ${JANELA_CHECKIN_ANTES_HORAS} horas antes da partida.`}
+          mensagem={`Essa tela abre ${textoHorasAntes(horasDoCheckin(g))} antes da partida.`}
           destino={`/grupos/${id}`}
           rotuloDestino="Grupo"
         />
@@ -446,6 +451,15 @@ export default function TelaResultado() {
             <IconeModoSorteio size={12} color={cores.zinc500} />
             <Text style={styles.infoPillTexto}>{rotuloModoSorteio}</Text>
           </View>
+          {/* Limite de check-ins guardado no sorteio (histórico); sem limite, some. */}
+          {montado.limiteCheckins != null && (
+            <View style={styles.infoPill}>
+              <UserCheck size={12} color={cores.zinc500} />
+              <Text style={styles.infoPillTexto}>
+                Limite: {montado.limiteCheckins} jogadores
+              </Text>
+            </View>
+          )}
         </ScrollView>
         {/* Só no resultado de partida finalizada e com mais de uma pra navegar.
             replace: o "Grupo" do topo continua indo pro grupo, sem passar por cada
@@ -472,8 +486,15 @@ export default function TelaResultado() {
         {abaVisivel === "TIMES" ? (
           <View style={{ gap: 14 }}>
             <View style={styles.timesTopo}>
-              <Eyebrow>{encerrada ? "Resultado final" : "Vão jogar agora"}</Eyebrow>
-              {souAdmin && (
+              <View style={{ flexShrink: 1 }}>
+                <Eyebrow>{encerrada ? "Resultado final" : "Vão jogar agora"}</Eyebrow>
+                <DicaSubtitulo>
+                  {encerrada
+                    ? "Os times da partida e os gols de cada jogador."
+                    : "Os dois times que entram em quadra agora."}
+                </DicaSubtitulo>
+              </View>
+              {vejoScore && (
                 <View style={styles.scoreToggleGrupo}>
                   <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} />
                 </View>
@@ -488,7 +509,7 @@ export default function TelaResultado() {
                     key={i}
                     numero={i + 1}
                     jogadores={time}
-                    mostrarScore={!!souAdmin && verScore}
+                    mostrarScore={vejoScore && verScore}
                     badge={!temPartida ? null : i < 2 ? "jogando" : "proximo"}
                     comecaComABola={temPartida && i + 1 === timeQueComeca}
                     escolheLado={temPartida && i < 2 && i + 1 !== timeQueComeca}
@@ -500,7 +521,7 @@ export default function TelaResultado() {
                     key={`proximo-${i}`}
                     numero={montado.times.length + i + 1}
                     jogadores={time}
-                    mostrarScore={!!souAdmin && verScore}
+                    mostrarScore={vejoScore && verScore}
                     badge="proximo"
                     comecaComABola={false}
                     escolheLado={false}
@@ -559,7 +580,7 @@ export default function TelaResultado() {
                 jogadores={jogadoresDoPainel}
                 meuId={meuId}
                 dataPartida={new Date(p.data)}
-                mostrarScore={!!souAdmin && verScore}
+                mostrarScore={vejoScore && verScore}
                 // Sessão de gravação registrada OU vídeo já chegado: partida gravada antes
                 // de o Cam registrar sessão (24/08/2026) tem vídeo e nenhuma sessão.
                 mostrarStatusGravacao={
@@ -568,7 +589,7 @@ export default function TelaResultado() {
                   lances.some((x) => x.videos.length > 0)
                 }
                 slotDireita={
-                  souAdmin ? <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} /> : undefined
+                  vejoScore ? <ToggleScore ligado={verScore} onToggle={() => setVerScore((v) => !v)} /> : undefined
                 }
                 podeEditarGols={podeEditarGols}
                 onMenuGol={(gol) =>
@@ -606,7 +627,10 @@ export default function TelaResultado() {
           </View>
         ) : (
           <View style={{ gap: 10 }}>
-            <Eyebrow>Lances importantes</Eyebrow>
+            <View>
+              <Eyebrow>Lances importantes</Eyebrow>
+              <DicaSubtitulo>Jogadas marcadas durante a partida pra rever depois.</DicaSubtitulo>
+            </View>
             <CardsReplay
               gols={lancesComVideo}
               grupoNome={g.nome}
@@ -1038,7 +1062,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(113, 113, 122, 0.15)",
   },
   infoPillTexto: { fontSize: 12, color: cores.zinc500 },
-  timesTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  timesTopo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   scoreToggleGrupo: { flexDirection: "row", alignItems: "center", gap: 8 },
   avisoErro: {
     borderRadius: raio.campo,

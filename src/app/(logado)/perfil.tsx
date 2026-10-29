@@ -79,6 +79,7 @@ export default function Perfil() {
 
   useEffect(() => {
     let vivo = true;
+    let abriu = false;
     (async () => {
       setCarregando(true);
       setErro(null);
@@ -92,15 +93,20 @@ export default function Perfil() {
         preencher(perfil);
         setExclusaoPendenteEm(status.solicitacaoPendente?.criadoEm ?? null);
         setGrupos(lista);
+        setCarregando(false);
+        abriu = true;
 
+        // Posições por esporte numa 2ª leva, sem segurar a tela: só servem pro
+        // nome da posição em cada grupo (que mostra "..." até chegar).
         const esportes = [...new Set(lista.map((g) => g.esporte))];
         const listas = await Promise.all(esportes.map((e) => listarPosicoes(chamarApi, e)));
         if (!vivo) return;
         setPosicoesPorEsporte(Object.fromEntries(esportes.map((e, i) => [e, listas[i]])));
       } catch (e) {
-        if (vivo) setErro(mensagemDoErro(e));
-      } finally {
-        if (vivo) setCarregando(false);
+        // Falha nas posições não derruba a tela (ela já abriu); só a 1ª leva vira erro.
+        if (!vivo || abriu) return;
+        setErro(mensagemDoErro(e));
+        setCarregando(false);
       }
     })();
     return () => {
@@ -133,14 +139,17 @@ export default function Perfil() {
   const gruposComPosicaoAlterada = grupos.filter(
     (g) => edicoesPosicao[g.id] !== undefined && edicoesPosicao[g.id] !== g.meuPosicaoId
   );
+  // Enquanto carrega, os campos ainda estão vazios (nome "") e pareceriam
+  // alterados: sem o `!carregando`, o Salvar aparecia antes dos dados.
   const sujo =
-    gruposComScoreAlterado.length > 0 ||
-    gruposComPosicaoAlterada.length > 0 ||
-    nome.trim() !== jogador.nome ||
-    (apelido.trim() || null) !== (jogador.apelido ?? null) ||
-    (email.trim() || null) !== (jogador.email ?? null) ||
-    receberNotif !== jogador.emailNotificacoes ||
-    (dataNascimento ?? null) !== (jogador.dataNascimento ?? null);
+    !carregando &&
+    (gruposComScoreAlterado.length > 0 ||
+      gruposComPosicaoAlterada.length > 0 ||
+      nome.trim() !== jogador.nome ||
+      (apelido.trim() || null) !== (jogador.apelido ?? null) ||
+      (email.trim() || null) !== (jogador.email ?? null) ||
+      receberNotif !== jogador.emailNotificacoes ||
+      (dataNascimento ?? null) !== (jogador.dataNascimento ?? null));
 
   async function salvar() {
     if (nomeVazio) return;
@@ -210,7 +219,9 @@ export default function Perfil() {
   }
 
   function nomeDaPosicao(g: Grupo): string {
-    const lista = posicoesPorEsporte[g.esporte] ?? [];
+    const lista = posicoesPorEsporte[g.esporte];
+    // Posições ainda chegando (2ª leva do carregamento): não afirma "Nenhuma".
+    if (!lista) return posicaoDoGrupo(g) ? "..." : "Nenhuma";
     return lista.find((p) => p.id === posicaoDoGrupo(g))?.nome ?? "Nenhuma";
   }
 

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { CardJogadorPartida, Eyebrow } from "@/partida/ui";
+import { CardJogadorPartida, DicaSubtitulo, Eyebrow } from "@/partida/ui";
 import {
   ArrowDownUp,
   ArrowLeftRight,
@@ -116,6 +116,11 @@ export function PainelGols({
       <View style={styles.topo}>
         <View style={{ flexShrink: 1 }}>
           <Eyebrow>{modo === "AGRUPADO" ? "Gols por jogador" : "Linha do tempo dos gols"}</Eyebrow>
+          <DicaSubtitulo>
+            {modo === "AGRUPADO"
+              ? "Quantos gols cada jogador fez nesta partida."
+              : "Os gols na ordem em que aconteceram."}
+          </DicaSubtitulo>
         </View>
         <View style={styles.topoDireita}>
           {!modoFixo && (

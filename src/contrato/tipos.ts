@@ -152,7 +152,15 @@ export type Grupo = {
   horarios: HorarioGrupo[];
   esporte: string;
   quadraId: string | null;
+  // Valor inicial de "jogadores por time" na tela Configurar partida.
   jogadoresPorTime: number;
+  // Configurações do grupo (desde 2026-10-28). Opcionais: servidor antigo não
+  // manda (vira 24h e sem limite, ver horasDoCheckin/limiteDoGrupo em
+  // src/grupos.ts).
+  checkinAbreHorasAntes?: number;
+  limiteCheckins?: number | null;
+  // true = todo membro vê o score dos outros (desde 2026-10-29; opcional).
+  scoreVisivelTodos?: boolean;
   adminId: string;
   competenciaAno: number;
   competenciaMes: number;
@@ -599,6 +607,9 @@ export type ResultadoSalvo = {
   comecaComABola: number | null;
   ladoDireito: number | null;
   modoSorteio: string;
+  // Cópia do limite de check-ins do grupo quando os times fecharam (desde
+  // 2026-10-28; servidor antigo não manda). null = sem limite.
+  limiteCheckins?: number | null;
   ativo: boolean;
   criadoEm: string;
 };
@@ -687,6 +698,8 @@ export type ProximoJogoPainel = {
   checkinFechaEm: string;
   quadraNome: string | null;
   confirmados: number;
+  // Limite de check-ins do grupo (desde 2026-10-28; servidor antigo não manda).
+  limiteCheckins?: number | null;
   euConfirmado: boolean;
   temResultado: boolean;
 };

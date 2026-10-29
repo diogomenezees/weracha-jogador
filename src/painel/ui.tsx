@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
   // 48 = h-12 do site (mesma altura do "Gerenciar jogadores" da tela do grupo).
   botaoLaranja: {
-    height: 48,
+    height: 45,
     paddingHorizontal: 28,
     flexDirection: "row",
     gap: 8,
@@ -177,14 +177,14 @@ const styles = StyleSheet.create({
   botaoLaranjaTexto: { color: cores.dark, fontSize: 16, fontWeight: "700" },
   inativo: { opacity: 0.6 },
   botaoContorno: {
-    height: 48,
+    height: 45,
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.avisoBorda,
     alignItems: "center",
     justifyContent: "center",
   },
-  botaoContornoTexto: { color: cores.branco, fontSize: 14 },
+  botaoContornoTexto: { color: cores.branco, fontSize: 16 },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 14 },
   centroTexto: { color: cores.slate400, fontSize: 14 },
   erroTexto: { color: cores.erroTexto, fontSize: 15, textAlign: "center" },

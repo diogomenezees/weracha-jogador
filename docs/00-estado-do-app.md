@@ -66,6 +66,30 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: Configurações do grupo, limite de check-in (2026-10-28)
+
+- Card **"Configurações"** (só admin) no fim dos Atalhos do grupo abre
+  `grupos/[id]/configuracoes`: abertura do check-in (1/2/3/6/12/24h antes), limite
+  de jogadores por partida (Switch + Stepper, desligado = sem limite) e jogadores por
+  time. Salva em `PUT /api/v1/grupos/{id}/configuracoes` (`salvarConfiguracoesDoGrupo`
+  em `src/api/grupos.ts`).
+- A janela de check-in deixou de ser 24h fixas: `janelaDeCheckin` e cia. em
+  `src/partidas.ts` recebem as horas, e as telas usam `horasDoCheckin(grupo)`,
+  `checkinAberto(grupo, partida)` e `janelaDaPartida` de `src/grupos.ts`. Os campos
+  `grupo.checkinAbreHorasAntes`/`limiteCheckins` são opcionais no contrato (servidor
+  antigo vira 24h, sem limite).
+- Check-in: "Jogadores (18/20)", aviso "Check-in lotado" no lugar do "Eu vou jogar"
+  (o admin continua vendo o botão e pode passar do limite), e a recusa do servidor
+  (`CHECKIN_LOTADO`/`CHECKIN_FORA_DA_JANELA`) aparece embaixo do botão em vez de
+  trocar a tela inteira pela de erro.
+- Configurar partida abre com `config?.jogadoresPorTime ?? grupo.jogadoresPorTime`
+  (sem a conta antiga `min(5, presentes ÷ 2)`).
+- Resultado: pílula "Limite: N jogadores" na fileira de pílulas quando o sorteio
+  guardou um limite (`ResultadoSalvo.limiteCheckins`).
+- Versões anteriores do app não conhecem os códigos novos: mostram o erro genérico ao
+  tocar em "Eu vou jogar" numa partida lotada ou fora do horário do grupo.
+- Regras completas em `weracha-site/docs/especificacao/05-checkin.md`.
+
 ## Feito: regra da rodada ao lado do grupo no Ao vivo (2026-10-23)
 
 Igual ao site: com cronômetro, o cabeçalho do Ao vivo mostra "Amigos do bairro ·
@@ -351,7 +375,8 @@ As 4 telas do ciclo da partida. Os botões de partida (`index.tsx`) roteiam dire
 - **Peças compartilhadas**: `src/partida/{ui.tsx,PainelGols.tsx,CardsReplay.tsx,ReplaysDoJogadorInline.tsx,montarResultado.ts}`.
   Helpers `src/aoVivo.ts` (porte de `lib/aoVivo.ts`) + `src/partidas.ts` ganhou
   `partidaAindaNaoComecou`, `dentroDoPrazoDeEdicaoDeGols`,
-  `PRAZO_EDICAO_GOLS_HORAS` (24), `sugerirJogadoresPorTime`.
+  `PRAZO_EDICAO_GOLS_HORAS` (24). (`sugerirJogadoresPorTime` saiu em 2026-10-28: o
+  valor inicial de jogadores por time vem das Configurações do grupo.)
 - **Contrato**: `CheckIn`, `JogadorEmPartida`, `DadosDeApoioDaPartida`,
   `ConfiguracaoPartida`, `PreAlocacaoPartida`, `CorGrupo`, `ResultadoSalvo`,
   `EstadoAoVivo`, `EstadoAoVivoCompleto`, `GolComVideos`, `ModoSorteio`,

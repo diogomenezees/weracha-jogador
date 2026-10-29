@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   Lock,
   MessageCircle,
+  Settings,
   Star,
   Trophy,
   UserPlus,
@@ -46,6 +47,7 @@ export function FuncoesDoGrupo({
   meuScore,
   momentoMeuScore,
   onMeuScore,
+  souAdmin,
 }: {
   grupoId: string;
   onConvidar: () => void;
@@ -53,6 +55,7 @@ export function FuncoesDoGrupo({
   meuScore: number;
   momentoMeuScore: MomentoDoMeuScore;
   onMeuScore: () => void;
+  souAdmin: boolean;
 }) {
   const ir = (rota: Href) => () => router.push(rota);
   const noCheckin = momentoMeuScore === "checkin";
@@ -117,6 +120,17 @@ export function FuncoesDoGrupo({
       : []),
     ...(emDestaque ? [] : [cardMeuScore]),
     { titulo: "Convidar", subtitulo: "Chame a galera", Icone: UserPlus, onPress: onConvidar },
+    // Só admin: horário do check-in, limite de jogadores e jogadores por time.
+    ...(souAdmin
+      ? [
+          {
+            titulo: "Configurações",
+            subtitulo: "Regras do grupo",
+            Icone: Settings,
+            onPress: ir(`/grupos/${grupoId}/configuracoes`),
+          },
+        ]
+      : []),
   ];
 
   return (

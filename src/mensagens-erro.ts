@@ -93,6 +93,11 @@ const POR_CODIGO: Record<string, string> = {
   GOL_CANCELADO_MIGRACAO_BLOQUEADA: "Reative o gol antes de migrar.",
   LANCES_DESATIVADOS: "Marcar lance importante está desativado no momento.",
   PARTIDA_NAO_ENCONTRADA: "Partida não encontrada.",
+
+  // Check-in e Configurações do grupo (desde 2026-10-28)
+  CHECKIN_LOTADO: "Check-in lotado. Esta partida já atingiu o limite de jogadores.",
+  CHECKIN_FORA_DA_JANELA: "O check-in desta partida não está aberto agora.",
+  CONFIGURACAO_GRUPO_INVALIDA: "Confira os valores das configurações e tente de novo.",
 };
 
 const GENERICA = "Não deu pra concluir agora. Tente de novo.";

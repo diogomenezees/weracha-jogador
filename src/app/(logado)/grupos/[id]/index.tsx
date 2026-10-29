@@ -33,6 +33,7 @@ import {
   reativarPartida,
 } from "@/api/partidas";
 import {
+  ArrowRight,
   Ban,
   Calendar,
   CalendarClock,
@@ -63,6 +64,7 @@ import { PRODUCAO_URL } from "@/config/links";
 import { ehHoje } from "@/formato";
 import {
   aguardandoRenovacao,
+  horasDoCheckin,
   duracaoDaPartida,
   mesDeRenovacao,
   momentoDoMeuScore,
@@ -77,7 +79,7 @@ import {
   formatarDiaSemanaData,
   formatarHora,
   hojeISO,
-  JANELA_CHECKIN_ANTES_HORAS,
+  textoHorasAntes,
   nomeDoMes,
   partidaEncerrada,
 } from "@/partidas";
@@ -661,6 +663,7 @@ export default function TelaGrupo() {
           meuScore={grupo.meuScore}
           momentoMeuScore={momentoDoMeuScore(grupo)}
           onMeuScore={() => setMeuScoreAberto(true)}
+          souAdmin={souAdmin}
           onAdicionarPartida={
             souAdmin && grupo.tipo === "AVULSO" ? () => abrirAdicionarPartida() : undefined
           }
@@ -678,7 +681,7 @@ export default function TelaGrupo() {
                 não é partida pra jogar, então não leva a frase do check-in. */}
             {proximas.some((p) => !p.cancelada) && (
               <Text style={styles.secaoSub}>
-                O check-in abre {JANELA_CHECKIN_ANTES_HORAS} horas antes de cada partida.
+                O check-in abre {textoHorasAntes(horasDoCheckin(grupo))} antes de cada partida.
               </Text>
             )}
           </View>
@@ -1301,22 +1304,33 @@ function CardPartida({
         onPress={onAbrir}
       >
         <View style={styles.cardTopo}>
-          <View style={{ flex: 1 }}>
+          {passada ? (
+            // Partida anterior numa linha só, igual o site: "Ter, 21/10 · 20:00"
+            // na cor do status, sem a duração.
             <Text
               style={[
-                styles.cardData,
-                p.cancelada && styles.textoCancelado,
-                concluida && styles.textoConcluido,
-                pendente && styles.textoPendente,
+                styles.cardDataPassada,
+                p.cancelada
+                  ? styles.textoPassadaCancelada
+                  : concluida
+                    ? styles.textoPassadaConcluida
+                    : styles.textoPassadaPendente,
               ]}
+              numberOfLines={1}
             >
-              {formatarDiaSemanaData(data)}
-              {ehHoje(data) && !passada ? " · hoje" : ""}
+              {formatarDiaSemanaData(data)} · {formatarHora(data)}
             </Text>
-            <Text style={[styles.cardHora, p.cancelada && styles.textoCanceladoFraco]}>
-              {formatarHora(data)} · {duracaoDaPartida(grupo, p)}min
-            </Text>
-          </View>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardData, p.cancelada && styles.textoCancelado]}>
+                {formatarDiaSemanaData(data)}
+                {ehHoje(data) ? " · hoje" : ""}
+              </Text>
+              <Text style={[styles.cardHora, p.cancelada && styles.textoCanceladoFraco]}>
+                {formatarHora(data)} · {duracaoDaPartida(grupo, p)}min
+              </Text>
+            </View>
+          )}
           {checkinAberto && !p.cancelada ? (
             !jaFizCheckin ? (
               <Pressable style={styles.checkinBtn} onPress={onCheckin}>
@@ -1329,9 +1343,17 @@ function CardPartida({
                 <Text style={styles.aoVivoBtnTexto}>Ao vivo</Text>
               </Pressable>
             ) : (
-              <View style={styles.confirmadoPill}>
+              // Botão (não só etiqueta), igual o site: o toque vai direto pro
+              // check-in em vez de cair no card e abrir o modal da partida.
+              <Pressable
+                style={styles.confirmadoPill}
+                onPress={onCheckin}
+                accessibilityRole="button"
+                accessibilityLabel="Confirmado. Abrir o check-in"
+              >
                 <Text style={styles.confirmadoTexto}>Confirmado</Text>
-              </View>
+                <ArrowRight size={14} color={cores.dark} />
+              </Pressable>
             )
           ) : p.cancelada ? (
             <View style={styles.canceladaPill}>
@@ -1348,6 +1370,13 @@ function CardPartida({
           ) : souAdmin ? null : (
             <ChevronRight size={18} color={cores.slate500} />
           )}
+          {/* Partida anterior: o site mostra a seta depois do selo pra quem não é admin. */}
+          {passada && !souAdmin ? (
+            <ChevronRight
+              size={18}
+              color={p.cancelada ? "rgba(248, 113, 113, 0.6)" : cores.slate500}
+            />
+          ) : null}
           {/* ⋮ dentro do cartão (e não ao lado) pra ele ocupar a largura toda,
               alinhado com os banners. Pressable aninhado: o toque aqui não
               chega no onAbrir do cartão. */}
@@ -1604,9 +1633,12 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   centro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32 },
   aviso: { fontSize: 14, color: cores.slate400, textAlign: "center" },
+  // Mesmo ritmo do site (/grupos/[id]): 16 entre avisos/atalhos (mb-4) e 20
+  // entre seções (mt-5): cabeçalho, Próximas partidas e Partidas anteriores
+  // ganham +4 em cima do gap. Igual ao painel (20 entre seções).
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 190, gap: 16 },
 
-  topoGrupo: { gap: 8 },
+  topoGrupo: { gap: 8, marginBottom: 4 },
   tituloDescBloco: { gap: 4 },
   cabecalho: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   tituloLinha: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
@@ -1674,7 +1706,7 @@ const styles = StyleSheet.create({
   bannerTitulo: { fontSize: 13, color: cores.slate300 },
   bannerChamada: { fontSize: 13, fontWeight: "700" },
 
-  secao: { gap: 8 },
+  secao: { gap: 8, marginTop: 4 },
   secaoCabecalho: { gap: 4 },
   secaoTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   secaoTitulo: {
@@ -1719,10 +1751,13 @@ const styles = StyleSheet.create({
   cardTopo: { flexDirection: "row", alignItems: "center", gap: 8 },
   cardData: { fontSize: 15, fontWeight: "600", color: cores.branco },
   cardHora: { fontSize: 13, color: cores.slate400 },
+  // Partida anterior (linha única, igual o site: text-sm na cor do status).
+  cardDataPassada: { flex: 1, fontSize: 14 },
+  textoPassadaCancelada: { color: "#f87171" },
+  textoPassadaConcluida: { color: "#34d399" },
+  textoPassadaPendente: { color: cores.slate400 },
   textoCancelado: { color: cores.erroTexto },
   textoCanceladoFraco: { color: "rgba(252,165,165,0.7)" },
-  textoConcluido: { color: "#6ee7b7" },
-  textoPendente: { color: cores.slate400 },
   cardDescricao: {
     fontSize: 13,
     color: cores.slate400,
@@ -1751,7 +1786,15 @@ const styles = StyleSheet.create({
   },
   aoVivoBtnTexto: { fontSize: 12, fontWeight: "700", color: cores.branco },
   aoVivoPonto: { width: 6, height: 6, borderRadius: 3, backgroundColor: cores.branco },
-  confirmadoPill: { backgroundColor: "#10b981", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  confirmadoPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#10b981",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
   confirmadoTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
   canceladaPill: { backgroundColor: "rgba(239, 68, 68, 0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   canceladaTexto: { fontSize: 12, fontWeight: "600", color: cores.erroTexto },
@@ -1773,7 +1816,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   rodapeBotaoLaranja: {
-    height: 48,
+    height: 45,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,
     flexDirection: "row",
@@ -1781,7 +1824,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeBotaoLaranjaTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
+  rodapeBotaoLaranjaTexto: { fontSize: 16, fontWeight: "700", color: cores.dark },
 
   modalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   modalEyebrow: {

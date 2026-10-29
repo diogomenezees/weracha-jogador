@@ -84,6 +84,26 @@ export async function vincularQuadra(chamarApi: ChamarApi, grupoId: string, quad
   return grupo;
 }
 
+// PUT /api/v1/grupos/{grupoId}/configuracoes — tela Configurações do grupo
+// (só admin): horas antes em que o check-in abre, limite de check-ins (null =
+// sem limite) e o valor inicial de jogadores por time. Devolve o grupo.
+export async function salvarConfiguracoesDoGrupo(
+  chamarApi: ChamarApi,
+  grupoId: string,
+  dados: {
+    checkinAbreHorasAntes: number;
+    limiteCheckins: number | null;
+    jogadoresPorTime: number;
+    scoreVisivelTodos: boolean;
+  }
+) {
+  const { grupo } = await chamarApi<{ ok: true; grupo?: Grupo }>(
+    `/api/v1/grupos/${grupoId}/configuracoes`,
+    { metodo: "PUT", corpo: dados }
+  );
+  return grupo;
+}
+
 // POST /api/v1/grupos/{grupoId}/renovacao — gera as partidas do próximo mês
 // (no-op em grupo AVULSO). Devolve o grupo atualizado.
 export async function renovarGrupo(chamarApi: ChamarApi, grupoId: string) {

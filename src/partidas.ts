@@ -31,9 +31,22 @@ export function hojeISO(): string {
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
-export const JANELA_CHECKIN_ANTES_MIN = 24 * 60;
-export const JANELA_CHECKIN_ANTES_HORAS = JANELA_CHECKIN_ANTES_MIN / 60;
+// Quantas horas antes do início o check-in abre é configuração do grupo
+// (`grupo.checkinAbreHorasAntes`, tela Configurações do grupo). Espelha
+// weracha-site/lib/partidas.ts. 24 é o padrão e o máximo.
+export const CHECKIN_ABRE_HORAS_PADRAO = 24;
+export const CHECKIN_ABRE_HORAS_OPCOES = [1, 2, 3, 6, 12, 24] as const;
 const JANELA_CHECKIN_TOLERANCIA_DEPOIS_MIN = 10;
+
+// Faixas das outras Configurações do grupo (o servidor valida de novo).
+export const LIMITE_CHECKINS_MIN = 2;
+export const LIMITE_CHECKINS_MAX = 200;
+export const JOGADORES_POR_TIME_MAX = 20;
+
+/** "1 hora" / "6 horas", pros textos "o check-in abre X antes". */
+export function textoHorasAntes(horas: number): string {
+  return horas === 1 ? "1 hora" : `${horas} horas`;
+}
 
 /** Duração da partida: snapshot, ou recalculada do(s) horário(s) do grupo. */
 export function resolverDuracaoMin(
@@ -49,42 +62,52 @@ export function resolverDuracaoMin(
   return horario?.duracaoMin ?? horariosDoGrupo[0]?.duracaoMin ?? 60;
 }
 
+function fechamentoDoCheckin(dataPartida: Date, duracaoMin: number): Date {
+  return new Date(
+    dataPartida.getTime() + (duracaoMin + JANELA_CHECKIN_TOLERANCIA_DEPOIS_MIN) * 60_000
+  );
+}
+
 export function janelaDeCheckin(
   dataPartida: Date,
-  duracaoMin: number
+  duracaoMin: number,
+  horasAntes: number
 ): { abertura: Date; fechamento: Date } {
   return {
-    abertura: new Date(dataPartida.getTime() - JANELA_CHECKIN_ANTES_MIN * 60_000),
-    fechamento: new Date(
-      dataPartida.getTime() + (duracaoMin + JANELA_CHECKIN_TOLERANCIA_DEPOIS_MIN) * 60_000
-    ),
+    abertura: new Date(dataPartida.getTime() - horasAntes * 60 * 60_000),
+    fechamento: fechamentoDoCheckin(dataPartida, duracaoMin),
   };
 }
 
 export function dentroDaJanelaDeCheckin(
   dataPartida: Date,
   duracaoMin: number,
+  horasAntes: number,
   agora: Date = new Date()
 ): boolean {
-  const { abertura, fechamento } = janelaDeCheckin(dataPartida, duracaoMin);
+  const { abertura, fechamento } = janelaDeCheckin(dataPartida, duracaoMin, horasAntes);
   return agora.getTime() >= abertura.getTime() && agora.getTime() <= fechamento.getTime();
 }
 
+/** Não depende de quando o check-in abre, só do fim da partida + tolerância. */
 export function partidaEncerrada(
   dataPartida: Date,
   duracaoMin: number,
   agora: Date = new Date()
 ): boolean {
-  return agora.getTime() > janelaDeCheckin(dataPartida, duracaoMin).fechamento.getTime();
+  return agora.getTime() > fechamentoDoCheckin(dataPartida, duracaoMin).getTime();
 }
 
-/** Janela de check-in ainda não abriu (30min antes do início). */
+/** Janela de check-in ainda não abriu (`horasAntes` antes do início). */
 export function partidaAindaNaoComecou(
   dataPartida: Date,
   duracaoMin: number,
+  horasAntes: number,
   agora: Date = new Date()
 ): boolean {
-  return agora.getTime() < janelaDeCheckin(dataPartida, duracaoMin).abertura.getTime();
+  return (
+    agora.getTime() < janelaDeCheckin(dataPartida, duracaoMin, horasAntes).abertura.getTime()
+  );
 }
 
 // Depois desse prazo (contado do FIM da partida), o admin não pode mais
@@ -116,13 +139,6 @@ export function scoreCongelado(
     agora.getTime() >=
     dataProximaPartida.getTime() - PRAZO_CONGELAMENTO_SCORE_HORAS * 60 * 60_000
   );
-}
-
-// Sugestão inicial de "jogadores por time" pra rachas com poucos check-ins:
-// cresce junto com quem chegou (1 time por dupla) até o teto de 5.
-// De weracha-site/lib/balanceamento.ts.
-export function sugerirJogadoresPorTime(totalPresentes: number): number {
-  return Math.min(5, Math.max(1, Math.floor(totalPresentes / 2)));
 }
 
 export function formatarDiaSemanaData(data: Date): string {

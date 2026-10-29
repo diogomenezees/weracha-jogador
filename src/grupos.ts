@@ -1,5 +1,6 @@
 import type { Grupo, PartidaResumo } from "@/contrato/tipos";
 import {
+  CHECKIN_ABRE_HORAS_PADRAO,
   dentroDaJanelaDeCheckin,
   janelaDeCheckin,
   partidaEncerrada,
@@ -8,7 +9,39 @@ import {
 } from "@/partidas";
 
 // Helpers de leitura sobre `Grupo`, espelhando weracha-site/lib/grupos.ts.
-// A janela de check-in (30min antes, +10 depois) vem de src/partidas.ts.
+// A janela de check-in (horas do grupo antes, +10min depois do fim) vem de
+// src/partidas.ts.
+
+/** Horas antes do início em que o check-in abre (Configurações do grupo). */
+export function horasDoCheckin(grupo: Grupo): number {
+  return grupo.checkinAbreHorasAntes ?? CHECKIN_ABRE_HORAS_PADRAO;
+}
+
+/** Limite de check-ins por partida, ou null (sem limite). */
+export function limiteDoGrupo(grupo: Grupo): number | null {
+  return grupo.limiteCheckins ?? null;
+}
+
+/** Janela de check-in da partida com as horas do grupo. */
+export function janelaDaPartida(
+  grupo: Grupo,
+  partida: PartidaResumo
+): { abertura: Date; fechamento: Date } {
+  return janelaDeCheckin(
+    new Date(partida.data),
+    duracaoDaPartida(grupo, partida),
+    horasDoCheckin(grupo)
+  );
+}
+
+/** Check-in da partida está aberto agora. */
+export function checkinAberto(grupo: Grupo, partida: PartidaResumo): boolean {
+  return dentroDaJanelaDeCheckin(
+    new Date(partida.data),
+    duracaoDaPartida(grupo, partida),
+    horasDoCheckin(grupo)
+  );
+}
 
 function ordenar(partidas: PartidaResumo[]): PartidaResumo[] {
   return [...partidas].sort(
@@ -35,7 +68,7 @@ export function partidasEmAndamento(grupo: Grupo): PartidaResumo[] {
     grupo.partidas.filter(
       (p) =>
         !p.cancelada &&
-        dentroDaJanelaDeCheckin(new Date(p.data), duracaoDaPartida(grupo, p))
+        checkinAberto(grupo, p)
     )
   );
 }
@@ -46,10 +79,7 @@ export function partidasFuturas(grupo: Grupo): PartidaResumo[] {
   const agora = Date.now();
   return ordenar(
     grupo.partidas.filter((p) => {
-      const { abertura, fechamento } = janelaDeCheckin(
-        new Date(p.data),
-        duracaoDaPartida(grupo, p)
-      );
+      const { abertura, fechamento } = janelaDaPartida(grupo, p);
       if (p.cancelada) return fechamento.getTime() > agora;
       return abertura.getTime() > agora;
     })
@@ -61,7 +91,7 @@ export function partidasPassadas(grupo: Grupo): PartidaResumo[] {
   const agora = Date.now();
   return ordenar(
     grupo.partidas.filter((p) => {
-      const { fechamento } = janelaDeCheckin(new Date(p.data), duracaoDaPartida(grupo, p));
+      const { fechamento } = janelaDaPartida(grupo, p);
       return fechamento.getTime() < agora;
     })
   ).reverse();

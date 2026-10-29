@@ -170,18 +170,28 @@ export function ModalPerfil({
         <ActivityIndicator color={cores.teal} />
       ) : (
         <>
+          {/* Igual o DialogPerfilJogador do site: avatar grande, nome/apelido/
+              telefone em três tons, e um card só com as 3 estatísticas divididas. */}
           <View style={styles.perfilTopo}>
-            <AvatarJogador id={perfil.id} nome={perfil.nome} fotoUrl={perfil.fotoUrl} tamanho={64} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.titulo}>{perfil.nome}</Text>
-              {perfil.apelido ? <Text style={styles.meta}>{perfil.apelido}</Text> : null}
-              <Text style={styles.meta}>{perfil.telefone}</Text>
+            <AvatarJogador id={perfil.id} nome={perfil.nome} fotoUrl={perfil.fotoUrl} tamanho={80} />
+            <View style={styles.perfilTextos}>
+              <Text style={styles.perfilNome} numberOfLines={1}>
+                {perfil.nome}
+              </Text>
+              {perfil.apelido ? (
+                <Text style={styles.perfilApelido} numberOfLines={1}>
+                  {perfil.apelido}
+                </Text>
+              ) : null}
+              <Text style={styles.perfilTelefone} numberOfLines={1} selectable>
+                {perfil.telefone}
+              </Text>
             </View>
           </View>
-          <View style={styles.statsLinha}>
-            <Stat icon={Users} n={perfil.totalGrupos} label="grupos" />
-            <Stat icon={CalendarDays} n={perfil.totalPartidas} label="partidas" />
-            <Stat icon={Goal} n={perfil.totalGols} label="gols" />
+          <View style={styles.statsCard}>
+            <Stat icon={Users} n={perfil.totalGrupos} label="Grupos" />
+            <Stat icon={CalendarDays} n={perfil.totalPartidas} label="Partidas" divisor />
+            <Stat icon={Goal} n={perfil.totalGols} label="Gols" divisor />
           </View>
         </>
       )}
@@ -189,9 +199,19 @@ export function ModalPerfil({
   );
 }
 
-function Stat({ icon: Icon, n, label }: { icon: LucideIcon; n: number; label: string }) {
+function Stat({
+  icon: Icon,
+  n,
+  label,
+  divisor,
+}: {
+  icon: LucideIcon;
+  n: number;
+  label: string;
+  divisor?: boolean;
+}) {
   return (
-    <View style={styles.stat}>
+    <View style={[styles.stat, divisor && styles.statDivisor]}>
       <Icon size={16} color={cores.teal} />
       <Text style={styles.statN}>{n}</Text>
       <Text style={styles.statL}>{label}</Text>
@@ -301,20 +321,25 @@ const styles = StyleSheet.create({
   },
   opcaoAtiva: { borderColor: cores.teal, backgroundColor: cores.avisoFundo },
   opcaoTexto: { fontSize: 15, color: cores.branco },
-  perfilTopo: { flexDirection: "row", alignItems: "center", gap: 12 },
-  statsLinha: { flexDirection: "row", gap: 10, marginTop: 4 },
-  stat: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
+  // Perfil: espelha components/dialog-perfil-jogador.tsx do site.
+  perfilTopo: { flexDirection: "row", alignItems: "center", gap: 16, paddingRight: 24 },
+  perfilTextos: { flex: 1, minWidth: 0, gap: 2 },
+  perfilNome: { fontSize: 18, lineHeight: 22, fontWeight: "600", color: cores.branco },
+  perfilApelido: { fontSize: 14, lineHeight: 18, color: cores.slate400 },
+  perfilTelefone: { fontSize: 14, lineHeight: 18, color: cores.slate500 },
+  statsCard: {
+    flexDirection: "row",
+    marginTop: 10,
     borderRadius: raio.campo,
     borderWidth: 1,
     borderColor: cores.cardBorda,
     backgroundColor: cores.cardFundo,
-    paddingVertical: 10,
+    padding: 12,
   },
+  stat: { flex: 1, alignItems: "center", gap: 4, paddingVertical: 4 },
+  statDivisor: { borderLeftWidth: 1, borderLeftColor: "rgba(31, 179, 163, 0.1)" },
   statN: { fontSize: 18, fontWeight: "700", color: cores.branco },
-  statL: { fontSize: 11, color: cores.slate400, textTransform: "uppercase", letterSpacing: 0.5 },
+  statL: { fontSize: 10, letterSpacing: 0.8, color: cores.teal, textTransform: "uppercase" },
   candidato: {
     flexDirection: "row",
     alignItems: "center",

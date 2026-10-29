@@ -12,7 +12,7 @@ import {
 describe("contrato de códigos de erro", () => {
   it("tem a quantidade esperada de códigos", () => {
     // Ao mudar de propósito, atualize este número junto com o array.
-    expect(CODIGOS_ERRO.length).toBe(144);
+    expect(CODIGOS_ERRO.length).toBe(147);
   });
 
   it("não tem código duplicado", () => {

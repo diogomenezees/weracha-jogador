@@ -316,7 +316,7 @@ export default function CriarGrupo() {
         {erro && <CaixaErro>{erro}</CaixaErro>}
       </ScrollTeclado>
 
-      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
+      <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
         <BotaoLaranja titulo="Salvar" onPress={() => void salvar()} carregando={salvando} />
       </View>
     </SafeAreaView>
@@ -425,6 +425,6 @@ const styles = StyleSheet.create({
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
   },
 });

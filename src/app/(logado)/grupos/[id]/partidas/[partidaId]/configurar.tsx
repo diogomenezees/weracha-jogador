@@ -32,8 +32,7 @@ import {
   TelaPartida,
   ToggleScore,
 } from "@/partida/ui";
-import { buscarPartida, duracaoDaPartida } from "@/grupos";
-import { dentroDaJanelaDeCheckin, sugerirJogadoresPorTime } from "@/partidas";
+import { buscarPartida, checkinAberto } from "@/grupos";
 import { useSessao } from "@/sessao/contexto";
 import {
   ArrowDownAZ,
@@ -145,7 +144,9 @@ export default function TelaConfigurar() {
     ]);
 
     setPresentes(montarPresentes(apoio));
-    setJogadoresPorTime(config?.jogadoresPorTime ?? sugerirJogadoresPorTime(apoio.checkins.length));
+    // Valor inicial: o já salvo pra esta partida ou, na primeira vez, o padrão
+    // das Configurações do grupo. O admin muda aqui se precisar.
+    setJogadoresPorTime(config?.jogadoresPorTime ?? g.jogadoresPorTime);
     setModo(ultimoModo ?? "SCORE");
     setDuracaoRodadaMin(config?.duracaoRodadaMin ?? 0);
     setGolsParaEncerrar(config?.golsParaEncerrarRodada ?? 0);
@@ -285,7 +286,7 @@ export default function TelaConfigurar() {
       </TelaPartida>
     );
   }
-  if (!dentroDaJanelaDeCheckin(new Date(p.data), duracaoDaPartida(g, p))) {
+  if (!checkinAberto(g, p)) {
     return (
       <TelaPartida voltar="Check-in">
         <AvisoPartida

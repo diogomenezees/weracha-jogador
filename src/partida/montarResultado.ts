@@ -31,6 +31,8 @@ export type ResultadoMontado = {
   ladoDireito: number | null;
   coresTimes: (string | null)[];
   modoSorteio: string;
+  // Limite de check-ins copiado do grupo no sorteio (null = sem limite).
+  limiteCheckins: number | null;
 };
 
 export function montarResultado(
@@ -80,5 +82,6 @@ export function montarResultado(
     ladoDireito: salvo.ladoDireito,
     coresTimes: salvo.coresTimes ?? [],
     modoSorteio: salvo.modoSorteio,
+    limiteCheckins: salvo.limiteCheckins ?? null,
   };
 }

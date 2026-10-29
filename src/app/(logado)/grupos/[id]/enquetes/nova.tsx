@@ -202,7 +202,7 @@ export default function NovaEnquete() {
         {erro ? <CaixaErro>{erro}</CaixaErro> : null}
       </ScrollTeclado>
 
-      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
+      <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
         <BotaoLaranja titulo="Criar enquete" onPress={() => void salvar()} carregando={salvando} />
       </View>
     </SafeAreaView>
@@ -256,6 +256,6 @@ const styles = StyleSheet.create({
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
   },
 });

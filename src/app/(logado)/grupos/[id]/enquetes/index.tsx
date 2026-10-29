@@ -129,7 +129,7 @@ export default function EnquetesDoGrupoTela() {
         )}
       </ScrollView>
 
-      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
+      <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
         {!podeCriarEnquete && (
           <Text style={styles.rodapeNota}>Você só pode ter uma enquete ativa por vez.</Text>
         )}
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
     gap: 8,
   },
   rodapeNota: { fontSize: 12, color: cores.slate400, textAlign: "center" },

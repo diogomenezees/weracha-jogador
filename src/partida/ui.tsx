@@ -38,6 +38,12 @@ export function Eyebrow({ children }: { children: ReactNode }) {
   return <Text style={styles.eyebrow}>{children}</Text>;
 }
 
+/** Texto pequeno abaixo de um Eyebrow, explicando o conteúdo da seção
+ * (site: `mt-0.5 text-[11px] text-slate-500`). */
+export function DicaSubtitulo({ children }: { children: ReactNode }) {
+  return <Text style={styles.dicaSubtitulo}>{children}</Text>;
+}
+
 export function Cabecalho({
   titulo,
   Icone,
@@ -338,7 +344,7 @@ export function Rodape({
 }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
+    <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
       {erro ? <Text style={styles.rodapeErro}>{erro}</Text> : null}
       <View style={styles.rodapeLinha}>
         {onVoltar && (
@@ -382,13 +388,16 @@ export function BotaoPrimario({
       disabled={desativado}
     >
       {Icone ? <Icone size={16} color={texto} /> : null}
-      <Text style={[styles.primarioTexto, { color: texto }]}>{titulo}</Text>
+      <Text style={[styles.primarioTexto, compacto && styles.primarioTextoCompacto, { color: texto }]}>
+        {titulo}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
+  dicaSubtitulo: { marginTop: 2, fontSize: 11, lineHeight: 14, color: cores.slate500 },
   eyebrow: {
     fontSize: 11,
     fontWeight: "700",
@@ -516,7 +525,7 @@ const styles = StyleSheet.create({
   rodapeErro: { fontSize: 13, color: cores.erroTexto, textAlign: "center" },
   rodapeVoltar: {
     minWidth: 96,
-    height: 48,
+    height: 45,
     paddingHorizontal: 14,
     borderRadius: raio.campo,
     borderWidth: 1,
@@ -526,10 +535,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeVoltarTexto: { fontSize: 15, color: cores.branco },
+  rodapeVoltarTexto: { fontSize: 16, color: cores.branco },
   primario: {
     flex: 1,
-    height: 48,
+    height: 45,
     borderRadius: raio.campo,
     flexDirection: "row",
     gap: 8,
@@ -538,5 +547,8 @@ const styles = StyleSheet.create({
   },
   primarioCompacto: { height: 36 },
   primarioOff: { opacity: 0.5 },
-  primarioTexto: { fontSize: 15, fontWeight: "700" },
+  // 16 = text-base dos botões de rodapé do site. O compacto (no meio da tela,
+  // tipo "Eu vou jogar") fica um pouco menor.
+  primarioTexto: { fontSize: 16, fontWeight: "700" },
+  primarioTextoCompacto: { fontSize: 15 },
 });

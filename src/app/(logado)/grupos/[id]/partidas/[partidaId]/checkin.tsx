@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, Pressable, Share, StyleSheet, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  AppState,
+  Pressable,
+  Share,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { Text } from "@/ui/Texto";
 import {
   ArrowDownAZ,
+  Ban,
   Clock,
   Eye,
   EyeOff,
@@ -43,12 +52,16 @@ import {
   BotaoPrimario,
   TelaPartida,
 } from "@/partida/ui";
-import { buscarPartida, duracaoDaPartida } from "@/grupos";
 import {
-  dentroDaJanelaDeCheckin,
+  buscarPartida,
+  checkinAberto,
+  horasDoCheckin,
+  limiteDoGrupo,
+} from "@/grupos";
+import {
   formatarDiaSemanaData,
   formatarHora,
-  JANELA_CHECKIN_ANTES_HORAS,
+  textoHorasAntes,
 } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -74,6 +87,7 @@ export default function TelaCheckin() {
   const [apoio, setApoio] = useState<DadosDeApoioDaPartida | null>(null);
   const [resultado, setResultado] = useState<ResultadoSalvo | undefined>(undefined);
   const [erro, setErro] = useState<string | null>(null);
+  const [erroMeuCheckin, setErroMeuCheckin] = useState<string | null>(null);
   const [tentativa, setTentativa] = useState(0);
 
   const [busca, setBusca] = useState("");
@@ -82,6 +96,9 @@ export default function TelaCheckin() {
   const [formNovo, setFormNovo] = useState(false);
   const [perfilId, setPerfilId] = useState<string | null>(null);
   const [aguardando, setAguardando] = useState(false);
+  // Modal "Check-in lotado" (jogador comum sem check-in): abre sozinho enquanto
+  // estiver lotado, até ele fechar.
+  const [lotadoDispensado, setLotadoDispensado] = useState(false);
 
   const [confirmar, setConfirmar] = useState<
     | null
@@ -132,6 +149,9 @@ export default function TelaCheckin() {
   }, [grupo, partida, carregarApoio]);
 
   const souAdmin = grupo?.meuPapel === "ADMIN";
+  // Admin sempre; o resto só se o grupo liberou nas Configurações (o servidor
+  // manda o score dos outros null nos demais casos).
+  const vejoScore = souAdmin || !!grupo?.scoreVisivelTodos;
   const jogadorPorId = useMemo(
     () => new Map((apoio?.jogadores ?? []).map((j) => [j.id, j])),
     [apoio?.jogadores]
@@ -165,6 +185,10 @@ export default function TelaCheckin() {
     [apoio?.checkins]
   );
   const jaFizCheckin = presentesIds.has(meuId);
+  // Limite de check-ins (Configurações do grupo). Só barra o jogador comum; o
+  // admin pode passar dele (o servidor aplica a mesma regra).
+  const limite = grupo ? limiteDoGrupo(grupo) : null;
+  const lotado = limite != null && presentesIds.size >= limite;
   // Só o próprio score (o dos outros é do admin). Depois do check-in vale o
   // snapshot gravado nele, que é o que o sorteio usa.
   const meuCheckinScore = apoio?.checkins.find((c) => c.jogadorId === meuId)?.scoreNoCheckin;
@@ -192,12 +216,16 @@ export default function TelaCheckin() {
   }
 
   async function handleMeuCheckin() {
+    setErroMeuCheckin(null);
     try {
       await fazerMeuCheckin(chamarApi, partidaId);
       await carregarApoio();
       if (!souAdmin && !resultado) setAguardando(true);
     } catch (e) {
-      setErro(mensagemDoErro(e));
+      // Lotou (ou a janela fechou) entre o último polling e o toque: mostra o
+      // motivo aqui mesmo, sem trocar a tela inteira pela de erro.
+      setErroMeuCheckin(mensagemDoErro(e));
+      carregarApoio().catch(() => {});
     }
   }
 
@@ -252,16 +280,11 @@ export default function TelaCheckin() {
       </TelaPartida>
     );
   }
-  if (
-    !dentroDaJanelaDeCheckin(
-      new Date(partidaAtual.data),
-      duracaoDaPartida(grupoAtual, partidaAtual)
-    )
-  ) {
+  if (!checkinAberto(grupoAtual, partidaAtual)) {
     return (
       <TelaPartida voltar="Grupo">
         <AvisoPartida
-          mensagem={`O check-in abre ${JANELA_CHECKIN_ANTES_HORAS} horas antes do início da partida.`}
+          mensagem={`O check-in abre ${textoHorasAntes(horasDoCheckin(grupoAtual))} antes do início da partida.`}
           destino={`/grupos/${id}`}
           rotuloDestino="Grupo"
         />
@@ -302,10 +325,6 @@ export default function TelaCheckin() {
         )
     : [];
 
-  const contagem =
-    confirmados.length === 0
-      ? "Aguardando jogadores"
-      : `${confirmados.length} confirmado${confirmados.length === 1 ? "" : "s"}`;
 
   const podeAvancar = confirmados.length >= 2;
 
@@ -403,17 +422,32 @@ export default function TelaCheckin() {
         {jaFizCheckin ? (
           !souAdmin && !resultado ? (
             <View style={styles.aguardandoBox}>
+              {/* Girando, igual o Loader2 do site: está esperando o admin. */}
+              <ActivityIndicator size="small" color={cores.ambar} />
               <Text style={styles.aguardandoTexto}>
                 Presença confirmada. Aguardando o admin iniciar a partida.
               </Text>
             </View>
           ) : null
-        ) : (
+        ) : lotado && !souAdmin ? null : (
           <BotaoPrimario titulo="Eu vou jogar" compacto onPress={() => void handleMeuCheckin()} />
         )}
 
+        {erroMeuCheckin && !jaFizCheckin && !lotado ? (
+          <Text style={styles.erroMeuCheckin}>{erroMeuCheckin}</Text>
+        ) : null}
+
         <View style={styles.tituloLinha}>
-          <Eyebrow>Jogadores ({confirmados.length})</Eyebrow>
+          {/* Encolhe e quebra de linha em vez de empurrar os filtros pra fora da
+              tela. Lotado é sinalizado pelo banner acima da lista, não aqui. */}
+          <View style={styles.tituloTexto}>
+            <Eyebrow>
+              {limite != null
+                ? `Jogadores (${presentesIds.size}/${limite})`
+                : `Jogadores (${confirmados.length})`}
+            </Eyebrow>
+            <Text style={styles.tituloDica}>Toque no jogador para ver o perfil</Text>
+          </View>
           <View style={styles.tituloAcoes}>
             <View style={styles.ordGrupo}>
               {(
@@ -438,7 +472,7 @@ export default function TelaCheckin() {
                 </Pressable>
               ))}
             </View>
-            {souAdmin && (
+            {vejoScore && (
               <>
                 <Text style={styles.scoreRotulo}>Score:</Text>
                 <Pressable
@@ -459,6 +493,26 @@ export default function TelaCheckin() {
           </View>
         </View>
 
+        {/* Banner de lotado logo acima do primeiro jogador. Pro jogador que ficou
+            de fora ele também explica por que o "Eu vou jogar" sumiu. */}
+        {lotado ? (
+          <View style={styles.bannerLotado}>
+            <Ban size={20} color="#f87171" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bannerLotadoTitulo}>
+                Check-in lotado · {presentesIds.size}/{limite}
+              </Text>
+              <Text style={styles.bannerLotadoTexto}>
+                {souAdmin
+                  ? "Como admin, você ainda pode incluir alguém."
+                  : jaFizCheckin
+                    ? "Sua vaga está garantida."
+                    : "Se alguém desistir, a vaga abre de novo."}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         {confirmados.length === 0 ? (
           <Text style={styles.vazio}>Ninguém chegou ainda.</Text>
         ) : (
@@ -475,7 +529,7 @@ export default function TelaCheckin() {
                   fotoUrl={j.fotoUrl}
                   posicaoNome={posicaoNomePorJogador.get(j.id)}
                   score={scorePorJogador.get(j.id)}
-                  mostrarScore={souAdmin && verScore}
+                  mostrarScore={vejoScore && verScore}
                   souEu={souEu}
                   onAbrirPerfil={() => setPerfilId(j.id)}
                   direita={
@@ -525,6 +579,9 @@ export default function TelaCheckin() {
         )}
       </ScrollTeclado>
 
+      {/* Jogador comum antes do sorteio: sem rodapé (só teria a contagem, que já
+          aparece em "Jogadores (N)", e ficava uma faixa grossa e vazia). */}
+      {(resultado || souAdmin) && (
       <Rodape
         primario={
           resultado ? (
@@ -562,13 +619,10 @@ export default function TelaCheckin() {
                 onPress={() => router.push(`/grupos/${id}/partidas/${partidaId}/configurar`)}
               />
             </>
-          ) : (
-            <View style={styles.contagemRodape}>
-              <Text style={styles.contagemRodapeTexto}>{contagem}</Text>
-            </View>
-          )
+          ) : null
         }
       />
+      )}
 
       <ModalConfirmar
         aberto={confirmar?.tipo === "cancelarMeu"}
@@ -656,6 +710,28 @@ export default function TelaCheckin() {
         </Pressable>
       </ModalCartao>
 
+      {/* Só pro jogador comum que ainda não fez check-in: o banner da lista
+          sozinho passava batido. O admin pode passar do limite, então não vê. */}
+      <ModalCartao
+        aberto={lotado && !souAdmin && !jaFizCheckin && !lotadoDispensado}
+        onFechar={() => setLotadoDispensado(true)}
+      >
+        <View style={styles.modalLotadoEyebrow}>
+          <Ban size={14} color="#f87171" />
+          <Text style={styles.modalLotadoEyebrowTexto}>
+            Check-in lotado · {presentesIds.size}/{limite}
+          </Text>
+        </View>
+        <Text style={styles.modalTitulo}>Não tem mais vaga nesta partida</Text>
+        <Text style={styles.modalDesc}>
+          O limite é de {limite} jogadores e todas as vagas já foram preenchidas. Se alguém
+          desistir, a vaga abre de novo e você pode confirmar por aqui.
+        </Text>
+        <Pressable style={styles.modalBotao} onPress={() => setLotadoDispensado(true)}>
+          <Text style={styles.modalBotaoTexto}>Entendi</Text>
+        </Pressable>
+      </ModalCartao>
+
       <FormNovoJogador
         aberto={formNovo}
         chamarApi={chamarApi}
@@ -690,8 +766,8 @@ export default function TelaCheckin() {
 
 const styles = StyleSheet.create({
   novoJogadorRodape: {
-    width: 48,
-    height: 48,
+    width: 45,
+    height: 45,
     borderRadius: raio.campo,
     backgroundColor: cores.teal,
     alignItems: "center",
@@ -733,21 +809,49 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   avisoLaranjaTexto: { fontSize: 12, lineHeight: 17, color: cores.slate300 },
-  aguardandoBox: {
+  // Vermelho do card de partida cancelada, no formato dos cards de jogador
+  // (mesmo raio e borda de 1px em volta toda).
+  bannerLotado: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     borderRadius: raio.campo,
     borderWidth: 1,
-    borderColor: cores.avisoBorda,
-    backgroundColor: cores.avisoFundo,
+    borderColor: cores.erroBorda,
+    backgroundColor: cores.erroFundo,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  bannerLotadoTitulo: {
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: cores.erroTexto,
+  },
+  bannerLotadoTexto: { fontSize: 12, lineHeight: 17, color: cores.slate300 },
+  erroMeuCheckin: { fontSize: 12, textAlign: "center", color: cores.erroTexto },
+  // Amarelo de "espera": o jogador já confirmou e depende do admin.
+  aguardandoBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: cores.ambarFundo,
     padding: 12,
   },
-  aguardandoTexto: { fontSize: 13, lineHeight: 18, color: cores.slate300 },
+  aguardandoTexto: { flex: 1, fontSize: 13, lineHeight: 18, color: cores.ambar },
   tituloLinha: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 8,
   },
-  tituloAcoes: { flexDirection: "row", alignItems: "center", gap: 8 },
+  tituloTexto: { flexShrink: 1, gap: 2 },
+  tituloDica: { fontSize: 11, lineHeight: 14, color: cores.slate500 },
+  tituloAcoes: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
   ordGrupo: {
     flexDirection: "row",
     borderRadius: raio.campo,
@@ -795,9 +899,15 @@ const styles = StyleSheet.create({
   pagPillTexto: { fontSize: 10, fontWeight: "700", color: cores.slate400 },
   pagPillTextoMensal: { color: cores.branco },
   removerTexto: { fontSize: 14, color: cores.slate400, paddingHorizontal: 4 },
-  contagemRodape: { flex: 1, height: 48, alignItems: "center", justifyContent: "center" },
-  contagemRodapeTexto: { fontSize: 14, color: cores.slate400 },
   modalTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
+  modalLotadoEyebrow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  modalLotadoEyebrowTexto: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    color: "#f87171",
+  },
   modalDesc: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   modalBotao: {
     height: 48,

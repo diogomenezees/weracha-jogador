@@ -367,7 +367,10 @@ export default function GerenciarJogadores() {
     );
   }
 
-  const podeVerScore = souAdmin && verScores;
+  // Admin sempre; o resto só se o grupo liberou nas Configurações (o servidor
+  // manda o score dos outros null nos demais casos).
+  const vejoScore = souAdmin || !!grupo?.scoreVisivelTodos;
+  const podeVerScore = vejoScore && verScores;
   const candidatosDono = dados.membros
     .filter((m) => m.jogadorId !== dados.meuId && m.papel === "ADMIN")
     .map((m) => jogadoresPorId.get(m.jogadorId))
@@ -417,7 +420,11 @@ export default function GerenciarJogadores() {
         />
 
         <View style={styles.controles}>
-          <Text style={styles.contagem}>Jogadores ({linhas.length})</Text>
+          {/* Encolhe e quebra de linha em vez de empurrar a ordenação. */}
+          <View style={styles.contagemBloco}>
+            <Text style={styles.contagem}>Jogadores ({linhas.length})</Text>
+            <Text style={styles.contagemDica}>Toque no jogador para ver o perfil</Text>
+          </View>
           <View style={styles.controlesDireita}>
             <View style={styles.ordGrupo}>
               {(
@@ -442,7 +449,7 @@ export default function GerenciarJogadores() {
                 </Pressable>
               ))}
             </View>
-            {souAdmin && (
+            {vejoScore && (
               <>
                 <Text style={styles.scoreRotulo}>Score:</Text>
                 <Pressable
@@ -536,17 +543,25 @@ export default function GerenciarJogadores() {
         })}
 
         {linhas.length > 0 && (
-          <Text style={styles.rodapeNota}>O score só aparece pra admin do grupo.</Text>
+          <Text style={styles.rodapeNota}>
+            {grupo?.scoreVisivelTodos
+              ? "O score está liberado pra todos do grupo."
+              : souAdmin
+                ? "O score dos outros jogadores está desabilitado neste grupo. Dá pra liberar nas Configurações do grupo."
+                : "O score dos outros jogadores está desabilitado neste grupo."}
+          </Text>
         )}
       </ScrollView>
 
-      <View style={[styles.rodape, { paddingBottom: 14 + insets.bottom }]}>
-        {souAdmin && (
+      {/* Rodapé só existe pro admin ("Novo jogador"); pro jogador comum ficava
+          uma caixa vazia. */}
+      {souAdmin && (
+        <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
           <Pressable style={styles.novoBtn} onPress={() => setFormAberto(true)}>
             <Text style={styles.novoBtnTexto}>Novo jogador</Text>
           </Pressable>
-        )}
-      </View>
+        </View>
+      )}
 
       <MenuAcoes
         aberto={menu !== null}
@@ -673,7 +688,9 @@ const styles = StyleSheet.create({
     color: cores.branco,
   },
   controles: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  controlesDireita: { flexDirection: "row", alignItems: "center", gap: 8 },
+  controlesDireita: { flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0 },
+  contagemBloco: { flexShrink: 1, gap: 2 },
+  contagemDica: { fontSize: 11, lineHeight: 14, color: cores.slate500 },
   scoreRotulo: { fontSize: 13, fontWeight: "500", color: cores.slate300 },
   ordGrupo: {
     flexDirection: "row",
@@ -748,14 +765,14 @@ const styles = StyleSheet.create({
     borderTopColor: cores.cardBorda,
     backgroundColor: cores.dark,
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
   },
   novoBtn: {
-    height: 50,
+    height: 45,
     borderRadius: raio.campo,
     backgroundColor: cores.orange,
     alignItems: "center",
     justifyContent: "center",
   },
-  novoBtnTexto: { fontSize: 15, fontWeight: "700", color: cores.dark },
+  novoBtnTexto: { fontSize: 16, fontWeight: "700", color: cores.dark },
 });
