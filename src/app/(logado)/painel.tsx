@@ -175,8 +175,8 @@ export default function Painel() {
             onboardingConcluido={onboardingConcluido}
           />
         )}
-        {temGrupo && dados && !exclusaoPendente && dados.atividadesRecentes.length > 0 && (
-          <AtividadesRecentes atividades={dados.atividadesRecentes} agora={carregadoEm} />
+        {temGrupo && dados && !exclusaoPendente && !!dados.atividades?.length && (
+          <AtividadesRecentes atividades={dados.atividades} agora={carregadoEm} />
         )}
       </ScrollView>
 

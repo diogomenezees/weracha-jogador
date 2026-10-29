@@ -412,8 +412,8 @@ const styles = StyleSheet.create({
   // scroll) que desalinharia o título do resto do conteúdo.
   cabecalho: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
   tituloComIcone: { flexDirection: "row", alignItems: "center", gap: 8 },
-  h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
-  subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
+  h1: { fontSize: 24, lineHeight: 26, fontWeight: "700", color: cores.branco },
+  subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   sub: { flexShrink: 1, fontSize: 13, color: cores.slate400 },
   subFixo: { flexShrink: 0 },
   subLinhaQuebra: { alignItems: "flex-start" },

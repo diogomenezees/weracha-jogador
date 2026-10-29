@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { CodigoErro } from "./codigos-erro";
+import type { AtividadeGrupo } from "./atividades";
 
 /** Corpo de TODA resposta de falha de `/api/v1/*` (16-api-v1.md §2). */
 export type RespostaErro = {
@@ -780,7 +781,10 @@ export type DadosDoPainel = {
   grupos: GrupoPainel[];
   proximoJogo: ProximoJogoPainel | null;
   ultimoResultado: UltimoResultadoPainel | null;
+  // Formato antigo (só replays comentados). O app usa `atividades`.
   atividadesRecentes: AtividadeRecentePainel[];
+  // "Atividades recentes" com todos os tipos. Opcional: site anterior não manda.
+  atividades?: AtividadeGrupo[];
   destaques: DestaquesPainel;
   // Card "Meus indicadores". Opcional: um site anterior a ele não manda.
   meusIndicadores?: MeusIndicadoresPainel | null;

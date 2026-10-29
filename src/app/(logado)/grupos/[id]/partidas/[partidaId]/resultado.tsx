@@ -27,6 +27,7 @@ import { CardsReplay } from "@/partida/CardsReplay";
 import { PainelGols } from "@/partida/PainelGols";
 import { LinhaReplaysExpirados } from "@/partida/LinhaReplaysExpirados";
 import { ReplaysDoJogadorInline } from "@/partida/ReplaysDoJogadorInline";
+import { useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { montarResultado, type JogadorNoTime, type ResultadoMontado } from "@/partida/montarResultado";
 import {
   Abas,
@@ -95,6 +96,8 @@ export default function TelaResultado() {
   const meuId = sessao.fase === "logado" ? sessao.jogador.id : null;
   const minhaDataNasc = sessao.fase === "logado" ? sessao.jogador.dataNascimento : null;
 
+  // Banners entre os vídeos dos replays de um jogador e da aba Lances.
+  const campanhas = useCampanhasNoAr();
   const [grupo, setGrupo] = useState<Grupo | null | undefined>(undefined);
   const [partida, setPartida] = useState<PartidaResumo | null | undefined>(undefined);
   // Quadra vinculada ao grupo (já vem na mesma chamada dos dados do grupo). A pílula da
@@ -613,6 +616,7 @@ export default function TelaResultado() {
                 gols={golsDoReplayInline}
                 grupoNome={g.nome}
                 apenasUmGol={!!replayInline.golId}
+                campanhas={campanhas}
                 comentar={{
                   chamarApi,
                   meuJogadorId: meuId,
@@ -635,6 +639,7 @@ export default function TelaResultado() {
               gols={lancesComVideo}
               grupoNome={g.nome}
               vazioTexto="Nenhum lance importante registrado nessa partida."
+              campanhas={campanhas}
               comentar={{
                 chamarApi,
                 meuJogadorId: meuId,

@@ -85,5 +85,10 @@ function destinoDaNotificacao(data: Record<string, unknown> | undefined): Href |
     // Resenha já rolada até o vídeo comentado (mesmo link do painel).
     return `/grupos/${grupoId}/resenha?video=${pedidoReplayId}`;
   }
+  // Dedo duro e jogador novo pelo convite: elenco do grupo.
+  // CONFIGURACAO_PARTIDA cai no grupo (padrão).
+  if (tipo === "SCORE_ALTERADO" || tipo === "NOVO_JOGADOR") {
+    return `/grupos/${grupoId}/jogadores`;
+  }
   return `/grupos/${grupoId}`;
 }

@@ -11,6 +11,7 @@ do app (era doc 10 §3 / doc 11 do repo do site). **Não** é um pacote npm, **n
 | `telefone.ts` | `weracha-site/lib/telefone.ts` | Helpers puros de telefone (normalizar/formatar) |
 | `bannersDoFeed.ts` | `weracha-site/lib/bannersDoFeed.ts` | Onde entram os banners entre os vídeos (Resenha, Meus replays): qual espaço é do Instagram (e os textos dele) e qual é de campanha de parceiro |
 | `expiracaoReplays.ts` | `weracha-site/lib/expiracaoReplays.ts` | Regra da expiração dos replays (3 meses comunicados, 4 de verdade, data de início) e os textos do selo/banner |
+| `atividades.ts` | `weracha-site/lib/atividades.ts` | "Atividades recentes" (painel e tela do grupo): tipos por `tipo` e os textos do dedo duro e da mudança da partida |
 
 ## Regras
 

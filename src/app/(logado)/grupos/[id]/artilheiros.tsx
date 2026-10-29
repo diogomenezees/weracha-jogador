@@ -143,12 +143,13 @@ export default function ArtilheirosDoGrupo() {
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 18 },
-  cabecalho: { gap: 4 },
+  cabecalho: { gap: 2 },
   tituloLinha: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
   compartilharBtn: {
     width: 30,
     height: 30,
-    marginTop: 2,
+    // Não estica a linha do título (o botão é mais alto que o texto).
+    marginVertical: -2,
     alignItems: "center",
     justifyContent: "center",
   },

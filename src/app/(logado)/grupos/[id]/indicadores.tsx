@@ -132,7 +132,7 @@ export default function IndicadoresDoGrupo() {
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   scroll: { paddingHorizontal: 16, paddingTop: 8, gap: 18 },
-  cabecalho: { gap: 4 },
+  cabecalho: { gap: 2 },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
   sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
 });

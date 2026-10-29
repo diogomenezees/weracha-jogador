@@ -17,5 +17,5 @@ export function TituloTela({ Icone, children }: { Icone?: LucideIcon; children: 
 
 const styles = StyleSheet.create({
   linha: { flexDirection: "row", alignItems: "center", gap: 8 },
-  h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
+  h1: { fontSize: 24, lineHeight: 26, fontWeight: "700", color: cores.branco },
 });

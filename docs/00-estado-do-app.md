@@ -191,8 +191,12 @@ Painel de quem tem grupo (`src/app/(logado)/painel.tsx`, seções em
 `src/painel/secoes.tsx`) espelha o `/painel` do site: Próximo jogo (selo de
 check-in, confirmados, botão Check-in/Confirmado/Ao vivo), Ações rápidas e
 Destaques dos grupos (carrosséis), Seus grupos (abas Ativos/Aguardando, nome da
-quadra) e Atividades recentes (últimos replays comentados, abre a resenha com
-`?video=`). Tudo numa chamada: `GET /api/v1/painel` (`src/api/painel.ts`,
+quadra) e Atividades recentes (campo `atividades`: replays comentados, enquetes
+novas, dedo duro de score, mudança do check-in/limite e entrada pelo convite; lista
+em `src/atividades/ListaAtividades.tsx`, tipos em `src/contrato/atividades.ts`; a
+mesma lista aparece na tela do grupo abaixo das 3 últimas partidas anteriores, via
+`GET /api/v1/grupos/{id}/atividades`, com "Ver tudo" pra
+`(logado)/grupos/[id]/atividades.tsx`, paginada de 10 em 10 (a seção do grupo mostra 5); o Painel não tem "Ver tudo"). Tudo numa chamada: `GET /api/v1/painel` (`src/api/painel.ts`,
 tipos em `src/contrato/tipos.ts`); o painel não usa mais `/api/v1/grupos` nem
 `/conta/exclusao`.
 - Resenha do grupo aceita `?video=`: rola até o vídeo (carrega páginas se

@@ -104,6 +104,7 @@ export default function EnquetesDoGrupoTela() {
               {grupoNome}
             </Text>
           </View>
+          <Text style={styles.descricao}>Pergunte ao grupo, vote e acompanhe o resultado.</Text>
         </View>
 
         {ativas.length === 0 && encerradas.length === 0 && (
@@ -199,10 +200,15 @@ function CardEnquete({ enquete, onPress }: { enquete: Enquete; onPress: () => vo
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
-  cabecalho: { gap: 4 },
+  cabecalho: { gap: 2 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
-  sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
+  // lineHeight + includeFontPadding: sem isso o Android afasta nome do grupo e
+  // descrição bem mais que o site.
+  sub: { flexShrink: 1, fontSize: 14, lineHeight: 20, includeFontPadding: false, color: cores.slate400 },
+  // Encostada no nome do grupo (igual à tela de Atividades recentes): o
+  // marginTop negativo desconta o gap do cabeçalho.
+  descricao: { marginTop: -2, fontSize: 14, lineHeight: 18, includeFontPadding: false, color: cores.slate400 },
   box: {
     borderRadius: raio.card,
     borderWidth: 1,

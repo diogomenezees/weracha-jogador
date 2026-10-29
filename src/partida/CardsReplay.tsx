@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import type { OpcoesRequisicao } from "@/api/cliente";
+import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
+import { BannerDoFeed } from "@/resenha/BannerDoFeed";
 import { RespostaReplay } from "@/resenha/RespostaReplay";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { Ban, Clock, Goal, Smartphone, Sparkles, Users, VideoOff } from "@/ui/Icone";
@@ -13,7 +15,12 @@ import { PlayerReplay } from "@/replay/PlayerReplay";
 import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
-import type { ComentarioResenha, GolComVideos, PodeComentar } from "@/contrato/tipos";
+import type {
+  CampanhaNoAr,
+  ComentarioResenha,
+  GolComVideos,
+  PodeComentar,
+} from "@/contrato/tipos";
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
@@ -33,6 +40,7 @@ export function CardsReplay({
   vazioTexto,
   comentar,
   ocultarJogador = false,
+  campanhas,
 }: {
   gols: GolComVideos[];
   /** Só usado no card de lance (sem jogador vinculado). */
@@ -48,6 +56,12 @@ export function CardsReplay({
   };
   /** Replays de um jogador só (ReplaysDoJogadorInline): o cabeçalho já mostra foto e nome. */
   ocultarJogador?: boolean;
+  /**
+   * Quando passado (tela de resultado), intercala os banners do feed (Instagram, aviso de
+   * expiração e campanhas) entre os vídeos, com a mesma regra da Resenha e de Meus
+   * replays. A lista vem inteira, sem paginação.
+   */
+  campanhas?: CampanhaNoAr[];
 }) {
   if (gols.length === 0) {
     return (
@@ -59,15 +73,22 @@ export function CardsReplay({
 
   return (
     <View style={{ gap: 12 }}>
-      {gols.map((g) => (
-        <CardReplay
-          key={g.golId}
-          gol={g}
-          grupoNome={grupoNome}
-          comentar={comentar}
-          ocultarJogador={ocultarJogador}
-        />
-      ))}
+      {gols.map((g, i) => {
+        const banner = campanhas
+          ? bannerDoFeedDepoisDe(i, gols.length, true, campanhas.length)
+          : null;
+        return (
+          <Fragment key={g.golId}>
+            <CardReplay
+              gol={g}
+              grupoNome={grupoNome}
+              comentar={comentar}
+              ocultarJogador={ocultarJogador}
+            />
+            {banner !== null && campanhas && <BannerDoFeed banner={banner} campanhas={campanhas} />}
+          </Fragment>
+        );
+      })}
     </View>
   );
 }

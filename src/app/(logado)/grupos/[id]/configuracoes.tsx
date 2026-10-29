@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Switch, View } from "react-native";
-import { Text } from "@/ui/Texto";
+import { Text, FAMILIA_MONO } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -240,19 +240,21 @@ function Secao({
   acao?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  // Título fora da caixa, no mesmo padrão do TituloSecao do painel (e da Performance e
+  // das seções do grupo); a caixa leva a explicação e o controle.
   return (
-    <View style={styles.secao}>
-      <View style={styles.secaoTopo}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.secaoTituloLinha}>
-            <Icone size={16} color={cores.teal} />
-            <Text style={styles.secaoTitulo}>{titulo}</Text>
-          </View>
-          <Text style={styles.secaoDescricao}>{descricao}</Text>
-        </View>
-        {acao}
+    <View>
+      <View style={styles.secaoTituloLinha}>
+        <Icone size={16} color={cores.teal} />
+        <Text style={styles.secaoTitulo}>{titulo}</Text>
       </View>
-      {children}
+      <View style={styles.secao}>
+        <View style={styles.secaoTopo}>
+          <Text style={styles.secaoDescricao}>{descricao}</Text>
+          {acao}
+        </View>
+        {children}
+      </View>
     </View>
   );
 }
@@ -262,7 +264,7 @@ const styles = StyleSheet.create({
   carregando: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
   tituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
-  h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
+  h1: { fontSize: 24, lineHeight: 26, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   sub: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
   intro: { marginTop: 12, fontSize: 14, lineHeight: 20, color: cores.slate400 },
@@ -275,9 +277,21 @@ const styles = StyleSheet.create({
     backgroundColor: cores.superficieSutil,
   },
   secaoTopo: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  secaoTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
-  secaoTitulo: { fontSize: 16, fontWeight: "600", color: cores.branco },
-  secaoDescricao: { marginTop: 4, fontSize: 12, lineHeight: 17, color: cores.slate400 },
+  secaoTituloLinha: {
+    minHeight: 24,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  secaoTitulo: {
+    fontFamily: FAMILIA_MONO,
+    fontSize: 12,
+    letterSpacing: 1,
+    color: cores.teal,
+    textTransform: "uppercase",
+  },
+  secaoDescricao: { flex: 1, fontSize: 12, lineHeight: 17, color: cores.slate400 },
   opcoes: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   opcao: {
     width: "31%",

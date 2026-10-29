@@ -41,9 +41,11 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Clock,
   Copy,
   History,
+  Bell,
   EllipsisVertical,
   type LucideIcon,
   Link2,
@@ -95,11 +97,17 @@ import { useSessao } from "@/sessao/contexto";
 import { useDialogos } from "@/ui/Dialogos";
 import { cores, fontes, raio } from "@/tema";
 import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/tipos";
+import type { AtividadeGrupo } from "@/contrato/atividades";
+import { buscarAtividadesDoGrupo } from "@/api/atividades";
+import { ListaAtividades } from "@/atividades/ListaAtividades";
 
 type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
 
-// Quantas partidas finalizadas aparecem antes do "Ver todas" (mesmo valor do site).
-const PARTIDAS_PASSADAS_VISIVEIS = 5;
+// Quantas partidas finalizadas aparecem antes do "Ver tudo" (mesmo valor do
+// site). Poucas pra "Atividades recentes", logo abaixo, não ficar longe.
+const PARTIDAS_PASSADAS_VISIVEIS = 3;
+// A API devolve 10 por página (o "Ver tudo" já abre com mais); a seção mostra 5.
+const ATIVIDADES_NA_SECAO = 5;
 
 // "Como funciona" do modal Convidar (mesmo texto do site).
 const PASSOS_CONVITE = ["Copie o link", "Mande no grupo do WhatsApp", "A galera entra e confirma presença"];
@@ -124,6 +132,10 @@ export default function TelaGrupo() {
   // (weracha-site/components/dialog-primeiros-jogadores.tsx).
   const [boasVindasAberto, setBoasVindasAberto] = useState(bemVindo === "1");
   const [verTodasPassadas, setVerTodasPassadas] = useState(false);
+  const [atividades, setAtividades] = useState<{ lista: AtividadeGrupo[]; em: number }>({
+    lista: [],
+    em: 0,
+  });
   const [partidaSel, setPartidaSel] = useState<PartidaResumo | null>(null);
   const [tokenConvite, setTokenConvite] = useState<string | null>(null);
   const [linkGrupoCopiado, setLinkGrupoCopiado] = useState(false);
@@ -167,6 +179,11 @@ export default function TelaGrupo() {
       return;
     }
     setDados(await buscarDadosDoGrupo(chamarApi, id));
+    // Fora do caminho crítico: a tela já aparece, as atividades chegam depois.
+    // Falha (ou site anterior à rota) só deixa a seção de fora.
+    buscarAtividadesDoGrupo(chamarApi, id)
+      .then((r) => setAtividades({ lista: r.atividades, em: Date.now() }))
+      .catch(() => {});
   }, [chamarApi, id]);
 
   useEffect(() => {
@@ -737,9 +754,27 @@ export default function TelaGrupo() {
         {passadas.length > 0 && (
           <View style={styles.secao}>
             <View style={styles.secaoCabecalho}>
-              <View style={styles.secaoTituloLinha}>
-                <History size={14} color={cores.teal} />
-                <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
+              <View style={styles.secaoTituloEntre}>
+                <View style={styles.secaoTituloLinha}>
+                  <History size={14} color={cores.teal} />
+                  <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
+                </View>
+                {passadas.length > PARTIDAS_PASSADAS_VISIVEIS && (
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.verTudo}
+                    onPress={() => setVerTodasPassadas((v) => !v)}
+                  >
+                    <Text style={styles.verTudoTexto}>
+                      {verTodasPassadas ? "Ver menos" : "Ver tudo"}
+                    </Text>
+                    {verTodasPassadas ? (
+                      <ChevronUp size={14} color={cores.slate400} />
+                    ) : (
+                      <ChevronDown size={14} color={cores.slate400} />
+                    )}
+                  </Pressable>
+                )}
               </View>
               <Text style={styles.secaoSub}>Confira o histórico das partidas já realizadas.</Text>
             </View>
@@ -759,18 +794,45 @@ export default function TelaGrupo() {
                 onAoVivo={() => {}}
               />
             ))}
-            {!verTodasPassadas && passadas.length > PARTIDAS_PASSADAS_VISIVEIS && (
-              <Pressable style={styles.verMaisBotao} onPress={() => setVerTodasPassadas(true)}>
-                <Text style={styles.verMaisTexto}>
-                  Ver mais {passadas.length - 3} {passadas.length - 3 === 1 ? "partida" : "partidas"}
-                </Text>
-                <ChevronDown size={16} color={cores.teal} />
-              </Pressable>
+            {/* Colada no último card visível (acompanha o "Ver tudo"). */}
+            {dados.temPartidaExcluida && (
+              <Text style={styles.notaExcluida}>Esse grupo teve partidas excluídas.</Text>
             )}
           </View>
         )}
 
-        {dados.temPartidaExcluida && (
+        {atividades.lista.length > 0 && (
+          <View style={styles.secao}>
+            <View style={styles.secaoCabecalho}>
+              <View style={styles.secaoTituloEntre}>
+                <View style={styles.secaoTituloLinha}>
+                  <Bell size={14} color={cores.teal} />
+                  <Text style={styles.secaoTitulo}>Atividades recentes</Text>
+                </View>
+                {/* Só quando há mais do que a seção mostra (igual Partidas anteriores). */}
+                {atividades.lista.length > ATIVIDADES_NA_SECAO && (
+                  <Pressable
+                    hitSlop={8}
+                    style={styles.verTudo}
+                    onPress={() => router.push(`/grupos/${grupo.id}/atividades`)}
+                  >
+                    <Text style={styles.verTudoTexto}>Ver tudo</Text>
+                    <ChevronRight size={14} color={cores.slate400} />
+                  </Pressable>
+                )}
+              </View>
+              <Text style={styles.secaoSub}>O que rolou de novo no grupo.</Text>
+            </View>
+            <ListaAtividades
+              atividades={atividades.lista.slice(0, ATIVIDADES_NA_SECAO)}
+              agora={atividades.em}
+              noGrupo
+            />
+          </View>
+        )}
+
+        {/* Sem partida anterior pra mostrar, a nota fica no fim da tela. */}
+        {dados.temPartidaExcluida && passadas.length === 0 && (
           <Text style={styles.notaExcluida}>Esse grupo teve partidas excluídas.</Text>
         )}
       </ScrollView>
@@ -1707,33 +1769,29 @@ const styles = StyleSheet.create({
   bannerChamada: { fontSize: 13, fontWeight: "700" },
 
   secao: { gap: 8, marginTop: 4 },
-  secaoCabecalho: { gap: 4 },
+  secaoCabecalho: { gap: 2 },
   secaoTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   secaoTitulo: {
     fontSize: 11,
     fontWeight: "600",
+    lineHeight: 16,
     letterSpacing: 2,
     color: cores.teal,
     textTransform: "uppercase",
+    includeFontPadding: false,
   },
-  secaoSub: { fontSize: 13, color: cores.slate400 },
-  verMaisBotao: {
+  // lineHeight + includeFontPadding: sem isso o Android afasta a frase do título.
+  secaoSub: { fontSize: 14, lineHeight: 20, includeFontPadding: false, color: cores.slate400 },
+  secaoTituloEntre: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 6,
+    justifyContent: "space-between",
+    gap: 12,
   },
-  verMaisTexto: { fontSize: 13, fontWeight: "600", color: cores.teal },
+  verTudo: { flexDirection: "row", alignItems: "center", gap: 2 },
+  verTudoTexto: { fontSize: 12, fontWeight: "500", color: cores.slate400 },
   vazio: { fontSize: 14, color: cores.slate400, textAlign: "center", paddingVertical: 24 },
-  notaExcluida: {
-    fontSize: 12,
-    color: cores.slate500,
-    textAlign: "center",
-    borderTopWidth: 1,
-    borderTopColor: cores.cardBorda,
-    paddingTop: 14,
-  },
+  notaExcluida: { marginTop: 4, fontSize: 12, color: cores.slate500, textAlign: "center" },
 
   cardLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   card: {

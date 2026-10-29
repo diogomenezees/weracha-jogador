@@ -263,30 +263,32 @@ export default function ResenhaDoGrupo() {
         {...noFim}
         ListHeaderComponent={
           <View style={styles.cabecalho}>
-            <View style={styles.tituloLinha}>
-              <View style={styles.tituloComSelo}>
-                <TituloTela>Resenha</TituloTela>
-                {/* Mesmo selo da Repercussão em Minha performance. */}
-                <Text style={styles.beta}>Beta</Text>
+            <View style={styles.topo}>
+              <View style={styles.tituloLinha}>
+                <View style={styles.tituloComSelo}>
+                  <TituloTela>Resenha</TituloTela>
+                  {/* Mesmo selo da Repercussão em Minha performance. */}
+                  <Text style={styles.beta}>Beta</Text>
+                </View>
+                <Pressable
+                  accessibilityLabel="Atualizar"
+                  style={styles.atualizarBtn}
+                  onPress={() => void atualizar()}
+                  disabled={atualizando}
+                >
+                  {atualizando ? (
+                    <ActivityIndicator size="small" color={cores.slate500} />
+                  ) : (
+                    <RefreshCw size={18} color={cores.slate500} />
+                  )}
+                </Pressable>
               </View>
-              <Pressable
-                accessibilityLabel="Atualizar"
-                style={styles.atualizarBtn}
-                onPress={() => void atualizar()}
-                disabled={atualizando}
-              >
-                {atualizando ? (
-                  <ActivityIndicator size="small" color={cores.slate500} />
-                ) : (
-                  <RefreshCw size={18} color={cores.slate500} />
-                )}
-              </Pressable>
-            </View>
-            <View style={styles.subLinha}>
-              <Users size={12} color={cores.slate400} />
-              <Text style={styles.sub} numberOfLines={1}>
-                {grupoNome}
-              </Text>
+              <View style={styles.subLinha}>
+                <Users size={12} color={cores.slate400} />
+                <Text style={styles.sub} numberOfLines={1}>
+                  {grupoNome}
+                </Text>
+              </View>
             </View>
             {(!semVideos || soVencidos) && (
               <View style={styles.descLinha}>
@@ -294,7 +296,7 @@ export default function ResenhaDoGrupo() {
                   {soVencidos
                     ? `Os vídeos gravados nas partidas do grupo ficam aqui por ${MESES_COMUNICADOS} meses.`
                     : aba === "TODOS"
-                      ? "Todos os vídeos gravados nas partidas do grupo, do jogo mais recente pro mais antigo. Comente qualquer lance."
+                      ? "Os vídeos das partidas do grupo, do mais recente pro mais antigo."
                       : "Os vídeos que a galera já comentou, com a conversa mais recente no topo."}
                 </Text>
                 {/* Só com vídeo no grupo (mesma condição da descrição). */}
@@ -420,6 +422,8 @@ const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   lista: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 16 },
   cabecalho: { gap: 4, marginBottom: 2 },
+  // Título + nome do grupo colados, igual ao `mt-0.5` do site.
+  topo: { gap: 2 },
   // Card + banner (Instagram ou campanha, quando cai ali), com o mesmo respiro da lista.
   item: { gap: 16 },
   tituloLinha: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
@@ -441,6 +445,8 @@ const styles = StyleSheet.create({
   atualizarBtn: {
     width: 36,
     height: 36,
+    // Não estica a linha do título (o botão é mais alto que o texto).
+    marginVertical: -5,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: raio.campo,

@@ -4,7 +4,7 @@ import { Text } from "@/ui/Texto";
 import { CardsReplay } from "@/partida/CardsReplay";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { cores } from "@/tema";
-import type { GolComVideos } from "@/contrato/tipos";
+import type { CampanhaNoAr, GolComVideos } from "@/contrato/tipos";
 
 // Replays de UM jogador numa partida, abertos DENTRO da tela (resultado / ao vivo) no
 // lugar da lista de artilheiros/histórico, em vez de num modal (o pager travava dentro
@@ -18,6 +18,7 @@ export function ReplaysDoJogadorInline({
   grupoNome,
   apenasUmGol = false,
   comentar,
+  campanhas,
 }: {
   jogador: { id: string; nome: string; fotoUrl: string | null };
   gols: GolComVideos[];
@@ -26,6 +27,8 @@ export function ReplaysDoJogadorInline({
   apenasUmGol?: boolean;
   /** Só a tela de Resultado passa o suporte a comentário. */
   comentar?: Parameters<typeof CardsReplay>[0]["comentar"];
+  /** Banners do feed entre os vídeos (ver CardsReplay). */
+  campanhas?: CampanhaNoAr[];
 }) {
   return (
     <View style={{ gap: 10 }}>
@@ -48,6 +51,7 @@ export function ReplaysDoJogadorInline({
         vazioTexto="Nenhum replay desse jogador nessa partida."
         comentar={comentar}
         ocultarJogador
+        campanhas={campanhas}
       />
     </View>
   );

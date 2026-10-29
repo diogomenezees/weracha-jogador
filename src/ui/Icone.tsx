@@ -140,4 +140,8 @@ export {
   Goal as Bola,
   // favoritos (coração nos cards de vídeo)
   Heart,
+  // atividades recentes (enquete, dedo duro / mudança da partida)
+  Bell,
+  Vote,
+  SlidersHorizontal,
 } from "lucide-react-native";

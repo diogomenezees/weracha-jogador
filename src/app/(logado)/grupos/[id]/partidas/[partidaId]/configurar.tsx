@@ -374,7 +374,10 @@ export default function TelaConfigurar() {
         )}
 
         <View style={styles.tituloLinha}>
-          <Eyebrow>Jogadores ({total})</Eyebrow>
+          <View style={styles.tituloTexto}>
+            <Eyebrow>Jogadores ({total})</Eyebrow>
+            <Text style={styles.tituloDica}>Toque no jogador para ver o perfil</Text>
+          </View>
           <View style={styles.tituloAcoes}>
             <View style={styles.ordGrupo}>
               {(
@@ -621,6 +624,9 @@ const styles = StyleSheet.create({
   paletaTitulo: { fontSize: 18, fontWeight: "700", color: cores.branco },
   paletaGrade: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 4 },
   tituloLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  // Mesmo bloco título + dica do check-in.
+  tituloTexto: { flexShrink: 1, gap: 2 },
+  tituloDica: { fontSize: 11, lineHeight: 14, color: cores.slate500 },
   tituloAcoes: { flexDirection: "row", alignItems: "center", gap: 8 },
   ordGrupo: {
     flexDirection: "row",

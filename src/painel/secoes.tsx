@@ -8,10 +8,13 @@ import { Carrossel } from "@/ui/Carrossel";
 import { ModalPerfil } from "@/jogadores/modais";
 import { useSessao } from "@/sessao/contexto";
 import { SeloPapel } from "@/ui/SeloPapel";
+import { ListaAtividades } from "@/atividades/ListaAtividades";
+import type { AtividadeGrupo } from "@/contrato/atividades";
 import {
   Activity,
   ArrowRight,
   BarChart3,
+  Bell,
   Calendar,
   CalendarCheck,
   CalendarDays,
@@ -49,7 +52,6 @@ import {
 } from "@/partidas";
 import { cores, raio } from "@/tema";
 import type {
-  AtividadeRecentePainel,
   JogadorEmPartida,
   DestaquesPainel,
   GrupoPainel,
@@ -63,7 +65,8 @@ import type {
 //   • destaque  — só o Próximo jogo (card com borda esquerda teal);
 //   • carrossel — Ações rápidas e Destaques (cards soltos, rolagem horizontal
 //                 cortada na margem da tela);
-//   • lista     — Atividades recentes (uma caixa, linhas com divisória);
+//   • lista     — Atividades recentes (uma caixa, linhas com divisória; em
+//                 src/atividades/ListaAtividades.tsx);
 //   • cards     — Seus grupos (um card por grupo, com abas Ativos/Aguardando).
 // Cor: teal = estrutura/informação; laranja = "agora"/ação; âmbar = alerta.
 
@@ -73,18 +76,6 @@ function plural(n: number, um: string, varios: string): string {
 
 function formatarDiaMes(data: Date): string {
   return `${String(data.getDate()).padStart(2, "0")}/${String(data.getMonth() + 1).padStart(2, "0")}`;
-}
-
-// "há 5 min", "há 3 h", "ontem", "12/09" — relativo ao carregamento da tela.
-function tempoDesde(iso: string, agora: number): string {
-  const data = new Date(iso);
-  const min = Math.floor((agora - data.getTime()) / 60000);
-  if (min < 1) return "agora";
-  if (min < 60) return `há ${min} min`;
-  const horas = Math.floor(min / 60);
-  if (horas < 24) return `há ${horas} h`;
-  if (horas < 48) return "ontem";
-  return formatarDiaMes(data);
 }
 
 function TituloSecao({
@@ -816,59 +807,21 @@ export function SeusGrupos({
 
 // ── Atividades recentes ──────────────────────────────────────────────────────
 
-// Últimos replays comentados (resenha) de todos os grupos. O toque abre a
-// resenha do grupo já rolada até o vídeo (?video=), sem abrir a resposta.
+// Atividades de todos os grupos, mais recente no topo (replays comentados,
+// enquetes, dedo duro, mudança da partida, entrada pelo convite; ver
+// src/atividades/ListaAtividades.tsx).
 export function AtividadesRecentes({
   atividades,
   agora,
 }: {
-  atividades: AtividadeRecentePainel[];
+  atividades: AtividadeGrupo[];
   agora: number;
 }) {
   return (
     <View>
-      <TituloSecao Icone={MessageCircle} titulo="Atividades recentes" />
-      <View style={styles.lista}>
-        {atividades.map((a, i) => {
-          const c = a.ultimoComentario;
-          const titulo =
-            a.tipo === "GOL" ? `Gol de ${a.jogadorNome ?? "jogador"}` : "Lance importante";
-          return (
-            <Pressable
-              key={a.pedidoReplayId}
-              style={[styles.linhaLista, i > 0 && styles.divisoria]}
-              onPress={() => router.push(`/grupos/${a.grupoId}/resenha?video=${a.pedidoReplayId}`)}
-            >
-              <AvatarJogador
-                nome={c.autorNome}
-                fotoUrl={c.bloqueado ? null : c.autorFotoUrl}
-                tamanho={36}
-              />
-              <View style={styles.flex1}>
-                <View style={styles.linhaEntre}>
-                  <Text style={[styles.atividadeTitulo, styles.encolhe]} numberOfLines={1}>
-                    {titulo}
-                  </Text>
-                  <Text style={styles.atividadeTempo}>{tempoDesde(c.criadoEm, agora)}</Text>
-                </View>
-                <Text style={styles.atividadeTexto} numberOfLines={1}>
-                  {c.bloqueado ? (
-                    <Text style={styles.italico}>Comentário de usuário bloqueado</Text>
-                  ) : (
-                    <>
-                      <Text style={styles.atividadeAutor}>{c.autorNome}:</Text> {c.texto}
-                    </>
-                  )}
-                </Text>
-                <Text style={styles.atividadeMeta} numberOfLines={1}>
-                  {a.grupoNome} · {plural(a.totalComentarios, "comentário", "comentários")}
-                </Text>
-              </View>
-              <ChevronRight size={16} color={cores.slate500} />
-            </Pressable>
-          );
-        })}
-      </View>
+      <TituloSecao Icone={Bell} titulo="Atividades recentes" />
+      <Text style={styles.aviso}>O que rolou de novo em todos os grupos.</Text>
+      <ListaAtividades atividades={atividades} agora={agora} />
     </View>
   );
 }
@@ -1082,7 +1035,17 @@ const styles = StyleSheet.create({
   abaContador: { borderRadius: 999, paddingHorizontal: 6, backgroundColor: "rgba(255, 255, 255, 0.1)" },
   abaContadorTexto: { fontSize: 10, color: cores.slate300 },
   listaGrupos: { gap: 12 },
-  aviso: { marginTop: -8, marginBottom: 12, fontSize: 12, color: cores.slate400 },
+  // Subtítulo colado no título da seção. lineHeight + includeFontPadding: o
+  // Android põe um respiro extra em cima/embaixo de todo texto, que deixava a
+  // frase mais longe do título do que no site.
+  aviso: {
+    marginTop: -10,
+    marginBottom: 12,
+    fontSize: 12,
+    lineHeight: 16,
+    includeFontPadding: false,
+    color: cores.slate400,
+  },
   criarGrupo: {
     flexDirection: "row",
     alignItems: "center",
@@ -1147,21 +1110,4 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   atencaoTexto: { fontSize: 14, fontWeight: "600", color: cores.ambar },
-
-  // Atividades recentes
-  lista: {
-    overflow: "hidden",
-    borderRadius: raio.card,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
-  },
-  linhaLista: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
-  divisoria: { borderTopWidth: 1, borderTopColor: cores.linhaSutil },
-  atividadeTitulo: { fontSize: 14, fontWeight: "600", color: cores.branco },
-  atividadeTempo: { fontSize: 11, color: cores.slate500 },
-  atividadeTexto: { fontSize: 12, color: cores.slate400 },
-  atividadeAutor: { fontSize: 12, color: cores.slate300 },
-  italico: { fontSize: 12, fontStyle: "italic", color: cores.slate400 },
-  atividadeMeta: { marginTop: 2, fontSize: 11, color: cores.slate500 },
 });
