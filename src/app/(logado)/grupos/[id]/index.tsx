@@ -103,7 +103,7 @@ import { ListaAtividades } from "@/atividades/ListaAtividades";
 
 type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
 
-// Quantas partidas finalizadas aparecem antes do "Ver tudo" (mesmo valor do
+// Quantas partidas finalizadas aparecem antes do "Ver mais" (mesmo valor do
 // site). Poucas pra "Atividades recentes", logo abaixo, não ficar longe.
 const PARTIDAS_PASSADAS_VISIVEIS = 3;
 // A API devolve 10 por página (o "Ver tudo" já abre com mais); a seção mostra 5.
@@ -754,27 +754,9 @@ export default function TelaGrupo() {
         {passadas.length > 0 && (
           <View style={styles.secao}>
             <View style={styles.secaoCabecalho}>
-              <View style={styles.secaoTituloEntre}>
-                <View style={styles.secaoTituloLinha}>
-                  <History size={14} color={cores.teal} />
-                  <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
-                </View>
-                {passadas.length > PARTIDAS_PASSADAS_VISIVEIS && (
-                  <Pressable
-                    hitSlop={8}
-                    style={styles.verTudo}
-                    onPress={() => setVerTodasPassadas((v) => !v)}
-                  >
-                    <Text style={styles.verTudoTexto}>
-                      {verTodasPassadas ? "Ver menos" : "Ver tudo"}
-                    </Text>
-                    {verTodasPassadas ? (
-                      <ChevronUp size={14} color={cores.slate400} />
-                    ) : (
-                      <ChevronDown size={14} color={cores.slate400} />
-                    )}
-                  </Pressable>
-                )}
+              <View style={styles.secaoTituloLinha}>
+                <History size={14} color={cores.teal} />
+                <Text style={styles.secaoTitulo}>Partidas anteriores</Text>
               </View>
               <Text style={styles.secaoSub}>Confira o histórico das partidas já realizadas.</Text>
             </View>
@@ -794,9 +776,27 @@ export default function TelaGrupo() {
                 onAoVivo={() => {}}
               />
             ))}
-            {/* Colada no último card visível (acompanha o "Ver tudo"). */}
-            {dados.temPartidaExcluida && (
-              <Text style={styles.notaExcluida}>Esse grupo teve partidas excluídas.</Text>
+            {/* Embaixo da lista: abre as outras ali mesmo (não muda de tela).
+                Link no título fica só pra quem leva pra outra tela. */}
+            {passadas.length > PARTIDAS_PASSADAS_VISIVEIS && (
+              <Pressable
+                hitSlop={8}
+                style={styles.verMaisPartidas}
+                onPress={() => setVerTodasPassadas((v) => !v)}
+              >
+                <Text style={styles.verMaisPartidasTexto}>
+                  {verTodasPassadas
+                    ? "Ver menos"
+                    : `Ver mais ${passadas.length - PARTIDAS_PASSADAS_VISIVEIS} ${
+                        passadas.length - PARTIDAS_PASSADAS_VISIVEIS === 1 ? "partida" : "partidas"
+                      }`}
+                </Text>
+                {verTodasPassadas ? (
+                  <ChevronUp size={14} color={cores.slate400} />
+                ) : (
+                  <ChevronDown size={14} color={cores.slate400} />
+                )}
+              </Pressable>
             )}
           </View>
         )}
@@ -816,8 +816,8 @@ export default function TelaGrupo() {
                     style={styles.verTudo}
                     onPress={() => router.push(`/grupos/${grupo.id}/atividades`)}
                   >
-                    <Text style={styles.verTudoTexto}>Ver tudo</Text>
-                    <ChevronRight size={14} color={cores.slate400} />
+                    <Text style={styles.verTudoTexto}>Ver histórico</Text>
+                    <ChevronRight size={14} color={cores.teal} />
                   </Pressable>
                 )}
               </View>
@@ -829,11 +829,6 @@ export default function TelaGrupo() {
               noGrupo
             />
           </View>
-        )}
-
-        {/* Sem partida anterior pra mostrar, a nota fica no fim da tela. */}
-        {dados.temPartidaExcluida && passadas.length === 0 && (
-          <Text style={styles.notaExcluida}>Esse grupo teve partidas excluídas.</Text>
         )}
       </ScrollView>
 
@@ -1789,9 +1784,19 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   verTudo: { flexDirection: "row", alignItems: "center", gap: 2 },
-  verTudoTexto: { fontSize: 12, fontWeight: "500", color: cores.slate400 },
+  verTudoTexto: { fontSize: 12, fontWeight: "600", color: cores.teal },
+  verMaisPartidas: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    gap: 2,
+    paddingVertical: 6,
+  },
+  // Cinza de propósito: só abre mais itens ali mesmo (ação secundária). O teal
+  // fica pros títulos e pros links que levam pra outra tela (Ver histórico).
+  verMaisPartidasTexto: { fontSize: 13, fontWeight: "500", color: cores.slate400 },
   vazio: { fontSize: 14, color: cores.slate400, textAlign: "center", paddingVertical: 24 },
-  notaExcluida: { marginTop: 4, fontSize: 12, color: cores.slate500, textAlign: "center" },
 
   cardLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   card: {

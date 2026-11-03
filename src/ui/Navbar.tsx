@@ -8,6 +8,7 @@ import { router, useLocalSearchParams, type Href } from "expo-router";
 import { abrirNoNavegador } from "@/config/links";
 import { PODE_ESCOLHER_SERVIDOR, rotuloDoAmbiente } from "@/config/servidor";
 import { useSessao } from "@/sessao/contexto";
+import { useMuralNaoLidos } from "@/mural/naoLidos";
 import { cores, raio } from "@/tema";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { useBlurTarget } from "@/ui/BlurTarget";
@@ -23,6 +24,7 @@ import {
   type LucideIcon,
   LogOut,
   Mail,
+  Megaphone,
   Menu,
   Shuffle,
   Store,
@@ -52,6 +54,7 @@ const ITENS: Item[] = [
   { rotulo: "Artilheiros", Icone: Goal, tipo: "rota", rota: "/artilheiros" },
   { rotulo: "Replays", Icone: Video, tipo: "rota", rota: "/replays", beta: true },
   { rotulo: "Enquetes", Icone: BarChart3, tipo: "rota", rota: "/enquetes" },
+  { rotulo: "Mural", Icone: Megaphone, tipo: "rota", rota: "/mural" },
   { rotulo: "Parcerias", Icone: Store, tipo: "rota", rota: "/parcerias" },
   { rotulo: "Contato", Icone: Mail, tipo: "rota", rota: "/contato" },
   { rotulo: "Sorteio rápido", Icone: Shuffle, tipo: "rota", rota: "/sorteio" },
@@ -65,6 +68,7 @@ export function Navbar({
   onVoltar?: () => void;
 }) {
   const [aberto, setAberto] = useState(false);
+  const muralNaoLidos = useMuralNaoLidos();
   const { id, partidaId } = useLocalSearchParams<{ id?: string; partidaId?: string }>();
 
   // O "‹ destino" do cabeçalho vai PRA O DESTINO QUE O TEXTO NOMEIA, não pra tela de
@@ -126,12 +130,15 @@ export function Navbar({
         style={styles.menuBotao}
         onPress={() => setAberto(true)}
         accessibilityRole="button"
-        accessibilityLabel="Abrir menu"
+        accessibilityLabel={
+          muralNaoLidos > 0 ? `Abrir menu, ${muralNaoLidos} aviso(s) novo(s) no Mural` : "Abrir menu"
+        }
       >
         <Menu size={26} color={cores.slate300} />
+        {muralNaoLidos > 0 && <View style={styles.bolinha} />}
       </Pressable>
 
-      <Gaveta aberto={aberto} onFechar={() => setAberto(false)} />
+      <Gaveta aberto={aberto} onFechar={() => setAberto(false)} muralNaoLidos={muralNaoLidos} />
     </View>
   );
 }
@@ -139,7 +146,15 @@ export function Navbar({
 const LARGURA_GAVETA = 300;
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
-function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
+function Gaveta({
+  aberto,
+  onFechar,
+  muralNaoLidos,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  muralNaoLidos: number;
+}) {
   const { estado, ambiente, sair } = useSessao();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
   const blurTarget = useBlurTarget();
@@ -259,6 +274,11 @@ function Gaveta({ aberto, onFechar }: { aberto: boolean; onFechar: () => void })
                   {item.tipo !== "externo" && item.beta ? (
                     <Text style={styles.beta}>Beta</Text>
                   ) : null}
+                  {item.tipo === "rota" && item.rota === "/mural" && muralNaoLidos > 0 ? (
+                    <View style={styles.contador}>
+                      <Text style={styles.contadorTexto}>{muralNaoLidos > 9 ? "9+" : muralNaoLidos}</Text>
+                    </View>
+                  ) : null}
                 </Pressable>
               ))}
             </ScrollView>
@@ -311,6 +331,28 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "center",
   },
+  // Avisos novos no Mural (mesma bolinha laranja do site).
+  bolinha: {
+    position: "absolute",
+    top: 2,
+    right: -3,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: cores.orange,
+    borderWidth: 2,
+    borderColor: cores.dark,
+  },
+  contador: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: cores.orange,
+  },
+  contadorTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
 
   gavetaRaiz: { flex: 1, flexDirection: "row", justifyContent: "flex-end" },
   fundo: {

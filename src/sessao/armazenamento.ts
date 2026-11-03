@@ -92,6 +92,7 @@ function parseJogador(json: string): MeuPerfil | null {
         onboardingConcluidoEm: v.onboardingConcluidoEm ?? null,
         email: v.email ?? null,
         emailNotificacoes: v.emailNotificacoes ?? false,
+        muralPush: v.muralPush ?? true,
         dataNascimento: v.dataNascimento ?? null,
       };
     }
@@ -111,6 +112,7 @@ function placeholder(telefone: string): MeuPerfil {
     onboardingConcluidoEm: null,
     email: null,
     emailNotificacoes: false,
+    muralPush: true,
     dataNascimento: null,
   };
 }

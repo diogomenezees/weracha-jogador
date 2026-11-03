@@ -39,8 +39,19 @@ export type MeuPerfil = {
   onboardingConcluidoEm: string | null;
   email: string | null;
   emailNotificacoes: boolean;
+  /** Push dos avisos do Mural (seção Autorizações do perfil). Site desde
+   * 2026-11-03; perfil guardado antes disso não tem o campo (vira true). */
+  muralPush: boolean;
   /** "AAAA-MM-DD" ou null. */
   dataNascimento: string | null;
+};
+
+/** GET /api/v1/mural — um aviso do dono do site. `enviadoEm` ISO. */
+export type AvisoDoMural = {
+  id: string;
+  titulo: string;
+  corpo: string;
+  enviadoEm: string;
 };
 
 /** GET /api/v1/conta/exclusao — pendências + solicitação de exclusão pendente.
@@ -214,7 +225,6 @@ export type DadosDaTelaGrupo = {
   totalMembros: number;
   idsComResultado: string[];
   idsComMeuCheckin: string[];
-  temPartidaExcluida: boolean;
 };
 
 // ── GET /api/v1/esportes ────────────────────────────────────────────────────
@@ -526,6 +536,11 @@ export type PerfilJogador = {
   totalGrupos: number;
   totalPartidas: number;
   totalGols: number;
+  /** Últimos jogos dele neste grupo, cronológico (gráfico do modal). Site desde
+   * 2026-11-03; opcional pra servidor anterior. */
+  jogos?: { partidaId: string; data: string; mes: string; gols: number }[];
+  /** ISO do último jogo neste grupo; null se nunca jogou. */
+  ultimoJogoEm?: string | null;
 };
 
 // ── Ciclo da partida: check-in, configurar, ao vivo, resultado ──────────────

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppState, Linking, Pressable, StyleSheet, View } from "react-native";
 import Constants from "expo-constants";
 import { Text } from "@/ui/Texto";
@@ -7,6 +7,7 @@ import { buscarVersaoMinima, type VersaoMinima } from "@/api/versao";
 import { ModalCartao } from "@/grupo/modais";
 import { useSessao } from "@/sessao/contexto";
 import { abaixoDaMinima } from "@/versao/comparar";
+import { apagarTrava, guardarTrava, lerTravaGuardada } from "@/versao/travaGuardada";
 import { cores, raio } from "@/tema";
 
 // Gate de versão mínima: no boot (e ao voltar pro primeiro plano) pergunta ao
@@ -20,8 +21,24 @@ import { cores, raio } from "@/tema";
 // "tem versão nova" por cima. "Agora não" esconde até o app ser aberto do zero
 // de novo (fica só na memória): volta a cada abertura, pra ninguém ficar
 // esquecido numa versão velha, sem atrapalhar quem está no meio do uso.
+//
+// A trava da MÍNIMA não solta sozinha: uma vez travado nesta execução, uma
+// resposta seguinte dizendo "liberado" (site com cache velho, rede trocando de
+// servidor) não destrava, só reabrir o app do zero. E ela fica guardada no
+// aparelho (travaGuardada.ts): no boot seguinte já abre travado, antes da
+// resposta do site, e sem rede continua travado. A guardada só some quando o
+// site responde que a versão atual está liberada (atualizou, ou o admin desceu
+// a mínima). Fail-open continua valendo pra quem nunca foi travado.
 
 const versaoAtual = Constants.expoConfig?.version ?? null;
+
+// Pra trava guardada no disco, que vale antes de o site responder. Mesmo valor
+// de URL_LOJA_ANDROID no site (lib/appVersao.ts).
+const URL_LOJA = "https://play.google.com/store/apps/details?id=com.weracha.jogador";
+
+function trava(minima: string | null): boolean {
+  return !!versaoAtual && !!minima && abaixoDaMinima(versaoAtual, minima);
+}
 
 export function PortaoDeVersao({ children }: { children: ReactNode }) {
   const { estado, urlBase } = useSessao();
@@ -30,6 +47,19 @@ export function PortaoDeVersao({ children }: { children: ReactNode }) {
   const pronto = estado.fase !== "carregando";
   const [exigida, setExigida] = useState<VersaoMinima | null>(null);
   const [avisoFechado, setAvisoFechado] = useState(false);
+  // Trava vinda do site NESTA execução: só sobe, nunca volta pra null.
+  const [travaDaSessao, setTravaDaSessao] = useState<string | null>(null);
+  // Trava guardada de uma execução anterior; undefined = ainda lendo do disco.
+  const [travaDoDisco, setTravaDoDisco] = useState<string | null | undefined>(undefined);
+  const siteRespondeu = useRef(false);
+  const travadoNaSessao = useRef(false);
+
+  useEffect(() => {
+    void lerTravaGuardada().then((v) => {
+      // Se o site já respondeu, a resposta dele vale mais que o disco.
+      setTravaDoDisco(siteRespondeu.current ? null : v);
+    });
+  }, []);
 
   useEffect(() => {
     if (!pronto || !versaoAtual) return;
@@ -37,7 +67,19 @@ export function PortaoDeVersao({ children }: { children: ReactNode }) {
     const checar = () => {
       buscarVersaoMinima(urlBase)
         .then((r) => {
-          if (vivo) setExigida(r);
+          if (!vivo || !r) return;
+          siteRespondeu.current = true;
+          setExigida(r);
+          if (trava(r.versaoMinima)) {
+            travadoNaSessao.current = true;
+            setTravaDaSessao((atual) =>
+              atual && abaixoDaMinima(r.versaoMinima, atual) ? atual : r.versaoMinima
+            );
+            void guardarTrava(r.versaoMinima);
+          } else if (!travadoNaSessao.current) {
+            setTravaDoDisco(null);
+            void apagarTrava();
+          }
         })
         .catch(() => {});
     };
@@ -51,8 +93,11 @@ export function PortaoDeVersao({ children }: { children: ReactNode }) {
     };
   }, [pronto, urlBase]);
 
-  if (versaoAtual && exigida && abaixoDaMinima(versaoAtual, exigida.versaoMinima)) {
-    return <TelaAtualizar urlLoja={exigida.urlLoja} />;
+  // Lendo a trava do disco (milissegundos): não mostra o app ainda, senão quem
+  // está travado veria a tela de trás piscar antes do bloqueio.
+  if (travaDoDisco === undefined) return null;
+  if (trava(travaDaSessao) || trava(travaDoDisco)) {
+    return <TelaAtualizar urlLoja={exigida?.urlLoja ?? URL_LOJA} />;
   }
   const temVersaoNova =
     !!versaoAtual &&

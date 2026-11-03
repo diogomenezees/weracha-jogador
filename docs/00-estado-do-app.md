@@ -66,6 +66,18 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: Mural + Autorizações no perfil (2026-11-03)
+
+- Tela `/mural` (menu lateral, depois de Enquetes): avisos do dono do site, `GET /api/v1/mural`,
+  puxar pra atualizar. Contrato em `AvisoDoMural` (src/contrato/tipos.ts).
+- Push `{ tipo: "MURAL" }` abre o Mural (`destinoDaNotificacao`). O site manda sem `grupoId`
+  de propósito: o app ≤ 1.2.0 não conhece o tipo e só abre o app.
+- Perfil: o checkbox de e-mail saiu do formulário; seção **Autorizações** no fim, com chaves
+  que salvam na hora: "Avisos do Mural no celular" (`PUT /api/v1/perfil/mural-push`, campo
+  `muralPush` no `/me`, começa ligado) e "Novidades por e-mail" (só liga com e-mail salvo).
+- Regra completa no site: `weracha-site/docs/especificacao/18-mural.md`. Falta: rodar em device
+  e ir pra Play numa versão nova (o envio pelo site já funciona pra quem está na 1.2.0).
+
 ## Feito: Configurações do grupo, limite de check-in (2026-10-28)
 
 - Card **"Configurações"** (só admin) no fim dos Atalhos do grupo abre

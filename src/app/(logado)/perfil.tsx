@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Switch, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
@@ -10,6 +10,7 @@ import {
   definirApelido,
   definirDataNascimento,
   definirEmail,
+  definirMuralPush,
   definirNome,
 } from "@/api/perfil";
 import { definirPosicao, definirScore, listarPosicoes } from "@/api/jogadores";
@@ -21,7 +22,7 @@ import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
 import { MenuAcoes } from "@/grupo/MenuAcoes";
 import { Stepper } from "@/partida/ui";
 import { FotoPerfil } from "@/perfil/FotoPerfil";
-import { CampoDataNascimento, CampoLeitura, CampoTexto, Checkbox } from "@/perfil/ui";
+import { CampoDataNascimento, CampoLeitura, CampoTexto } from "@/perfil/ui";
 import { ModalExcluirConta, ModalTrocarSenha } from "@/perfil/modais";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
@@ -39,7 +40,6 @@ export default function Perfil() {
   const [nome, setNome] = useState("");
   const [apelido, setApelido] = useState("");
   const [email, setEmail] = useState("");
-  const [receberNotif, setReceberNotif] = useState(false);
   const [dataNascimento, setDataNascimento] = useState<string | null>(null);
 
   const [grupos, setGrupos] = useState<Grupo[]>([]);
@@ -67,13 +67,11 @@ export default function Perfil() {
     nome: string;
     apelido: string | null;
     email: string | null;
-    emailNotificacoes: boolean;
     dataNascimento: string | null;
   }) => {
     setNome(p.nome);
     setApelido(p.apelido ?? "");
     setEmail(p.email ?? "");
-    setReceberNotif(p.emailNotificacoes);
     setDataNascimento(p.dataNascimento);
   }, []);
 
@@ -148,7 +146,6 @@ export default function Perfil() {
       nome.trim() !== jogador.nome ||
       (apelido.trim() || null) !== (jogador.apelido ?? null) ||
       (email.trim() || null) !== (jogador.email ?? null) ||
-      receberNotif !== jogador.emailNotificacoes ||
       (dataNascimento ?? null) !== (jogador.dataNascimento ?? null));
 
   async function salvar() {
@@ -161,11 +158,10 @@ export default function Perfil() {
     try {
       if (novoNome !== jogador!.nome) await definirNome(chamarApi, novoNome);
       if (novoApelido !== (jogador!.apelido ?? null)) await definirApelido(chamarApi, novoApelido);
-      if (
-        novoEmail !== (jogador!.email ?? null) ||
-        receberNotif !== jogador!.emailNotificacoes
-      ) {
-        await definirEmail(chamarApi, novoEmail, receberNotif);
+      if (novoEmail !== (jogador!.email ?? null)) {
+        // A autorização de e-mail é a chave das Autorizações; aqui só se
+        // preserva (o servidor desliga sozinho se o e-mail ficar vazio).
+        await definirEmail(chamarApi, novoEmail, novoEmail ? jogador!.emailNotificacoes : false);
       }
       if ((dataNascimento ?? null) !== (jogador!.dataNascimento ?? null)) {
         await definirDataNascimento(chamarApi, dataNascimento);
@@ -290,19 +286,10 @@ export default function Perfil() {
             <CampoTexto
               rotulo="E-mail"
               valor={email}
-              onChangeText={(t) => {
-                setEmail(t);
-                if (!t.trim()) setReceberNotif(false);
-              }}
+              onChangeText={setEmail}
               placeholder="Opcional"
               keyboardType="email-address"
               autoCapitalize="none"
-            />
-            <Checkbox
-              marcado={receberNotif}
-              onToggle={() => setReceberNotif((v) => !v)}
-              desabilitado={!email.trim()}
-              rotulo="Quero receber novidades e avisos do WeRacha por e-mail"
             />
 
             <View style={styles.senhaBloco}>
@@ -423,6 +410,16 @@ export default function Perfil() {
               })}
             </View>
           )}
+
+          <Autorizacoes
+            muralPush={jogador.muralPush ?? true}
+            emailNotificacoes={jogador.emailNotificacoes}
+            temEmail={!!jogador.email}
+            emailDigitado={email.trim() !== ""}
+            onMural={(v) => definirMuralPush(chamarApi, v)}
+            onEmail={(v) => definirEmail(chamarApi, jogador.email, v)}
+            onSalvo={() => void recarregarPerfil()}
+          />
         </ScrollTeclado>
       )}
 
@@ -472,6 +469,128 @@ export default function Perfil() {
         }
       />
     </SafeAreaView>
+  );
+}
+
+// Chaves que salvam na hora (fora do Salvar do rodapé), igual ao site
+// (SecaoAutorizacoes em weracha-site/app/perfil/page.tsx). A de e-mail só liga
+// com um e-mail já salvo: tocar sem ele treme a linha e explica, em vez de
+// deixar a chave desabilitada (parecia o app travado).
+function Autorizacoes({
+  muralPush,
+  emailNotificacoes,
+  temEmail,
+  emailDigitado,
+  onMural,
+  onEmail,
+  onSalvo,
+}: {
+  muralPush: boolean;
+  emailNotificacoes: boolean;
+  temEmail: boolean;
+  // E-mail escrito no formulário, salvo ou não (muda o texto do aviso).
+  emailDigitado: boolean;
+  onMural: (v: boolean) => Promise<unknown>;
+  onEmail: (v: boolean) => Promise<unknown>;
+  onSalvo: () => void;
+}) {
+  // Valor otimista enquanto salva; null = mostra o do perfil.
+  const [mural, setMural] = useState<boolean | null>(null);
+  const [emailLigado, setEmailLigado] = useState<boolean | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [avisoSemEmail, setAvisoSemEmail] = useState(false);
+  const [tremor] = useState(() => new Animated.Value(0));
+
+  function recusarSemEmail() {
+    setAvisoSemEmail(true);
+    tremor.setValue(0);
+    Animated.sequence(
+      [-6, 6, -6, 6, 0].map((x) =>
+        Animated.timing(tremor, { toValue: x, duration: 60, useNativeDriver: true })
+      )
+    ).start();
+  }
+
+  async function alternar(
+    valor: boolean,
+    definirLocal: (v: boolean | null) => void,
+    salvar: (v: boolean) => Promise<unknown>
+  ) {
+    definirLocal(valor);
+    setSalvando(true);
+    setErro(null);
+    try {
+      await salvar(valor);
+      onSalvo();
+    } catch (e) {
+      definirLocal(null);
+      setErro(mensagemDoErro(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  const trilho = { false: "rgba(255, 255, 255, 0.15)", true: cores.teal };
+  return (
+    <View style={styles.grupos}>
+      <Text style={styles.secaoRotulo}>Autorizações</Text>
+      <Text style={styles.secaoSub}>O que o We Racha pode te mandar. Salva na hora.</Text>
+      <View style={styles.autorizacoes}>
+        <View style={styles.autorizacaoLinha}>
+          <View style={styles.autorizacaoTexto}>
+            <Text style={styles.autorizacaoTitulo}>Avisos do Mural no celular</Text>
+            <Text style={styles.autorizacaoSub}>
+              Notificação quando o We Racha publicar um recado no Mural. Os avisos dos seus grupos
+              não mudam.
+            </Text>
+          </View>
+          <Switch
+            value={mural ?? muralPush}
+            onValueChange={(v) => void alternar(v, setMural, onMural)}
+            disabled={salvando}
+            trackColor={trilho}
+            thumbColor={cores.branco}
+            accessibilityLabel="Avisos do Mural no celular"
+          />
+        </View>
+        <Animated.View
+          style={[
+            styles.autorizacaoLinha,
+            styles.autorizacaoDivisor,
+            { transform: [{ translateX: tremor }] },
+          ]}
+        >
+          <View style={styles.autorizacaoTexto}>
+            <Text style={styles.autorizacaoTitulo}>Novidades por e-mail</Text>
+            {avisoSemEmail && !temEmail ? (
+              <Text style={[styles.autorizacaoSub, { color: cores.ambar }]} accessibilityRole="alert">
+                {emailDigitado
+                  ? "Toque em Salvar pra guardar o seu e-mail e depois ligue aqui."
+                  : "Preencha o seu e-mail lá em cima e salve pra poder ligar."}
+              </Text>
+            ) : (
+              <Text style={styles.autorizacaoSub}>
+                {temEmail
+                  ? "Novidades e avisos do We Racha no seu e-mail."
+                  : "Precisa de um e-mail salvo no perfil."}
+              </Text>
+            )}
+          </View>
+          <Switch
+            value={emailLigado ?? emailNotificacoes}
+            onValueChange={(v) =>
+              v && !temEmail ? recusarSemEmail() : void alternar(v, setEmailLigado, onEmail)
+            }
+            disabled={salvando}
+            trackColor={trilho}
+            thumbColor={cores.branco}
+            accessibilityLabel="Novidades por e-mail"
+          />
+        </Animated.View>
+      </View>
+      {erro && <Text style={styles.rodapeErro}>{erro}</Text>}
+    </View>
   );
 }
 
@@ -601,4 +720,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rodapeErro: { fontSize: 12, color: cores.erroTexto, textAlign: "center" },
+
+  autorizacoes: {
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: cores.cardBorda,
+    backgroundColor: "rgba(255,255,255,0.03)",
+  },
+  autorizacaoLinha: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  autorizacaoDivisor: { borderTopWidth: 1, borderTopColor: "rgba(31,179,163,0.1)" },
+  autorizacaoTexto: { flex: 1, minWidth: 0, gap: 2 },
+  autorizacaoTitulo: { fontSize: 14, fontWeight: "600", color: cores.branco },
+  autorizacaoSub: { fontSize: 12, lineHeight: 17, color: cores.slate500 },
 });

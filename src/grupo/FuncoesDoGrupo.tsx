@@ -152,7 +152,17 @@ export function FuncoesDoGrupo({
           >
             {selo ? <Text style={styles.selo}>{selo}</Text> : null}
             <Icone size={20} color={destaque ? cores.orange : cores.teal} />
-            <Text style={styles.cardTitulo}>{titulo}</Text>
+            {/* Uma linha sempre: em tela estreita ou fonte do sistema maior,
+                "Configurações" quebrava e esticava todos os cards. Encolhe a
+                fonte em vez de quebrar. */}
+            <Text
+              style={styles.cardTitulo}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {titulo}
+            </Text>
             <Text style={[styles.cardSub, destaque && styles.cardSubDestaque]}>{subtitulo}</Text>
           </Pressable>
         ))}

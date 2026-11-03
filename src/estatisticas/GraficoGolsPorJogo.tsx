@@ -17,7 +17,8 @@ export type JogoNoGrafico = { partidaId: string; data: string; mes: string; gols
 // coluna mostra o jogo na linha de leitura acima. Espelha
 // weracha-site/components/grafico-gols-por-jogo.tsx.
 
-const ALTURA = 140;
+// Altura padrão da área das colunas (a Performance); o modal do jogador usa menor.
+const ALTURA_PADRAO = 140;
 const TOPO = 10;
 const SLOT = 20; // largura MÍNIMA de cada jogo (abaixo disso, rola)
 const BARRA = 12; // largura mínima da coluna
@@ -47,6 +48,8 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   lista = true,
   coluna = { um: "jogo", varios: "jogos" },
   rotular = (jogo: T) => formatarData(jogo.data),
+  altura: ALTURA = ALTURA_PADRAO,
+  compacto = false,
 }: {
   jogos: T[];
   // "AAAA-MM" quando um mês está escolhido; null no Geral.
@@ -66,6 +69,10 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   // (padrão: a data). O gráfico de mensalistas usa uma coluna por mês.
   coluna?: { um: string; varios: string };
   rotular?: (jogo: T) => string;
+  // Altura da área das colunas, em px.
+  altura?: number;
+  // Menos respiro dentro do card (modal do jogador).
+  compacto?: boolean;
 }) {
   const rolagem = useRef<ScrollView>(null);
   const [ativo, setAtivo] = useState<number | null>(null);
@@ -95,9 +102,9 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   const jogoAtivo = ativo !== null ? jogos[ativo] : null;
 
   return (
-    <View style={styles.caixa}>
+    <View style={[styles.caixa, compacto && styles.caixaCompacta]}>
       {/* Linha de leitura: o jogo tocado, ou o resumo do gráfico. */}
-      <Text style={styles.leitura}>
+      <Text style={[styles.leitura, compacto && styles.leituraCompacta]}>
         {jogoAtivo ? (
           <>
             <Text style={styles.leituraForte}>
@@ -216,7 +223,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
         </ScrollView>
       </View>
 
-      <View style={styles.legenda}>
+      <View style={[styles.legenda, compacto && styles.legendaCompacta]}>
         <View style={styles.legendaItem}>
           <View style={styles.legendaLinha} />
           <Text style={styles.legendaTexto}>
@@ -270,7 +277,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.03)",
     padding: 16,
   },
+  caixaCompacta: { padding: 12 },
   leitura: { minHeight: 20, marginBottom: 12, fontSize: 12, color: cores.slate400 },
+  leituraCompacta: { marginBottom: 6 },
+  legendaCompacta: { marginTop: 4 },
   leituraForte: { fontSize: 12, fontWeight: "600", color: cores.branco },
   linhaGrafico: { flexDirection: "row" },
   legenda: {

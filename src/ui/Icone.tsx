@@ -50,6 +50,7 @@ export {
   BarChart3,
   Store,
   Mail,
+  Megaphone,
   Shuffle,
   LogOut,
   Settings,

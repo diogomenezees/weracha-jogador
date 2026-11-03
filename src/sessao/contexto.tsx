@@ -78,6 +78,7 @@ function perfilParcial(j: JogadorSessao): MeuPerfil {
     onboardingConcluidoEm: null,
     email: null,
     emailNotificacoes: false,
+    muralPush: true,
     dataNascimento: null,
   };
 }

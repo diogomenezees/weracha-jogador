@@ -47,6 +47,11 @@ export function definirEmail(
   });
 }
 
+// PUT /api/v1/perfil/mural-push — chave "Avisos do Mural no celular" (Autorizações).
+export function definirMuralPush(chamarApi: ChamarApi, receber: boolean): Promise<{ ok: true }> {
+  return chamarApi<{ ok: true }>("/api/v1/perfil/mural-push", { metodo: "PUT", corpo: { receber } });
+}
+
 export function definirDataNascimento(
   chamarApi: ChamarApi,
   dataNascimento: string | null

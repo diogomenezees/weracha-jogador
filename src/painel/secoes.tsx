@@ -342,17 +342,19 @@ export function MeusIndicadores({ indicadores }: { indicadores: MeusIndicadoresP
 
   return (
     <View>
+      {/* "Ver detalhes" ao lado do título (não numa linha própria no card); o
+          card inteiro também leva pra /indicadores. */}
       <TituloSecao
         Icone={Activity}
         titulo="Minha Performance"
         lateral={
           <Pressable
             hitSlop={8}
-            style={styles.info}
+            style={styles.verDetalhes}
             onPress={() => router.push("/indicadores")}
           >
-            <Text style={styles.verTudo}>Ver tudo</Text>
-            <ChevronRight size={14} color={cores.slate400} />
+            <Text style={styles.verDetalhesTexto}>Ver detalhes</Text>
+            <ChevronRight size={14} color={cores.teal} />
           </Pressable>
         }
       />
@@ -948,7 +950,8 @@ const styles = StyleSheet.create({
   acaoSub: { fontSize: 11, lineHeight: 15, color: cores.slate400, textAlign: "center" },
 
   // Meus indicadores
-  verTudo: { fontSize: 12, fontWeight: "500", color: cores.slate400 },
+  verDetalhes: { flexDirection: "row", alignItems: "center", gap: 2 },
+  verDetalhesTexto: { fontSize: 12, fontWeight: "600", color: cores.teal },
   indicadores: {
     borderRadius: raio.card,
     borderWidth: 1,

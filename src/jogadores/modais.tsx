@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { Text } from "@/ui/Texto";
 
 import { buscarPerfilJogador } from "@/api/jogadores";
@@ -7,6 +14,7 @@ import { CalendarDays, Goal, Shield, Star, Users, type LucideIcon } from "@/ui/I
 import { ModalCartao } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { AvatarJogador } from "@/ui/AvatarJogador";
+import { GraficoGolsPorJogo } from "@/estatisticas/GraficoGolsPorJogo";
 import { cores, raio } from "@/tema";
 import type { JogadorDoGrupo, PerfilJogador, PosicaoEsporte } from "@/contrato/tipos";
 
@@ -150,6 +158,23 @@ export function ModalPerfil({
   // cada abertura e o effect só busca (sem setState síncrono).
   const [perfil, setPerfil] = useState<PerfilJogador | undefined>(undefined);
   const [erro, setErro] = useState<string | null>(null);
+  // Abas pra o modal não crescer na vertical: números gerais ou gráfico. Uma
+  // página por vez (cada uma com a própria altura). Troca tocando na aba ou
+  // deslizando o dedo pro lado (só no app; no site, arrasto em modal travava).
+  const [aba, setAba] = useState<"resumo" | "gols">("resumo");
+  // Arrasto claramente horizontal troca a aba no fim do gesto. Em cima das
+  // colunas do gráfico quem pega é a rolagem dele (filho, perguntado antes).
+  const [gesto] = useState(() =>
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_e, g) =>
+        Math.abs(g.dx) > 15 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderTerminationRequest: () => true,
+      onPanResponderRelease: (_e, g) => {
+        if (g.dx < -40) setAba("gols");
+        else if (g.dx > 40) setAba("resumo");
+      },
+    })
+  );
 
   useEffect(() => {
     if (!aberto || !jogadorId) return;
@@ -162,6 +187,8 @@ export function ModalPerfil({
     };
   }, [aberto, jogadorId, grupoId, chamarApi]);
 
+  const temGrafico = (perfil?.jogos?.length ?? 0) > 0;
+
   return (
     <ModalCartao aberto={aberto} onFechar={onFechar}>
       {erro ? (
@@ -169,11 +196,18 @@ export function ModalPerfil({
       ) : !perfil ? (
         <ActivityIndicator color={cores.teal} />
       ) : (
-        <>
+        // Um bloco só: o ModalCartao tem gap entre filhos, que somava com as
+        // margens abaixo e deixava o modal bem mais alto que o do site.
+        <View>
           {/* Igual o DialogPerfilJogador do site: avatar grande, nome/apelido/
               telefone em três tons, e um card só com as 3 estatísticas divididas. */}
           <View style={styles.perfilTopo}>
-            <AvatarJogador id={perfil.id} nome={perfil.nome} fotoUrl={perfil.fotoUrl} tamanho={80} />
+            <AvatarJogador
+              id={perfil.id}
+              nome={perfil.nome}
+              fotoUrl={perfil.fotoUrl}
+              tamanho={64}
+            />
             <View style={styles.perfilTextos}>
               <Text style={styles.perfilNome} numberOfLines={1}>
                 {perfil.nome}
@@ -188,12 +222,62 @@ export function ModalPerfil({
               </Text>
             </View>
           </View>
-          <View style={styles.statsCard}>
-            <Stat icon={Users} n={perfil.totalGrupos} label="Grupos" />
-            <Stat icon={CalendarDays} n={perfil.totalPartidas} label="Partidas" divisor />
-            <Stat icon={Goal} n={perfil.totalGols} label="Gols" divisor />
+          {/* Abas só quando há gráfico (sem jogo no grupo, ou servidor antigo
+              sem o campo: só o resumo). Igual o site. */}
+          <View {...(temGrafico ? gesto.panHandlers : {})}>
+            {temGrafico ? (
+              <View style={styles.abas} accessibilityRole="tablist">
+                {(
+                  [
+                    ["resumo", "Resumo"],
+                    ["gols", "Gols por jogo"],
+                  ] as const
+                ).map(([valor, rotulo]) => (
+                  <Pressable
+                    key={valor}
+                    style={[styles.aba, aba === valor && styles.abaAtiva]}
+                    onPress={() => setAba(valor)}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: aba === valor }}
+                  >
+                    <Text style={[styles.abaTexto, aba === valor && styles.abaTextoAtivo]}>
+                      {rotulo}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
+            {aba === "resumo" || !temGrafico ? (
+              <View style={[styles.statsCard, temGrafico && styles.depoisDasAbas]}>
+                <Stat icon={Users} n={perfil.totalGrupos} label="Grupos" />
+                <Stat icon={CalendarDays} n={perfil.totalPartidas} label="Partidas" divisor />
+                <Stat icon={Goal} n={perfil.totalGols} label="Gols" divisor />
+              </View>
+            ) : (
+              // Mesmo gráfico da Performance, só deste grupo, mais baixo.
+              <View style={styles.depoisDasAbas}>
+                <GraficoGolsPorJogo
+                  jogos={perfil.jogos!}
+                  mesDestacado={null}
+                  rotuloMedia="média"
+                  lista={false}
+                  altura={ALTURA_GRAFICO}
+                  compacto
+                />
+              </View>
+            )}
           </View>
-        </>
+
+          {perfil.ultimoJogoEm ? (
+            <Text style={styles.ultimoJogo}>
+              Último jogo em{" "}
+              {new Date(perfil.ultimoJogoEm).toLocaleDateString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+              })}
+            </Text>
+          ) : null}
+        </View>
       )}
     </ModalCartao>
   );
@@ -218,6 +302,9 @@ function Stat({
     </View>
   );
 }
+
+// Gráfico do modal mais baixo que o da Performance (140).
+const ALTURA_GRAFICO = 80;
 
 // ---- Transferir dono -----------------------------------------------------
 export function ModalTransferirDono({
@@ -340,6 +427,32 @@ const styles = StyleSheet.create({
   statDivisor: { borderLeftWidth: 1, borderLeftColor: "rgba(31, 179, 163, 0.1)" },
   statN: { fontSize: 18, fontWeight: "700", color: cores.branco },
   statL: { fontSize: 10, letterSpacing: 0.8, color: cores.teal, textTransform: "uppercase" },
+  abas: {
+    flexDirection: "row",
+    gap: 4,
+    marginTop: 12,
+    padding: 4,
+    borderRadius: raio.campo,
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  aba: {
+    flex: 1,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 6,
+  },
+  abaAtiva: { backgroundColor: "rgba(31,179,163,0.2)" },
+  abaTexto: { fontSize: 12, fontWeight: "600", color: cores.slate400 },
+  abaTextoAtivo: { color: cores.branco },
+  depoisDasAbas: { marginTop: 8 },
+  // Última informação do modal, pequena e à direita.
+  ultimoJogo: {
+    marginTop: 8,
+    fontSize: 11,
+    color: cores.slate500,
+    textAlign: "right",
+  },
   candidato: {
     flexDirection: "row",
     alignItems: "center",
