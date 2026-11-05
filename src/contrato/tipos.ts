@@ -173,6 +173,8 @@ export type Grupo = {
   limiteCheckins?: number | null;
   // true = todo membro vê o score dos outros (desde 2026-10-29; opcional).
   scoreVisivelTodos?: boolean;
+  // Avaliação pós-partida ligada no grupo (desde 2026-11-05; opcional).
+  avaliacaoAtiva?: boolean;
   adminId: string;
   competenciaAno: number;
   competenciaMes: number;
@@ -225,6 +227,9 @@ export type DadosDaTelaGrupo = {
   totalMembros: number;
   idsComResultado: string[];
   idsComMeuCheckin: string[];
+  // Partidas em que eu posso avaliar a galera agora (desde 2026-11-05; site
+  // anterior não manda).
+  idsComAvaliacaoAberta?: string[];
 };
 
 // ── GET /api/v1/esportes ────────────────────────────────────────────────────
@@ -862,6 +867,8 @@ export type JogoDoJogador = {
   /** Os OUTROS jogadores desse jogo: gols (não cancelados) e check-ins. */
   golsOutros: number;
   presentesOutros: number;
+  /** Nota da galera desse jogo (votação fechada, com o mínimo). Desde 2026-11-05. */
+  notaGalera?: number | null;
 };
 
 export type DadosEstatisticas = {

@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { router, useFocusEffect } from "expo-router";
 
 import { buscarMural, marcarMuralVisto } from "@/api/mural";
-import { SEGUNDOS_PARA_MARCAR_VISTO, zerarMuralNaoLidos } from "@/mural/naoLidos";
+import { recontarMuralNaoLidos, zerarMuralNaoLidos } from "@/mural/naoLidos";
+import { ModalAviso } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
@@ -27,6 +31,8 @@ export default function Mural() {
   // Até quando já tinha visto na 1ª carga. Fica fixo enquanto a tela está aberta
   // (puxar pra atualizar não troca): o "Novo" continua depois de marcar como lido.
   const [vistoAte, setVistoAte] = useState<string | null>(null);
+  // Aviso aberto no modal (toque no card). Futuro: aviso com link redireciona.
+  const [aberto, setAberto] = useState<AvisoDoMural | null>(null);
 
   const carregar = useCallback(async () => {
     const r = await buscarMural(chamarApi);
@@ -34,19 +40,21 @@ export default function Mural() {
     setVistoAte((atual) => atual ?? r.vistoAte);
   }, [chamarApi]);
 
-  const ehNovo = (a: AvisoDoMural) => vistoAte !== null && a.enviadoEm > vistoAte;
+  const ehNovo = (a: AvisoDoMural) =>
+    vistoAte !== null && a.enviadoEm > vistoAte;
   // A lista vem do mais novo pro mais antigo: o 1º novo é o mais recente.
   const maisNovo = avisos?.find(ehNovo)?.enviadoEm ?? null;
 
-  // Depois de uns segundos na tela, os novos viram lidos (some a bolinha do menu).
+  // Entrou no Mural: a bolinha do menu some na hora (também ao voltar pra cá).
+  useFocusEffect(useCallback(() => zerarMuralNaoLidos(), []));
+
+  // E o servidor marca como visto assim que a lista chega. O "Novo" dos cards
+  // continua até sair da tela, pra dar pra ver o que era novo.
   useEffect(() => {
     if (!maisNovo) return;
-    const espera = setTimeout(() => {
-      marcarMuralVisto(chamarApi, maisNovo)
-        .then(zerarMuralNaoLidos)
-        .catch(() => {});
-    }, SEGUNDOS_PARA_MARCAR_VISTO * 1000);
-    return () => clearTimeout(espera);
+    marcarMuralVisto(chamarApi, maisNovo)
+      .then(zerarMuralNaoLidos)
+      .catch(recontarMuralNaoLidos);
   }, [maisNovo, chamarApi]);
 
   useEffect(() => {
@@ -80,7 +88,13 @@ export default function Mural() {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         <Navbar voltar="Painel" />
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro
+          mensagem={erro}
+          onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }}
+        />
       </SafeAreaView>
     );
   }
@@ -97,7 +111,10 @@ export default function Mural() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Painel" />
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: 40 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -112,8 +129,13 @@ export default function Mural() {
           <TituloTela Icone={Megaphone}>Mural</TituloTela>
           {/* Link aninhado no texto: quebra de linha junto com a frase. */}
           <Text style={styles.sub}>
-            Recados e novidades do We Racha. Pra parar de receber a notificação, desligue no{" "}
-            <Text style={styles.link} onPress={() => router.push("/perfil")} suppressHighlighting>
+            Recados e novidades do We Racha. Pra parar de receber a notificação,
+            desligue no{" "}
+            <Text
+              style={styles.link}
+              onPress={() => router.push("/perfil")}
+              suppressHighlighting
+            >
               Perfil
             </Text>
             .
@@ -126,21 +148,48 @@ export default function Mural() {
             <Text style={styles.boxTexto}>Nenhum aviso ainda.</Text>
           </View>
         ) : (
-          <View style={styles.lista}>
-            {avisos.map((a) => (
-              <View key={a.id} style={[styles.card, ehNovo(a) && styles.cardNovo]}>
-                <View style={styles.dataLinha}>
-                  <Text style={styles.data}>{formatarData(a.enviadoEm)}</Text>
-                  {ehNovo(a) && <Text style={styles.novo}>Novo</Text>}
-                </View>
-                <Text style={styles.titulo}>{a.titulo}</Text>
-                <Text style={styles.corpo}>{a.corpo}</Text>
-              </View>
-            ))}
+          <View style={styles.secao}>
+            {/* Título de seção em teal, igual "Enquetes em andamento". */}
+            <Text style={styles.secaoTitulo}>Avisos</Text>
+            <Text style={styles.secaoDescricao}>Toque num aviso pra ler inteiro</Text>
+            <View style={styles.lista}>
+              {avisos.map((a) => (
+                <Pressable
+                  key={a.id}
+                  onPress={() => setAberto(a)}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.card,
+                    ehNovo(a) && styles.cardNovo,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <View style={styles.dataLinha}>
+                    <Text style={styles.data}>{formatarData(a.enviadoEm)}</Text>
+                    {ehNovo(a) && <Text style={styles.novo}>Novo</Text>}
+                  </View>
+                  <Text style={styles.titulo}>{a.titulo}</Text>
+                  {/* Corta em 3 linhas: o aviso inteiro abre no modal. */}
+                  <Text style={styles.corpo} numberOfLines={3}>
+                    {a.corpo}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         )}
+        <ModalAviso
+          aberto={aberto !== null}
+          Icone={Megaphone}
+          eyebrow={aberto ? formatarData(aberto.enviadoEm) : ""}
+          titulo={aberto?.titulo ?? ""}
+          texto={aberto?.corpo ?? ""}
+          onFechar={() => setAberto(null)}
+        />
         {avisos.length > 0 && (
-          <Text style={styles.validade}>Os avisos somem do Mural depois de 3 meses.</Text>
+          <Text style={styles.validade}>
+            Os avisos somem do Mural depois de 3 meses.
+          </Text>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -181,9 +230,25 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   boxTexto: { fontSize: 14, color: cores.slate400, textAlign: "center" },
-  lista: { gap: 10 },
+  // Mesmo título de seção da tela de Enquetes.
+  // Título e descrição colados; a lista desce um pouco mais.
+  secao: { gap: 2 },
+  secaoTitulo: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    color: cores.teal,
+    textTransform: "uppercase",
+  },
+  secaoDescricao: { fontSize: 14, color: cores.slate400 },
+  lista: { gap: 10, marginTop: 8 },
   // Regra em weracha-site/lib/mural.ts (MESES_NO_MURAL).
-  validade: { marginTop: -8, fontSize: 12, color: cores.slate500, textAlign: "center" },
+  validade: {
+    marginTop: -8,
+    fontSize: 12,
+    color: cores.slate500,
+    textAlign: "center",
+  },
   // Mesma borda esquerda teal dos cards de atividade.
   // Canto esquerdo reto: a borda colorida da esquerda vai até o fim.
   card: {

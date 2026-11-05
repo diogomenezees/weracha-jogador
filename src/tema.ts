@@ -30,6 +30,13 @@ export const cores = {
   ambar: "#fbbf24",
   ambarEscuro: "#f59e0b",
 
+  // Selo "Beta" (Replays no menu, Resenha, Repercussão, Funções do grupo): o
+  // laranja da marca, igual ao resto da interface. O âmbar acima fica só pra
+  // "precisa de atenção" (ex.: replay perto de sumir).
+  beta: "#f28c1e",
+  betaBorda: "rgba(242, 140, 30, 0.4)",
+  betaFundo: "rgba(242, 140, 30, 0.1)",
+
   // Subiu/melhorou (site: emerald-400), na seta de tendência dos indicadores.
   verde: "#34d399",
 

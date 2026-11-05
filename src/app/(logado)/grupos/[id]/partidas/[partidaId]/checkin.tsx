@@ -242,7 +242,10 @@ export default function TelaCheckin() {
   if (erro) {
     return (
       <TelaPartida voltar="Grupo">
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </TelaPartida>
     );
   }

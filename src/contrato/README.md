@@ -12,6 +12,7 @@ do app (era doc 10 §3 / doc 11 do repo do site). **Não** é um pacote npm, **n
 | `bannersDoFeed.ts` | `weracha-site/lib/bannersDoFeed.ts` | Onde entram os banners entre os vídeos (Resenha, Meus replays): qual espaço é do Instagram (e os textos dele) e qual é de campanha de parceiro |
 | `expiracaoReplays.ts` | `weracha-site/lib/expiracaoReplays.ts` | Regra da expiração dos replays (3 meses comunicados, 4 de verdade, data de início) e os textos do selo/banner |
 | `atividades.ts` | `weracha-site/lib/atividades.ts` | "Atividades recentes" (painel e tela do grupo): tipos por `tipo` e os textos do dedo duro e da mudança da partida |
+| `avaliacoes.ts` | `weracha-site/lib/avaliacoes.ts` + tipos de `weracha-site/lib/services/avaliacoes.ts` | Avaliação pós-partida ("nota da galera"): mínimo de votos, janela de 48h, faixa da nota e o estado da votação (`EstadoAvaliacao`) |
 
 ## Regras
 

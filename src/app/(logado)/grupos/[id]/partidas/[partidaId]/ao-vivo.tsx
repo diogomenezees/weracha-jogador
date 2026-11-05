@@ -274,7 +274,10 @@ export default function TelaAoVivo() {
   if (erro) {
     return (
       <TelaPartida voltar="Times" onVoltar={irParaTimes}>
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </TelaPartida>
     );
   }

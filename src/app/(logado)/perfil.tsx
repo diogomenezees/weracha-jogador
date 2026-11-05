@@ -124,7 +124,10 @@ export default function Perfil() {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         <Navbar voltar="Painel" />
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </SafeAreaView>
     );
   }

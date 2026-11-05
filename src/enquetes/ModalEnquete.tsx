@@ -81,10 +81,12 @@ export function ModalEnquete({
   const enqueteAtiva = enquete?.ativa ?? false;
   const atualRef = useRef(enquete);
   const onAtualizadaRef = useRef(onEnqueteAtualizada);
+  const abaRef = useRef(aba);
   useEffect(() => {
     atualRef.current = enquete;
     onAtualizadaRef.current = onEnqueteAtualizada;
-  }, [enquete, onEnqueteAtualizada]);
+    abaRef.current = aba;
+  }, [enquete, onEnqueteAtualizada, aba]);
   useEffect(() => {
     if (!aberto || !enqueteId || !enqueteAtiva) return;
     let vivo = true;
@@ -96,6 +98,14 @@ export function ModalEnquete({
         if (!vivo || atual?.id !== fresca.id) return;
         if (assinaturaEnquete(atual) === assinaturaEnquete(fresca)) return;
         onAtualizadaRef.current?.(fresca);
+        // Com a aba Votos aberta, a lista de quem votou também anda ao vivo.
+        if (abaRef.current === "votos") {
+          const v = await buscarVotantes(chamarApi, enqueteId);
+          if (vivo && atualRef.current?.id === enqueteId) setVotantes(v);
+        } else {
+          // Fora da aba, descarta o cache: ao abrir, busca a lista nova.
+          setVotantes(null);
+        }
       } catch {
         // Falha de rede numa rodada: tenta de novo na próxima.
       }

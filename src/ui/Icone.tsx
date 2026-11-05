@@ -111,6 +111,7 @@ export {
   Info,
   Lock,
   Crown,
+  ThumbsUp,
   Shield,
   ShieldCheck,
   ShieldOff,

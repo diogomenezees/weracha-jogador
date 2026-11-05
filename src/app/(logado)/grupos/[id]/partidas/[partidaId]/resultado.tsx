@@ -43,6 +43,11 @@ import {
 } from "@/partida/ui";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import {
+  CardAvaliacaoDaGalera,
+  PilulaAvaliouGalera,
+  useEstadoAvaliacao,
+} from "@/partida/AvaliacaoGalera";
+import {
   ArrowLeftRight,
   Clock,
   EllipsisVertical,
@@ -93,6 +98,8 @@ type Aba = "TIMES" | "ARTILHEIROS" | "HISTORICO" | "LANCES";
 export default function TelaResultado() {
   const { id, partidaId } = useLocalSearchParams<{ id: string; partidaId: string }>();
   const { chamarApi, estado: sessao } = useSessao();
+  // Avaliação pós-partida: um GET só, repartido entre o card e a pílula.
+  const estadoAvaliacao = useEstadoAvaliacao(chamarApi, partidaId);
   const meuId = sessao.fase === "logado" ? sessao.jogador.id : null;
   const minhaDataNasc = sessao.fase === "logado" ? sessao.jogador.dataNascimento : null;
 
@@ -313,7 +320,10 @@ export default function TelaResultado() {
   if (erro) {
     return (
       <TelaPartida voltar="Grupo">
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </TelaPartida>
     );
   }
@@ -463,6 +473,8 @@ export default function TelaResultado() {
               </Text>
             </View>
           )}
+          {/* Já deu nota pra todo mundo: o card de avaliação some e fica isto. */}
+          {encerrada && <PilulaAvaliouGalera estado={estadoAvaliacao} />}
         </ScrollView>
         {/* Só no resultado de partida finalizada e com mais de uma pra navegar.
             replace: o "Grupo" do topo continua indo pro grupo, sem passar por cada
@@ -472,6 +484,15 @@ export default function TelaResultado() {
             partidas={partidasComResultado}
             partidaAtualId={partidaId}
             onTrocar={(outra) => router.replace(`/grupos/${id}/partidas/${outra}/resultado`)}
+          />
+        )}
+        {/* Avaliação pós-partida: convite pra votar, ou a minha nota e o Craque da
+            galera depois de fechar. Some sozinho quando não se aplica. */}
+        {encerrada && (
+          <CardAvaliacaoDaGalera
+            grupoId={id}
+            partidaId={partidaId}
+            estado={estadoAvaliacao}
           />
         )}
         {abas.length > 1 && (

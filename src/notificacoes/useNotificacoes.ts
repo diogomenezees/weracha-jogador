@@ -76,8 +76,13 @@ function destinoDaNotificacao(data: Record<string, unknown> | undefined): Href |
   if (tipo === "CHECKIN_ABERTO" && partidaId) {
     return `/grupos/${grupoId}/partidas/${partidaId}/checkin`;
   }
-  if (tipo === "RESULTADO_DISPONIVEL" && partidaId) {
+  // "Sua nota da galera saiu" também cai no Resultado, onde fica a nota.
+  if ((tipo === "RESULTADO_DISPONIVEL" || tipo === "AVALIACAO_RESULTADO") && partidaId) {
     return `/grupos/${grupoId}/partidas/${partidaId}/resultado`;
+  }
+  // Lembrete da avaliação pós-partida: direto na votação.
+  if (tipo === "AVALIACAO_LEMBRETE" && partidaId) {
+    return `/grupos/${grupoId}/partidas/${partidaId}/avaliacao`;
   }
   if (tipo === "NOVA_ENQUETE") {
     return `/grupos/${grupoId}/enquetes`;

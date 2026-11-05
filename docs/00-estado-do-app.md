@@ -66,6 +66,28 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: avaliação pós-partida, "nota da galera" (2026-11-05)
+
+- Tela nova `grupos/[id]/partidas/[partidaId]/avaliacao.tsx`: um colega por tela em ordem
+  aleatória, bolinha de 0 a 100 (`BarraDeNota` em `src/partida/AvaliacaoGalera.tsx`, com
+  `Gesture.Pan().runOnJS(true)` e `GestureHandlerRootView` próprio), arrasta e solta = voto,
+  carregando curto e o próximo jogador (sem resumo do voto), Pular, autoavaliação opcional
+  no fim.
+- Resultado: `CardAvaliacaoDaGalera` logo abaixo da fileira de datas (convite/progresso
+  enquanto a votação está aberta; depois de fechar, um card só "Sua nota da galera": laranja com coroa se fui o Craque da
+  galera, teal com joinha senão; nada com menos de 3 avaliações). Tudo votado: o card some e fica a pílula cinza "Avaliou a galera"
+  (`PilulaAvaliouGalera`) na fileira de pílulas. Estado buscado uma vez pela tela
+  (`useEstadoAvaliacao`, recarrega no foco) e repartido entre card e pílula.
+- Tela do grupo: botão "Avaliar" no lugar do selo Concluída do card da partida anterior (`idsComAvaliacaoAberta`,
+  opcional no contrato). Configurações do grupo: chave "Avaliação pós-partida"
+  (`avaliacaoAtiva`). Performance: seção "Nota da galera" (`notaGalera` em cada jogo, mesmo
+  gráfico dos gols com o `resumo` novo).
+- Push: `AVALIACAO_LEMBRETE` abre a votação; `AVALIACAO_RESULTADO` abre o Resultado
+  (`destinoDaNotificacao`). App ≤ 1.2.0 cai na tela do grupo.
+- API em `src/api/avaliacoes.ts`, tipos em `src/contrato/avaliacoes.ts`. Regra completa no site:
+  `weracha-site/docs/especificacao/19-avaliacao-pos-partida.md`. Falta: rodar em device (o
+  arrasto da bolinha precisa de teste real) e ir pra Play numa versão nova.
+
 ## Feito: perfil do jogador nas telas de artilheiros (2026-11-04)
 
 - Tocar no jogador (pódio, ranking completo, "ainda não marcou") abre o mesmo `ModalPerfil`

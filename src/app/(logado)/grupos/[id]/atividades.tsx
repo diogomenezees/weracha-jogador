@@ -111,7 +111,10 @@ export default function AtividadesDoGrupo() {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         {voltar}
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </SafeAreaView>
     );
   }

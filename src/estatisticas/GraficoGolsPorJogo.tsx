@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import Svg, { Line, Path, Rect, Text as SvgText } from "react-native-svg";
 
@@ -50,6 +50,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   rotular = (jogo: T) => formatarData(jogo.data),
   altura: ALTURA = ALTURA_PADRAO,
   compacto = false,
+  resumo,
 }: {
   jogos: T[];
   // "AAAA-MM" quando um mês está escolhido; null no Geral.
@@ -73,6 +74,9 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   altura?: number;
   // Menos respiro dentro do card (modal do jogador).
   compacto?: boolean;
+  // Troca a linha de resumo (sem coluna tocada). Ex.: a nota da galera, que não
+  // é "N por jogo".
+  resumo?: (qtd: number, mediaGeral: number) => ReactNode;
 }) {
   const rolagem = useRef<ScrollView>(null);
   const [ativo, setAtivo] = useState<number | null>(null);
@@ -83,7 +87,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
 
   const maxGols = Math.max(1, ...jogos.map((j) => j.gols), comparacao?.valor ?? 0);
   // Escala sempre em inteiros "redondos".
-  const passo = maxGols <= 5 ? 1 : maxGols <= 10 ? 2 : 5;
+  const passo = maxGols <= 5 ? 1 : maxGols <= 10 ? 2 : maxGols <= 25 ? 5 : 25;
   const topoEscala = Math.ceil(maxGols / passo) * passo;
   const ticks = Array.from({ length: topoEscala / passo + 1 }, (_, i) => i * passo);
   const util = ALTURA - TOPO;
@@ -112,6 +116,8 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
             </Text>
             {` · ${rotular(jogoAtivo)}${descrever ? ` · ${descrever(jogoAtivo)}` : ""}`}
           </>
+        ) : resumo ? (
+          resumo(jogos.length, mediaGeral)
         ) : (
           <>
             {`${jogos.length} ${jogos.length === 1 ? coluna.um : coluna.varios} · média de `}

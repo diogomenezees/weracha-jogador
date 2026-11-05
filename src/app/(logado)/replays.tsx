@@ -275,7 +275,10 @@ export default function Replays() {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         <Navbar voltar="Painel" />
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </SafeAreaView>
     );
   }
@@ -503,10 +506,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
-    color: cores.ambar,
+    color: cores.beta,
     borderWidth: 1,
-    borderColor: cores.ambarBorda,
-    backgroundColor: "rgba(251, 191, 36, 0.1)",
+    borderColor: cores.betaBorda,
+    backgroundColor: cores.betaFundo,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 2,

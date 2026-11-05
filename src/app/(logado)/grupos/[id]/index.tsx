@@ -57,6 +57,7 @@ import {
   RefreshCw,
   RotateCcw,
   Share2,
+  ThumbsUp,
   Trash2,
   Trophy,
   UserPlus,
@@ -537,7 +538,13 @@ export default function TelaGrupo() {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         {voltar}
-        <TelaErro mensagem={erro} onTentar={recarregar} />
+        <TelaErro
+          mensagem={erro}
+          onTentar={() => {
+            setErro(null);
+            recarregar();
+          }}
+        />
       </SafeAreaView>
     );
   }
@@ -564,6 +571,7 @@ export default function TelaGrupo() {
 
   const idsResultado = new Set(dados.idsComResultado);
   const idsMeuCheckin = new Set(dados.idsComMeuCheckin);
+  const idsAvaliacaoAberta = new Set(dados.idsComAvaliacaoAberta ?? []);
   const emAndamento = partidasEmAndamento(grupo);
   const idsEmAndamento = new Set(emAndamento.map((p) => p.id));
   const proximas = [...emAndamento, ...partidasFuturas(grupo)].sort(
@@ -771,6 +779,8 @@ export default function TelaGrupo() {
                 jaFizCheckin={false}
                 souAdmin={!!souAdmin}
                 onAbrir={() => abrirPartida(p)}
+                avaliacaoAberta={idsAvaliacaoAberta.has(p.id)}
+                onAvaliar={() => router.push(`/grupos/${id}/partidas/${p.id}/avaliacao`)}
                 onMenu={() => abrirMenuPartida(p, !p.cancelada && idsResultado.has(p.id))}
                 onCheckin={() => {}}
                 onAoVivo={() => {}}
@@ -1314,6 +1324,8 @@ function CardPartida({
   onMenu,
   onCheckin,
   onAoVivo,
+  avaliacaoAberta = false,
+  onAvaliar,
 }: {
   partida: PartidaResumo;
   grupo: Grupo;
@@ -1322,6 +1334,9 @@ function CardPartida({
   temResultado: boolean;
   jaFizCheckin: boolean;
   souAdmin: boolean;
+  /** Votação da avaliação pós-partida aberta pra mim: "Avaliar" no lugar do selo Concluída. */
+  avaliacaoAberta?: boolean;
+  onAvaliar?: () => void;
   onAbrir: () => void;
   onMenu: () => void;
   onCheckin: () => void;
@@ -1417,9 +1432,23 @@ function CardPartida({
               <Text style={styles.canceladaTexto}>Cancelada</Text>
             </View>
           ) : concluida ? (
-            <View style={styles.concluidaPill}>
-              <Text style={styles.concluidaTexto}>Concluída</Text>
-            </View>
+            // Votação da avaliação aberta pra mim: o "Avaliar" ocupa o lugar do
+            // selo Concluída (a data verde já diz que acabou), sem linha a mais.
+            avaliacaoAberta && onAvaliar ? (
+              <Pressable
+                style={styles.checkinBtn}
+                onPress={onAvaliar}
+                accessibilityRole="button"
+                accessibilityLabel="Avaliar a galera dessa partida"
+              >
+                <ThumbsUp size={14} color={cores.dark} />
+                <Text style={styles.checkinBtnTexto}>Avaliar</Text>
+              </Pressable>
+            ) : (
+              <View style={styles.concluidaPill}>
+                <Text style={styles.concluidaTexto}>Concluída</Text>
+              </View>
+            )
           ) : pendente ? (
             <View style={styles.partidaPendentePill}>
               <Text style={styles.partidaPendenteTexto}>Encerrada</Text>
@@ -1792,6 +1821,9 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     gap: 2,
     paddingVertical: 6,
+    // Desconta o respiro de baixo: a próxima seção fica à mesma distância das
+    // outras (a área de toque continua igual).
+    marginBottom: -6,
   },
   // Cinza de propósito: só abre mais itens ali mesmo (ação secundária). O teal
   // fica pros títulos e pros links que levam pra outra tela (Ver histórico).

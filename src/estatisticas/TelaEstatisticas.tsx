@@ -14,6 +14,7 @@ import {
   Minus,
   Star,
   Target,
+  ThumbsUp,
   TrendingDown,
   TrendingUp,
   Video,
@@ -146,6 +147,14 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
   const doPeriodo = useMemo(
     () => filtrarJogos(dados.jogos, { grupoId, periodo }),
     [dados.jogos, grupoId, periodo]
+  );
+  // Jogos com nota da galera, com a nota no lugar dos gols (o gráfico lê `gols`).
+  const comNotaGalera = useMemo(
+    () =>
+      doGrupo
+        .filter((j) => j.notaGalera != null)
+        .map((j) => ({ ...j, gols: j.notaGalera as number })),
+    [doGrupo]
   );
 
   const golsPeriodo = doPeriodo.reduce((s, j) => s + j.gols, 0);
@@ -400,6 +409,33 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
         </View>
       )}
 
+      {/* Nota da galera (avaliação pós-partida), partida a partida, desde sempre
+          como o gráfico de gols. Só jogos com a votação fechada e o mínimo de
+          votos (o servidor já filtra). */}
+      {comNotaGalera.length > 0 && (
+        <View>
+          <TituloSecao Icone={ThumbsUp} titulo="Nota da galera" />
+          <GraficoGolsPorJogo
+            jogos={comNotaGalera}
+            mesDestacado={ehGeral ? null : periodo}
+            descrever={(j) => nomeDoGrupo(j.grupoId)}
+            rotuloMedia="média geral"
+            unidade={{ um: "de nota", varios: "de nota" }}
+            resumo={(qtd, mediaGeral) => (
+              <>
+                {"Média geral "}
+                <Text style={styles.notaForte}>{Math.round(mediaGeral)}</Text>
+                {` em ${plural(qtd, "jogo avaliado", "jogos avaliados")}`}
+              </>
+            )}
+          />
+          <Text style={styles.notaDica}>
+            Como quem jogou com você avaliou a sua partida, de 0 a 100. A nota aparece quando a
+            votação fecha, 48h depois do jogo.
+          </Text>
+        </View>
+      )}
+
       {doPeriodo.length > 0 && (
         <View>
           {/* Depende dos replays do We Racha Cam, que nem todo grupo tem: mesmo
@@ -451,6 +487,8 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
 }
 
 const styles = StyleSheet.create({
+  notaForte: { fontWeight: "700", color: cores.branco },
+  notaDica: { marginTop: 6, fontSize: 11, lineHeight: 14, color: cores.slate500 },
   container: { gap: 28 },
   flex1: { flex: 1, minWidth: 0 },
   direita: { alignItems: "flex-end" },
@@ -496,10 +534,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
-    color: cores.ambar,
+    color: cores.beta,
     borderWidth: 1,
-    borderColor: cores.ambarBorda,
-    backgroundColor: "rgba(251, 191, 36, 0.1)",
+    borderColor: cores.betaBorda,
+    backgroundColor: cores.betaFundo,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 2,

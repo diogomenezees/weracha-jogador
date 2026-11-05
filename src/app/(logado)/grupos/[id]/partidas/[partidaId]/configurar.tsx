@@ -244,7 +244,10 @@ export default function TelaConfigurar() {
   if (erro) {
     return (
       <TelaPartida voltar="Check-in">
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </TelaPartida>
     );
   }

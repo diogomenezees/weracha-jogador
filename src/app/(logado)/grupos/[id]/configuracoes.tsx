@@ -18,7 +18,7 @@ import {
 } from "@/partidas";
 import { Navbar } from "@/ui/Navbar";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
-import { Clock, Settings, Star, UserCheck, Users, type LucideIcon } from "@/ui/Icone";
+import { Clock, Settings, Star, ThumbsUp, UserCheck, Users, type LucideIcon } from "@/ui/Icone";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { Grupo } from "@/contrato/tipos";
@@ -39,6 +39,7 @@ export default function ConfiguracoesDoGrupo() {
   const [limite, setLimite] = useState(20);
   const [porTime, setPorTime] = useState(5);
   const [scoreTodos, setScoreTodos] = useState(false);
+  const [avaliacao, setAvaliacao] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -64,7 +65,8 @@ export default function ConfiguracoesDoGrupo() {
         setLimite(limiteAtual ?? Math.max(LIMITE_CHECKINS_MIN, d.grupo.jogadoresPorTime * 2));
         setPorTime(d.grupo.jogadoresPorTime);
         setScoreTodos(!!d.grupo.scoreVisivelTodos);
-        setScoreTodos(!!d.grupo.scoreVisivelTodos);
+        // Site anterior ao campo: trata como ligada (o padrão).
+        setAvaliacao(d.grupo.avaliacaoAtiva ?? true);
       })
       .catch(() => vivo && router.replace(`/grupos/${id}`));
     return () => {
@@ -82,6 +84,7 @@ export default function ConfiguracoesDoGrupo() {
         limiteCheckins: comLimite ? limite : null,
         jogadoresPorTime: porTime,
         scoreVisivelTodos: scoreTodos,
+        avaliacaoAtiva: avaliacao,
       });
       voltarParaGrupo();
     } catch (e) {
@@ -214,6 +217,27 @@ export default function ConfiguracoesDoGrupo() {
             {scoreTodos
               ? "Atenção: sabendo o score dos outros, fica mais fácil alguém se rebaixar pra cair no time dos amigos."
               : "Cada jogador continua vendo o próprio score."}
+          </Text>
+        </Secao>
+
+        <Secao
+          Icone={ThumbsUp}
+          titulo="Avaliação pós-partida"
+          descricao="Depois de cada partida, quem jogou dá uma nota de 0 a 100 pros colegas, por 48 horas. A votação é anônima e cada um só vê a própria nota."
+          acao={
+            <Switch
+              value={avaliacao}
+              onValueChange={setAvaliacao}
+              trackColor={{ false: "rgba(255, 255, 255, 0.15)", true: cores.teal }}
+              thumbColor={cores.branco}
+              accessibilityLabel="Avaliação pós-partida ligada"
+            />
+          }
+        >
+          <Text style={styles.dica}>
+            {avaliacao
+              ? "O score continua sendo definido pelos admins. A nota da galera não muda o sorteio."
+              : "Desligada, ninguém recebe convite pra avaliar e a votação aberta para de aceitar notas."}
           </Text>
         </Secao>
 

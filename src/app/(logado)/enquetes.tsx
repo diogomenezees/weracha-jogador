@@ -58,7 +58,10 @@ export default function EnquetesGlobal() {
     return (
       <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
         {voltar}
-        <TelaErro mensagem={erro} onTentar={() => setTentativa((t) => t + 1)} />
+        <TelaErro mensagem={erro} onTentar={() => {
+            setErro(null);
+            setTentativa((t) => t + 1);
+          }} />
       </SafeAreaView>
     );
   }
@@ -212,7 +215,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   boxTexto: { fontSize: 14, color: cores.slate400, textAlign: "center" },
-  secao: { gap: 8 },
+  // Título e descrição colados; a lista desce um pouco mais (igual ao Mural).
+  secao: { gap: 2 },
   secaoTitulo: {
     fontSize: 11,
     fontWeight: "700",
@@ -222,7 +226,7 @@ const styles = StyleSheet.create({
   },
   secaoDescricao: { fontSize: 14, color: cores.slate400 },
   avisoCriar: { fontSize: 12, color: cores.slate400, textAlign: "center" },
-  lista: { gap: 10 },
+  lista: { gap: 10, marginTop: 8 },
   card: {
     borderTopRightRadius: raio.campo,
     borderBottomRightRadius: raio.campo,
