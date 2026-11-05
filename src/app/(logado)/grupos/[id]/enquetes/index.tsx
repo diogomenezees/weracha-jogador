@@ -152,6 +152,17 @@ export default function EnquetesDoGrupoTela() {
         grupoNome={grupoNome}
         linkCompartilhar={`${PRODUCAO_URL}/grupos/${id}/enquetes`}
         onRecarregar={recarregar}
+        onEnqueteAtualizada={(fresca) =>
+          setDados((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  ativas: prev.ativas.map((e) => (e.id === fresca.id ? fresca : e)),
+                  encerradas: prev.encerradas.map((e) => (e.id === fresca.id ? fresca : e)),
+                }
+              : prev
+          )
+        }
       />
     </SafeAreaView>
   );
@@ -192,7 +203,10 @@ function CardEnquete({ enquete, onPress }: { enquete: Enquete; onPress: () => vo
         </View>
       </View>
       <Text style={styles.cardMeta}>Criada por {enquete.criadoPorNome}</Text>
-      <Text style={styles.cardTag}>{enquete.anonima ? "Voto secreto" : "Identificada"}</Text>
+      <View style={styles.cardTags}>
+        <Text style={styles.cardTag}>{enquete.tipo === "LIVRE" ? "Resposta livre" : "Opções"}</Text>
+        <Text style={styles.cardTag}>{enquete.anonima ? "Voto secreto" : "Identificada"}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -255,6 +269,7 @@ const styles = StyleSheet.create({
   pillTextoAtiva: { color: "#6ee7b7" },
   pillTextoEncerrada: { color: cores.slate400 },
   cardMeta: { fontSize: 13, color: cores.slate400 },
+  cardTags: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   cardTag: {
     alignSelf: "flex-start",
     fontSize: 10,

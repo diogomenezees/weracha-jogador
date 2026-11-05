@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "@/ui/Texto";
 
-import { buscarPerfilJogador } from "@/api/jogadores";
+import { buscarPerfilGeralJogador, buscarPerfilJogador } from "@/api/jogadores";
 import { CalendarDays, Goal, Shield, Star, Users, type LucideIcon } from "@/ui/Icone";
 import { ModalCartao } from "@/grupo/modais";
 import { mensagemDoErro } from "@/mensagens-erro";
@@ -150,7 +150,9 @@ export function ModalPerfil({
 }: {
   aberto: boolean;
   chamarApi: ChamarApi;
-  grupoId: string;
+  /** null = perfil GERAL do jogador, somando todos os grupos (telas de
+   * artilheiros). */
+  grupoId: string | null;
   jogadorId: string | null;
   onFechar: () => void;
 }) {
@@ -179,7 +181,10 @@ export function ModalPerfil({
   useEffect(() => {
     if (!aberto || !jogadorId) return;
     let vivo = true;
-    buscarPerfilJogador(chamarApi, grupoId, jogadorId)
+    (grupoId
+      ? buscarPerfilJogador(chamarApi, grupoId, jogadorId)
+      : buscarPerfilGeralJogador(chamarApi, jogadorId)
+    )
       .then((p) => vivo && setPerfil(p))
       .catch((e) => vivo && setErro(mensagemDoErro(e)));
     return () => {

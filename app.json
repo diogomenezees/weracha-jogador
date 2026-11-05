@@ -8,8 +8,11 @@
     "scheme": "weracha",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.weracha.jogador",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
       "associatedDomains": [
         "applinks:weracha.app"
       ]
@@ -77,7 +80,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/android-icon-monochrome.png",
+          "icon": "./assets/images/notification-icon.png",
           "color": "#1fb3a3"
         }
       ],

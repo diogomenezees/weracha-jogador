@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
@@ -14,9 +14,12 @@ const ALTURAS = [92, 62, 46];
 export function Podio({
   top3,
   mostrarVazios = true,
+  onAbrirPerfil,
 }: {
   top3: LinhaRanking[];
   mostrarVazios?: boolean;
+  /** Toque no degrau (avatar, nome, coluna) abre o perfil do jogador. */
+  onAbrirPerfil?: (jogadorId: string) => void;
 }) {
   if (top3.length === 0 && !mostrarVazios) return null;
 
@@ -48,8 +51,16 @@ export function Podio({
 
         const souEu = jogador.souEu;
         const ouro = eh1 && !souEu;
+        const jogadorId = jogador.id;
         return (
-          <View key={indice} style={styles.coluna}>
+          <Pressable
+            key={indice}
+            style={({ pressed }) => [styles.coluna, pressed && styles.pressionado]}
+            disabled={!onAbrirPerfil || !jogadorId}
+            onPress={() => jogadorId && onAbrirPerfil?.(jogadorId)}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver perfil de ${jogador.nome}`}
+          >
             <Text style={[styles.medalha, eh1 && styles.medalha1]}>{MEDALHAS[indice]}</Text>
             <AvatarJogador
               nome={jogador.nome}
@@ -77,7 +88,7 @@ export function Podio({
                 {golsLabel(jogador.gols)}
               </Text>
             </View>
-          </View>
+          </Pressable>
         );
       })}
     </View>
@@ -87,6 +98,7 @@ export function Podio({
 const styles = StyleSheet.create({
   grade: { flexDirection: "row", alignItems: "flex-end", gap: 8 },
   coluna: { flex: 1, alignItems: "center", gap: 5 },
+  pressionado: { opacity: 0.7 },
   medalha: { fontSize: 22 },
   medalha1: { fontSize: 28 },
   avatarVago: {

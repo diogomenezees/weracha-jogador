@@ -66,6 +66,14 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: perfil do jogador nas telas de artilheiros (2026-11-04)
+
+- Tocar no jogador (pódio, ranking completo, "ainda não marcou") abre o mesmo `ModalPerfil`
+  de "Gerenciar jogadores", nas duas telas (Artilheiros do menu e do grupo). Aqui o perfil
+  é **geral** (`grupoId={null}` → `GET /api/v1/jogadores/{id}/perfil`): partidas, gols e
+  gráfico somam todos os grupos. Precisa do `id` em `DadosArtilheiros.jogadores` (opcional:
+  servidor antigo sem `id` deixa a linha não tocável). Igual no site.
+
 ## Feito: Mural + Autorizações no perfil (2026-11-03)
 
 - Tela `/mural` (menu lateral, depois de Enquetes): avisos do dono do site, `GET /api/v1/mural`,
@@ -331,6 +339,11 @@ As 4 sub-telas do grupo (endpoints verificados por curl no site Local).
 - **Enquetes** (`grupos/[id]/enquetes/{index,nova}.tsx` + global
   `(logado)/enquetes.tsx`): listar/criar/votar (toggle)/editar pergunta/ver
   votantes. `src/enquetes/ModalEnquete.tsx`.
+  Desde 2026-11-04 também **resposta livre** (nuvem de palavras): no criar, "Tipo de
+  resposta" Opções/Resposta livre; no modal, campo de resposta (20 caracteres, 1 vez só)
+  acima da nuvem e "Esconder palavras" pro admin (`src/enquetes/EnqueteLivre.tsx`). As
+  listas pedem `?livres=1`; o app anterior não pede e não vê essas enquetes. Compartilhar
+  continua só texto (a imagem com a nuvem é só no site).
 - **Gerenciar jogadores** (`grupos/[id]/jogadores.tsx`): elenco com busca +
   ordenação + score visível/oculto; ⋯ por jogador (editar score/posição,
   promover/rebaixar admin, deixar cargo, mudar de dono, remover); mensalista

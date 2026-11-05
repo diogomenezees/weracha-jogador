@@ -118,6 +118,17 @@ export default function EnquetesGlobal() {
         grupoNome={detalhe?.grupoNome ?? ""}
         linkCompartilhar={detalhe ? `${PRODUCAO_URL}/grupos/${detalhe.grupoId}/enquetes` : PRODUCAO_URL}
         onRecarregar={recarregar}
+        onEnqueteAtualizada={(fresca) =>
+          setDados((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  ativas: prev.ativas.map((e) => (e.id === fresca.id ? fresca : e)),
+                  encerradas: prev.encerradas.map((e) => (e.id === fresca.id ? fresca : e)),
+                }
+              : prev
+          )
+        }
         onIrAoGrupo={detalhe ? () => router.push(`/grupos/${detalhe.grupoId}`) : undefined}
       />
     </SafeAreaView>
@@ -164,8 +175,15 @@ function Card({ enquete, onPress }: { enquete: EnqueteComGrupo; onPress: () => v
           {enquete.grupoNome}
         </Text>
       </View>
-      <View style={styles.pilula}>
-        <Text style={styles.pilulaTexto}>{enquete.anonima ? "Voto secreto" : "Identificada"}</Text>
+      <View style={styles.pilulas}>
+        <View style={styles.pilula}>
+          <Text style={styles.pilulaTexto}>
+            {enquete.tipo === "LIVRE" ? "Resposta livre" : "Opções"}
+          </Text>
+        </View>
+        <View style={styles.pilula}>
+          <Text style={styles.pilulaTexto}>{enquete.anonima ? "Voto secreto" : "Identificada"}</Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -224,9 +242,9 @@ const styles = StyleSheet.create({
   badgeTexto: { fontSize: 10, fontWeight: "500", textTransform: "uppercase" },
   cardGrupoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   cardGrupo: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
+  pilulas: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
   pilula: {
     alignSelf: "flex-start",
-    marginTop: 4,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.05)",
     paddingHorizontal: 8,

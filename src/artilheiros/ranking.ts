@@ -14,6 +14,7 @@ export function rankingDoPeriodo(dados: DadosArtilheiros, chave: string): LinhaC
       return [
         {
           indice,
+          id: j.id,
           nome: j.nome,
           apelido: j.apelido,
           fotoUrl: j.fotoUrl,
@@ -31,11 +32,18 @@ export function rankingDoPeriodo(dados: DadosArtilheiros, chave: string): LinhaC
 export function zeradosDoPeriodo(
   dados: DadosArtilheiros,
   chave: string
-): { nome: string; apelido: string | null; fotoUrl: string | null; indice: number }[] {
+): {
+  id?: string;
+  nome: string;
+  apelido: string | null;
+  fotoUrl: string | null;
+  indice: number;
+}[] {
   return dados.jogadores
     .map((j, indice) => ({ j, indice }))
     .filter(({ j }) => !j.porPeriodo[chave])
     .map(({ j, indice }) => ({
+      id: j.id,
       nome: j.nome,
       apelido: j.apelido,
       fotoUrl: j.fotoUrl,

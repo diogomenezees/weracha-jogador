@@ -106,6 +106,12 @@ export function buscarPerfilJogador(chamarApi: ChamarApi, grupoId: string, jogad
   return chamarApi<PerfilJogador>(`/api/v1/grupos/${grupoId}/jogadores/${jogadorId}/perfil`);
 }
 
+// GET /api/v1/jogadores/{jogadorId}/perfil — perfil-resumo GERAL (sem grupo):
+// partidas, gols e gráfico somam todos os grupos. Modal das telas de artilheiros.
+export function buscarPerfilGeralJogador(chamarApi: ChamarApi, jogadorId: string) {
+  return chamarApi<PerfilJogador>(`/api/v1/jogadores/${jogadorId}/perfil`);
+}
+
 // GET /api/v1/jogadores/por-telefone?telefone=<normalizado> — { id, nome } | null.
 export function buscarJogadorPorTelefone(chamarApi: ChamarApi, telefone: string) {
   return chamarApi<{ jogador: { id: string; nome: string } | null }>(

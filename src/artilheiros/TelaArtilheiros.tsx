@@ -13,6 +13,8 @@ import {
   rankingDoPeriodo,
   zeradosDoPeriodo,
 } from "@/artilheiros/ranking";
+import { ModalPerfil } from "@/jogadores/modais";
+import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { DadosArtilheiros, LinhaRanking, PeriodoArtilheiros } from "@/contrato/tipos";
 
@@ -39,6 +41,10 @@ export function TelaArtilheiros({
   const [periodoChave, setPeriodoChave] = useState(dados.periodoInicial);
   const [zeradosAbertos, setZeradosAbertos] = useState(false);
   const [esporteAberto, setEsporteAberto] = useState(false);
+  // Jogador com o modal de perfil aberto. Perfil GERAL (sem grupo), tanto na
+  // tela global quanto no ranking do grupo (igual o site).
+  const [perfilId, setPerfilId] = useState<string | null>(null);
+  const { chamarApi } = useSessao();
 
   // Trocar de grupo não remonta a tela (a tira de chips perderia a rolagem e o
   // grupo tocado sumiria da vista): o mês marcado continua, e se o grupo novo
@@ -177,7 +183,7 @@ export function TelaArtilheiros({
         </View>
       )}
 
-      <Podio top3={top3} />
+      <Podio top3={top3} onAbrirPerfil={setPerfilId} />
 
       {ranking.length === 0 && (
         <Text style={styles.vazio}>
@@ -202,7 +208,18 @@ export function TelaArtilheiros({
         <View style={styles.secao}>
           <Text style={styles.secaoTitulo}>Ranking completo</Text>
           {restante.map((j) => (
-            <View key={j.indice} style={[styles.linha, j.souEu && styles.linhaEu]}>
+            <Pressable
+              key={j.indice}
+              style={({ pressed }) => [
+                styles.linha,
+                j.souEu && styles.linhaEu,
+                pressed && styles.pressionado,
+              ]}
+              disabled={!j.id}
+              onPress={() => j.id && setPerfilId(j.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver perfil de ${j.nome}`}
+            >
               <AvatarJogador nome={j.nome} fotoUrl={j.fotoUrl} tamanho={38} />
               <View style={styles.linhaNomes}>
                 <Text style={styles.linhaNome} numberOfLines={1}>
@@ -219,7 +236,7 @@ export function TelaArtilheiros({
                 <Text style={styles.linhaSep}> · </Text>
                 <Text style={styles.linhaGols}>{golsLabel(j.gols)}</Text>
               </Text>
-            </View>
+            </Pressable>
           ))}
         </View>
       )}
@@ -238,7 +255,14 @@ export function TelaArtilheiros({
           {zeradosAbertos && (
             <View style={styles.zeradosGrade}>
               {zerados.map((z) => (
-                <View key={z.indice} style={styles.zeradoItem}>
+                <Pressable
+                  key={z.indice}
+                  style={({ pressed }) => [styles.zeradoItem, pressed && styles.pressionado]}
+                  disabled={!z.id}
+                  onPress={() => z.id && setPerfilId(z.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Ver perfil de ${z.nome}`}
+                >
                   <AvatarJogador nome={z.nome} fotoUrl={z.fotoUrl} tamanho={30} />
                   <View style={styles.zeradoNomes}>
                     <Text style={styles.zeradoNome} numberOfLines={1}>
@@ -250,11 +274,22 @@ export function TelaArtilheiros({
                       </Text>
                     ) : null}
                   </View>
-                </View>
+                </Pressable>
               ))}
             </View>
           )}
         </View>
+      )}
+
+      {perfilId !== null && (
+        <ModalPerfil
+          key={perfilId}
+          aberto
+          chamarApi={chamarApi}
+          grupoId={null}
+          jogadorId={perfilId}
+          onFechar={() => setPerfilId(null)}
+        />
       )}
     </View>
   );
@@ -263,6 +298,7 @@ export function TelaArtilheiros({
 const styles = StyleSheet.create({
   container: { gap: 18 },
   trocando: { opacity: 0.6 },
+  pressionado: { opacity: 0.7 },
   filtroLinha: { flexDirection: "row", alignItems: "center", gap: 8 },
   filtroRotulo: {
     fontSize: 11,

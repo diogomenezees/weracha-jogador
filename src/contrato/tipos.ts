@@ -272,6 +272,9 @@ export type PeriodoArtilheiros = {
 export type StatsPeriodo = { gols: number; posicao: number };
 
 export type JogadorArtilheiro = {
+  /** Abre o modal de perfil geral (GET /api/v1/jogadores/{id}/perfil). Desde
+   * 2026-11-04; opcional pra tolerar servidor antigo (sem id, não é tocável). */
+  id?: string;
   nome: string;
   apelido: string | null;
   fotoUrl: string | null;
@@ -281,6 +284,7 @@ export type JogadorArtilheiro = {
 
 /** Linha achatada de um período (jogador + números daquele período). */
 export type LinhaRanking = {
+  id?: string;
   nome: string;
   apelido: string | null;
   fotoUrl: string | null;
@@ -448,7 +452,26 @@ export type PaginaMeusReplays = {
 };
 
 // ── Enquetes (16-api-v1.md §6) ─────────────────────────────────────────────
-// Cópia de weracha-site/lib/services/enquetes.ts.
+// Cópia de weracha-site/lib/services/enquetes.ts e lib/enquetesLivres.ts
+// (TipoEnquete, PalavraNuvem, LIMITE_CARACTERES_RESPOSTA).
+
+// OPCOES = enquete de sempre; LIVRE = cada um escreve uma resposta curta e o
+// resultado vira nuvem de palavras. LIVRE só vem quando a chamada pede
+// `?livres=1` (o app antigo não pede e nunca recebe).
+export type TipoEnquete = "OPCOES" | "LIVRE";
+
+export const LIMITE_CARACTERES_RESPOSTA = 20;
+
+// Palavra da nuvem, já na ordem de exibição (as maiores no meio). `peso` 1
+// (menos citada) a 5 (mais citada). `oculta` só vem true pra admin do grupo:
+// pros outros, palavra escondida nem vem na lista.
+export type PalavraNuvem = {
+  chave: string;
+  texto: string;
+  contagem: number;
+  peso: 1 | 2 | 3 | 4 | 5;
+  oculta: boolean;
+};
 
 export type OpcaoEnquete = {
   id: string;
@@ -467,11 +490,27 @@ export type Enquete = {
   criadoEm: string;
   ativa: boolean;
   anonima: boolean;
+  tipo: TipoEnquete;
+  // Em LIVRE, total de respostas (inclusive as escondidas pelo admin).
   totalVotos: number;
+  // Vazio em LIVRE.
   opcoes: OpcaoEnquete[];
+  // Só LIVRE (vazio em OPCOES).
+  nuvem: PalavraNuvem[];
+  // Só LIVRE: o que eu respondi (null = ainda não respondi; não troca depois).
+  minhaResposta: string | null;
 };
 
 export type VotanteEnquete = { jogadorId: string; nome: string };
+
+// Quem respondeu o quê numa enquete LIVRE identificada. `texto` null = a
+// resposta foi escondida por um admin (pra quem não é admin do grupo).
+export type RespondenteEnquete = {
+  jogadorId: string;
+  nome: string;
+  texto: string | null;
+  oculta: boolean;
+};
 
 export type EnquetesDoGrupo = {
   ativas: Enquete[];

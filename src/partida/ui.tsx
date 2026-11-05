@@ -229,7 +229,8 @@ export function Abas<T extends string>({
   compacto,
 }: {
   opcoes: { chave: T; rotulo: string }[];
-  valor: T;
+  /** null = nada escolhido ainda (ex.: criar enquete). */
+  valor: T | null;
   onChange: (v: T) => void;
   compacto?: boolean;
 }) {

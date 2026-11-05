@@ -1,14 +1,30 @@
-import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { Text } from "@/ui/Texto";
 
-import { buscarVotantes, editarPergunta, votar } from "@/api/enquetes";
+import { buscarEnquete, buscarVotantes, editarPergunta, votar } from "@/api/enquetes";
 import { ArrowRight, BarChart3, Check, Clock, Pencil, Share2, Users, X } from "@/ui/Icone";
 import { ModalCartao } from "@/grupo/modais";
+import { Abas } from "@/partida/ui";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
 import { cores, raio } from "@/tema";
-import type { Enquete, VotanteEnquete } from "@/contrato/tipos";
+import { CorpoEnqueteLivre, ListaRespostasLivres } from "@/enquetes/EnqueteLivre";
+import type {
+  Enquete,
+  EnqueteComGrupo,
+  RespondenteEnquete,
+  VotanteEnquete,
+} from "@/contrato/tipos";
 
 type ChamarApi = <T>(
   caminho: string,
@@ -26,6 +42,7 @@ export function ModalEnquete({
   grupoNome,
   onRecarregar,
   onIrAoGrupo,
+  onEnqueteAtualizada,
 }: {
   enquete: Enquete | null;
   aberto: boolean;
@@ -40,9 +57,14 @@ export function ModalEnquete({
   onRecarregar: () => Promise<void>;
   /** Quando informado, mostra o botão "Ir ao grupo" (tela global de enquetes). */
   onIrAoGrupo?: () => void;
+  /** Versão nova da enquete vinda do polling de 3s: o parent troca na lista. */
+  onEnqueteAtualizada?: (e: EnqueteComGrupo) => void;
 }) {
   const [aba, setAba] = useState<"votacao" | "votos">("votacao");
-  const [votantes, setVotantes] = useState<Record<string, VotanteEnquete[]> | null>(null);
+  const [votantes, setVotantes] = useState<{
+    votantes: Record<string, VotanteEnquete[]>;
+    respostas: RespondenteEnquete[];
+  } | null>(null);
   const [carregandoVotantes, setCarregandoVotantes] = useState(false);
   const [erroVotantes, setErroVotantes] = useState<string | null>(null);
   const [votando, setVotando] = useState(false);
@@ -51,6 +73,38 @@ export function ModalEnquete({
   const [perguntaEdit, setPerguntaEdit] = useState("");
   const [salvandoPergunta, setSalvandoPergunta] = useState(false);
   const [erroPergunta, setErroPergunta] = useState<string | null>(null);
+
+  // Enquanto o modal está aberto numa enquete ativa, busca a versão nova a
+  // cada 3s (nuvem crescendo e votos andando ao vivo). Pausa com o app em
+  // segundo plano; só avisa o parent quando algo mudou.
+  const enqueteId = enquete?.id;
+  const enqueteAtiva = enquete?.ativa ?? false;
+  const atualRef = useRef(enquete);
+  const onAtualizadaRef = useRef(onEnqueteAtualizada);
+  useEffect(() => {
+    atualRef.current = enquete;
+    onAtualizadaRef.current = onEnqueteAtualizada;
+  }, [enquete, onEnqueteAtualizada]);
+  useEffect(() => {
+    if (!aberto || !enqueteId || !enqueteAtiva) return;
+    let vivo = true;
+    const timer = setInterval(async () => {
+      if (AppState.currentState !== "active") return;
+      try {
+        const fresca = await buscarEnquete(chamarApi, enqueteId);
+        const atual = atualRef.current;
+        if (!vivo || atual?.id !== fresca.id) return;
+        if (assinaturaEnquete(atual) === assinaturaEnquete(fresca)) return;
+        onAtualizadaRef.current?.(fresca);
+      } catch {
+        // Falha de rede numa rodada: tenta de novo na próxima.
+      }
+    }, 3000);
+    return () => {
+      vivo = false;
+      clearInterval(timer);
+    };
+  }, [aberto, enqueteId, enqueteAtiva, chamarApi]);
 
   function fechar() {
     setAba("votacao");
@@ -63,6 +117,8 @@ export function ModalEnquete({
   }
 
   if (!enquete) return <ModalCartao aberto={aberto} onFechar={fechar}>{null}</ModalCartao>;
+
+  const livre = enquete.tipo === "LIVRE";
 
   const podeEditar =
     (enquete.criadoPor === meuId || souAdmin) && enquete.ativa && enquete.totalVotos === 0;
@@ -124,10 +180,11 @@ export function ModalEnquete({
   async function compartilhar() {
     if (!enquete) return;
     const link = `${linkCompartilhar}?enquete=${enquete.id}`;
+    const verbo = enquete.tipo === "LIVRE" ? "Responde" : "Vota";
     const msg = enquete.ativa
       ? `📊 Enquete no grupo ${grupoNome}: "${enquete.pergunta}"\n` +
-        `Vota até ${formatarDiaSemanaData(new Date(enquete.expiraEm))} às ${formatarHora(new Date(enquete.expiraEm))}.\n\n` +
-        `Vota aqui:\n${link}`
+        `${verbo} até ${formatarDiaSemanaData(new Date(enquete.expiraEm))} às ${formatarHora(new Date(enquete.expiraEm))}.\n\n` +
+        `${verbo} aqui:\n${link}`
       : `📊 Enquete encerrada no grupo ${grupoNome}: "${enquete.pergunta}"\n\nConfira o resultado:\n${link}`;
     try {
       await Share.share({ message: msg });
@@ -192,27 +249,38 @@ export function ModalEnquete({
 
       <Text style={styles.meta}>
         Criada por {enquete.criadoPorNome} · {enquete.totalVotos}{" "}
-        {enquete.totalVotos === 1 ? "voto" : "votos"}
+        {livre
+          ? enquete.totalVotos === 1
+            ? "resposta"
+            : "respostas"
+          : enquete.totalVotos === 1
+            ? "voto"
+            : "votos"}
       </Text>
 
       {!enquete.anonima && (
-        <View style={styles.tabs}>
-          <Pressable
-            style={[styles.tab, aba === "votacao" && styles.tabAtiva]}
-            onPress={() => setAba("votacao")}
-          >
-            <Text style={[styles.tabTexto, aba === "votacao" && styles.tabTextoAtivo]}>Votação</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.tab, aba === "votos" && styles.tabAtiva]}
-            onPress={() => void abrirVotos()}
-          >
-            <Text style={[styles.tabTexto, aba === "votos" && styles.tabTextoAtivo]}>Votos</Text>
-          </Pressable>
-        </View>
+        // Mesmo componente de abas da tela de Resultado.
+        <Abas
+          opcoes={[
+            { chave: "votacao", rotulo: "Votação" },
+            { chave: "votos", rotulo: "Votos" },
+          ]}
+          valor={aba}
+          onChange={(v) => (v === "votos" ? void abrirVotos() : setAba("votacao"))}
+        />
       )}
 
-      {aba === "votacao" || enquete.anonima ? (
+      {(aba === "votacao" || enquete.anonima) && livre ? (
+        <CorpoEnqueteLivre
+          enquete={enquete}
+          souAdmin={souAdmin}
+          chamarApi={chamarApi}
+          onAtualizar={async () => {
+            setVotantes(null);
+            await onRecarregar();
+          }}
+        />
+      ) : aba === "votacao" || enquete.anonima ? (
         <View style={styles.opcoes}>
           {enquete.opcoes.map((o) => {
             const pct = enquete.totalVotos > 0 ? Math.round((o.votos / enquete.totalVotos) * 100) : 0;
@@ -245,9 +313,11 @@ export function ModalEnquete({
             <Text style={styles.erro}>{erroVotantes}</Text>
           ) : (
             <ScrollView style={{ maxHeight: 200 }}>
-              {(() => {
+              {livre ? (
+                <ListaRespostasLivres respostas={votantes?.respostas ?? []} />
+              ) : (() => {
                 const lista = enquete.opcoes.flatMap((o) =>
-                  (votantes?.[o.id] ?? []).map((v) => ({ ...v, opcaoTexto: o.texto }))
+                  (votantes?.votantes[o.id] ?? []).map((v) => ({ ...v, opcaoTexto: o.texto }))
                 );
                 if (lista.length === 0)
                   return <Text style={styles.meta}>Ninguém votou ainda.</Text>;
@@ -300,6 +370,11 @@ export function ModalEnquete({
   );
 }
 
+// O que muda numa enquete enquanto o modal está aberto.
+function assinaturaEnquete(e: Enquete): string {
+  return JSON.stringify([e.pergunta, e.ativa, e.totalVotos, e.opcoes, e.nuvem, e.minhaResposta]);
+}
+
 const styles = StyleSheet.create({
   eyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   eyebrow: {
@@ -328,23 +403,6 @@ const styles = StyleSheet.create({
   grupoLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   grupoNome: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
   meta: { fontSize: 13, color: cores.slate400 },
-  tabs: {
-    flexDirection: "row",
-    gap: 4,
-    backgroundColor: cores.superficieSutil,
-    borderRadius: raio.campo,
-    padding: 3,
-  },
-  tab: { flex: 1, paddingVertical: 6, borderRadius: 6, alignItems: "center" },
-  tabAtiva: { backgroundColor: cores.teal },
-  tabTexto: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 0.5,
-    color: cores.slate400,
-    textTransform: "uppercase",
-  },
-  tabTextoAtivo: { color: cores.dark },
   opcoes: { gap: 8 },
   opcao: {
     borderRadius: raio.campo,

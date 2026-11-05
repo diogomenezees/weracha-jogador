@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -11,9 +11,12 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja } from "@/painel/ui";
 import { Navbar } from "@/ui/Navbar";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
-import { Users, X } from "@/ui/Icone";
+import { TriangleAlert, Users, X } from "@/ui/Icone";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
+import type { TipoEnquete } from "@/contrato/tipos";
+import { Abas } from "@/partida/ui";
+import { ExemploNuvem } from "@/enquetes/EnqueteLivre";
 
 const DURACOES = [
   { label: "1 dia", dias: 1 },
@@ -22,6 +25,8 @@ const DURACOES = [
 ];
 
 type OpcaoForm = { id: string; texto: string };
+
+type CampoComErro = "pergunta" | "opcoes" | "sigilo" | "duracao";
 
 export default function NovaEnquete() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,11 +39,32 @@ export default function NovaEnquete() {
     { id: "o0", texto: "" },
     { id: "o1", texto: "" },
   ]);
-  const [duracaoDias, setDuracaoDias] = useState(3);
-  const [anonima, setAnonima] = useState(true);
+  const [tipo, setTipo] = useState<TipoEnquete>("OPCOES");
+  const [duracaoDias, setDuracaoDias] = useState<number | null>(null);
+  const [anonima, setAnonima] = useState<boolean | null>(null);
   const [grupoNome, setGrupoNome] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [erroCampo, setErroCampo] = useState<{ campo: CampoComErro; mensagem: string } | null>(
+    null
+  );
+  const rolagemRef = useRef<ScrollView | null>(null);
+  const perguntaRef = useRef<TextInput>(null);
+  // Posição (y) de cada campo dentro da rolagem, medida no onLayout.
+  const posicaoDoCampo = useRef<Partial<Record<CampoComErro, number>>>({});
+
+  // Mesmo padrão do criar-grupo.tsx: borda vermelha + mensagem embaixo do
+  // primeiro campo com problema, rolando até ele.
+  function apontarCampo(campo: CampoComErro, mensagem: string) {
+    setErroCampo({ campo, mensagem });
+    const y = posicaoDoCampo.current[campo] ?? 0;
+    rolagemRef.current?.scrollTo({ y: Math.max(0, y - 16), animated: true });
+    if (campo === "pergunta") setTimeout(() => perguntaRef.current?.focus(), 350);
+  }
+
+  function limparErroDo(campo: CampoComErro) {
+    setErroCampo((atual) => (atual?.campo === campo ? null : atual));
+  }
 
   useEffect(() => {
     let vivo = true;
@@ -51,6 +77,7 @@ export default function NovaEnquete() {
   }, [chamarApi, id]);
 
   function mudarOpcao(idOpcao: string, valor: string) {
+    limparErroDo("opcoes");
     setOpcoes((prev) => {
       const prox = prev.map((o) => (o.id === idOpcao ? { ...o, texto: valor } : o));
       const ultima = prox[prox.length - 1];
@@ -78,22 +105,32 @@ export default function NovaEnquete() {
 
   async function salvar() {
     setErro(null);
+    setErroCampo(null);
     if (!pergunta.trim()) {
-      setErro("Escreva a pergunta da enquete.");
+      apontarCampo("pergunta", "Escreva a pergunta da enquete.");
       return;
     }
     const preenchidas = opcoes.map((o) => o.texto.trim()).filter(Boolean);
-    if (preenchidas.length < 2) {
-      setErro("Adicione pelo menos duas opções.");
+    if (tipo === "OPCOES" && preenchidas.length < 2) {
+      apontarCampo("opcoes", "Adicione pelo menos duas opções.");
+      return;
+    }
+    if (anonima === null) {
+      apontarCampo("sigilo", "Escolha o sigilo do voto.");
+      return;
+    }
+    if (duracaoDias === null) {
+      apontarCampo("duracao", "Escolha a duração da enquete.");
       return;
     }
     setSalvando(true);
     try {
       await criarEnquete(chamarApi, id, {
         pergunta: pergunta.trim(),
-        opcoes: preenchidas,
+        ...(tipo === "OPCOES" ? { opcoes: preenchidas } : {}),
         duracaoDias,
         anonima,
+        tipo,
       });
       router.replace(`/grupos/${id}/enquetes`);
     } catch (e) {
@@ -106,7 +143,11 @@ export default function NovaEnquete() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Enquetes" />
 
-      <ScrollTeclado contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollTeclado
+        rolagemRef={rolagemRef}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         <View>
           <Text style={styles.h1}>Criar enquete</Text>
           {grupoNome ? (
@@ -119,84 +160,131 @@ export default function NovaEnquete() {
           ) : null}
         </View>
 
-        <View style={styles.campo}>
+        <View
+          style={styles.campo}
+          onLayout={(e) => (posicaoDoCampo.current.pergunta = e.nativeEvent.layout.y)}
+        >
           <Text style={styles.label}>Pergunta</Text>
           <TextInput
-            style={styles.input}
+            ref={perguntaRef}
+            style={[styles.input, erroCampo?.campo === "pergunta" && styles.inputErro]}
             value={pergunta}
-            onChangeText={setPergunta}
+            onChangeText={(v) => {
+              setPergunta(v);
+              limparErroDo("pergunta");
+            }}
             placeholder="Faça uma pergunta"
             placeholderTextColor={cores.slate500}
           />
+          {erroCampo?.campo === "pergunta" && <MensagemCampo texto={erroCampo.mensagem} />}
         </View>
 
         <View style={styles.campo}>
-          <Text style={styles.label}>Opções</Text>
-          {opcoes.map((o, i) => (
-            <View key={o.id} style={styles.opcaoLinha}>
-              <View style={styles.setas}>
-                <Pressable onPress={() => mover(o.id, -1)} disabled={i === 0}>
-                  <Text style={[styles.seta, i === 0 && styles.setaOff]}>▲</Text>
-                </Pressable>
-                <Pressable onPress={() => mover(o.id, 1)} disabled={i === opcoes.length - 1}>
-                  <Text style={[styles.seta, i === opcoes.length - 1 && styles.setaOff]}>▼</Text>
-                </Pressable>
+          <Text style={styles.label}>Tipo de resposta</Text>
+          <Text style={styles.dica}>
+            {tipo === "OPCOES"
+              ? "Opções: cada um escolhe uma das opções que você escrever."
+              : "Resposta livre: cada um escreve a própria resposta."}
+          </Text>
+          <Abas
+            opcoes={[
+              { chave: "OPCOES", rotulo: "Opções" },
+              { chave: "LIVRE", rotulo: "Resposta livre" },
+            ]}
+            valor={tipo}
+            onChange={setTipo}
+          />
+        </View>
+
+        {tipo === "LIVRE" && <ExemploNuvem />}
+
+        {tipo === "OPCOES" && (
+          <View
+            style={styles.campo}
+            onLayout={(e) => (posicaoDoCampo.current.opcoes = e.nativeEvent.layout.y)}
+          >
+            <Text style={styles.label}>Opções</Text>
+            {opcoes.map((o, i) => (
+              <View key={o.id} style={styles.opcaoLinha}>
+                <View style={styles.setas}>
+                  <Pressable onPress={() => mover(o.id, -1)} disabled={i === 0}>
+                    <Text style={[styles.seta, i === 0 && styles.setaOff]}>▲</Text>
+                  </Pressable>
+                  <Pressable onPress={() => mover(o.id, 1)} disabled={i === opcoes.length - 1}>
+                    <Text style={[styles.seta, i === opcoes.length - 1 && styles.setaOff]}>▼</Text>
+                  </Pressable>
+                </View>
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.opcaoInput,
+                    erroCampo?.campo === "opcoes" && !o.texto.trim() && i < 2 && styles.inputErro,
+                  ]}
+                  value={o.texto}
+                  onChangeText={(v) => mudarOpcao(o.id, v)}
+                  placeholder="Adicionar"
+                  placeholderTextColor={cores.slate500}
+                />
+                {i >= 2 && (
+                  <Pressable onPress={() => removerOpcao(o.id)} hitSlop={8}>
+                    <X size={16} color={cores.slate400} />
+                  </Pressable>
+                )}
               </View>
-              <TextInput
-                style={[styles.input, styles.opcaoInput]}
-                value={o.texto}
-                onChangeText={(v) => mudarOpcao(o.id, v)}
-                placeholder="Adicionar"
-                placeholderTextColor={cores.slate500}
-              />
-              {i >= 2 && (
-                <Pressable onPress={() => removerOpcao(o.id)} hitSlop={8}>
-                  <X size={16} color={cores.slate400} />
-                </Pressable>
-              )}
-            </View>
-          ))}
-        </View>
+            ))}
+            {erroCampo?.campo === "opcoes" && <MensagemCampo texto={erroCampo.mensagem} />}
+          </View>
+        )}
 
-        <View style={styles.campo}>
+        <View
+          style={styles.campo}
+          onLayout={(e) => (posicaoDoCampo.current.sigilo = e.nativeEvent.layout.y)}
+        >
           <Text style={styles.label}>Sigilo do voto</Text>
           <Text style={styles.dica}>
-            {anonima
-              ? "Voto secreto: só a contagem por opção aparece."
-              : "Identificada: qualquer membro vê quem votou em cada opção."}
+            {anonima === null
+              ? "Escolha se o grupo pode ver quem respondeu o quê."
+              : tipo === "LIVRE"
+              ? anonima
+                ? "Voto secreto: só a nuvem de palavras aparece."
+                : "Identificada: qualquer membro vê o que cada um respondeu."
+              : anonima
+                ? "Voto secreto: só a contagem por opção aparece."
+                : "Identificada: qualquer membro vê quem votou em cada opção."}
           </Text>
-          <View style={styles.toggle}>
-            {[
-              { v: true, t: "Voto secreto" },
-              { v: false, t: "Identificada" },
-            ].map(({ v, t }) => (
-              <Pressable
-                key={t}
-                style={[styles.toggleBtn, anonima === v && styles.toggleAtivo]}
-                onPress={() => setAnonima(v)}
-              >
-                <Text style={[styles.toggleTexto, anonima === v && styles.toggleTextoAtivo]}>{t}</Text>
-              </Pressable>
-            ))}
+          <View style={erroCampo?.campo === "sigilo" && styles.abasErro}>
+            <Abas
+              opcoes={[
+                { chave: "secreto", rotulo: "Voto secreto" },
+                { chave: "identificada", rotulo: "Identificada" },
+              ]}
+              valor={anonima === null ? null : anonima ? "secreto" : "identificada"}
+              onChange={(v) => {
+                setAnonima(v === "secreto");
+                limparErroDo("sigilo");
+              }}
+            />
           </View>
+          {erroCampo?.campo === "sigilo" && <MensagemCampo texto={erroCampo.mensagem} />}
         </View>
 
-        <View style={styles.campo}>
+        <View
+          style={styles.campo}
+          onLayout={(e) => (posicaoDoCampo.current.duracao = e.nativeEvent.layout.y)}
+        >
           <Text style={styles.label}>Duração</Text>
           <Text style={styles.dica}>Depois desse prazo a enquete encerra.</Text>
-          <View style={styles.toggle}>
-            {DURACOES.map((d) => (
-              <Pressable
-                key={d.dias}
-                style={[styles.toggleBtn, duracaoDias === d.dias && styles.toggleAtivo]}
-                onPress={() => setDuracaoDias(d.dias)}
-              >
-                <Text style={[styles.toggleTexto, duracaoDias === d.dias && styles.toggleTextoAtivo]}>
-                  {d.label}
-                </Text>
-              </Pressable>
-            ))}
+          <View style={erroCampo?.campo === "duracao" && styles.abasErro}>
+            <Abas
+              opcoes={DURACOES.map((d) => ({ chave: String(d.dias), rotulo: d.label }))}
+              valor={duracaoDias === null ? null : String(duracaoDias)}
+              onChange={(v) => {
+                setDuracaoDias(Number(v));
+                limparErroDo("duracao");
+              }}
+            />
           </View>
+          {erroCampo?.campo === "duracao" && <MensagemCampo texto={erroCampo.mensagem} />}
         </View>
 
         {erro ? <CaixaErro>{erro}</CaixaErro> : null}
@@ -209,7 +297,21 @@ export default function NovaEnquete() {
   );
 }
 
+function MensagemCampo({ texto }: { texto: string }) {
+  return (
+    <View style={styles.mensagemCampo}>
+      <TriangleAlert size={14} color={cores.erroTexto} />
+      <Text style={styles.mensagemCampoTexto}>{texto}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  inputErro: { borderColor: cores.erroTexto },
+  // Borda vermelha em volta da caixa das abas (mesmo raio da caixa).
+  abasErro: { borderWidth: 1, borderColor: cores.erroTexto, borderRadius: 11 },
+  mensagemCampo: { flexDirection: "row", alignItems: "center", gap: 6 },
+  mensagemCampoTexto: { flex: 1, fontSize: 13, color: cores.erroTexto },
   tela: { flex: 1, backgroundColor: cores.dark },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
   h1: { fontSize: 24, lineHeight: 26, fontWeight: "700", color: cores.branco },
@@ -234,19 +336,6 @@ const styles = StyleSheet.create({
   setaOff: { opacity: 0.25 },
   opcaoInput: { flex: 1 },
   remover: { fontSize: 15, color: cores.slate500 },
-  toggle: { flexDirection: "row", gap: 8 },
-  toggleBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  toggleAtivo: { backgroundColor: cores.teal, borderColor: cores.teal },
-  toggleTexto: { fontSize: 13, color: cores.slate300 },
-  toggleTextoAtivo: { color: cores.dark, fontWeight: "700" },
   rodape: {
     position: "absolute",
     left: 0,
