@@ -130,9 +130,8 @@ inteiro, não um endpoint.
 **Feito pro link de convite (2026-09-07):**
 - Site: `app/convite/[token]/page.tsx` (redireciona pro `/login?convite=...` na
   web), `app/.well-known/{assetlinks.json,apple-app-site-association}/route.ts`
-  (⚠️ **fingerprint SHA-256 e Apple Team ID ainda são placeholder** — trocar
-  depois do EAS/conta Apple; sem isso o link abre com o seletor "abrir com" em
-  vez de direto), `proxy.ts` libera `/convite/` e `/.well-known/`. Os 3
+  (fingerprint SHA-256 real do Android; Apple Team ID `3277U7N77X` preenchido em
+  2026-11-05 quando a conta Apple Developer, pessoa física, foi aprovada), `proxy.ts` libera `/convite/` e `/.well-known/`. Os 3
   geradores de link do site (`grupos/[id]`, `enquetes`, `grupos/[id]/enquetes`)
   passaram a emitir `weracha.app/convite/{token}` no lugar de `/login?convite=`.
 - App: `app.json` com `intentFilters` (Android, `pathPrefix: /convite`,

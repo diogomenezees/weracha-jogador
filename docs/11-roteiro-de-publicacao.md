@@ -36,10 +36,13 @@ primeiro.
 - **Nome do app: "WeRacha"** (era "We Racha"): `name` e permissões do `app.json` e os textos
   visíveis do app. O slug (`weracha-jogador`) e o package (`com.weracha.jogador`) não mudam. O
   nome novo só aparece em build novo.
-- **Conta de teste pro revisor da Google** criada em produção (jogador "Revisor Google", telefone
-  (11) 99999-9999, senha forte guardada fora do repo, telefone já validado, nascimento 1990) e
-  um grupo "Pelada de Teste" com ela como dona. Apagar a conta e o grupo em "Gerenciar usuários"
-  depois que o app for aprovado.
+- **Conta de teste pro revisor das lojas** (Google e Apple) em produção: telefone
+  (11) 99999-9999, senha forte guardada fora do repo, telefone já validado, nascimento 1990.
+  Criada em 2026-09-25 como "Revisor Google" com um grupo "Pelada de Teste"; o revisor da Google
+  renomeou a conta e criou os próprios grupos ("Group Test", "Group Test 2", "Amigos do
+  trabalho", todos com ela de admin). Em 2026-11-05 a senha foi trocada e o nome voltou pra
+  "Revisor", pra usar na revisão da App Store. Não apagar enquanto as lojas puderem revisar
+  versões novas.
 - **Migration 0066 aplicada em produção** (a tabela `bloqueios_jogador` existe).
 - **Gate de versão mínima** (API + app), fase 3. `GET /api/v1/app/versao-minima` no site e tela
   "Atualize o WeRacha" no app, com abertura normal se o site falhar.
