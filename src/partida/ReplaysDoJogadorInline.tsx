@@ -15,14 +15,12 @@ import type { CampanhaNoAr, GolComVideos } from "@/contrato/tipos";
 export function ReplaysDoJogadorInline({
   jogador,
   gols,
-  grupoNome,
   apenasUmGol = false,
   comentar,
   campanhas,
 }: {
   jogador: { id: string; nome: string; fotoUrl: string | null };
   gols: GolComVideos[];
-  grupoNome: string;
   /** Aberto pela linha do tempo: a lista tem só o gol tocado, e o subtítulo diz isso. */
   apenasUmGol?: boolean;
   /** Só a tela de Resultado passa o suporte a comentário. */
@@ -47,7 +45,6 @@ export function ReplaysDoJogadorInline({
       </View>
       <CardsReplay
         gols={gols}
-        grupoNome={grupoNome}
         vazioTexto="Nenhum replay desse jogador nessa partida."
         comentar={comentar}
         ocultarJogador

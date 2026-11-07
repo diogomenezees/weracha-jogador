@@ -233,7 +233,7 @@ export default function QuadraDoGrupo() {
       </ScrollTeclado>
 
       <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
-        <BotaoLaranja titulo="Cadastrar quadra" onPress={() => pedirConfirmacao()} carregando={salvando} />
+        <BotaoLaranja rodape titulo="Cadastrar quadra" onPress={() => pedirConfirmacao()} carregando={salvando} />
       </View>
     </SafeAreaView>
   );

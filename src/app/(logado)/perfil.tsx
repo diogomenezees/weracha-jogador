@@ -431,6 +431,7 @@ export default function Perfil() {
         <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
           {erroSalvar && <Text style={styles.rodapeErro}>{erroSalvar}</Text>}
           <BotaoLaranja
+            rodape
             titulo={salvando ? "Salvando..." : "Salvar"}
             onPress={() => void salvar()}
             carregando={salvando}

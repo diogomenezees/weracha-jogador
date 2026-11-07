@@ -417,6 +417,8 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
           <TituloSecao Icone={ThumbsUp} titulo="Nota da galera" />
           <GraficoGolsPorJogo
             jogos={comNotaGalera}
+            // A nota que ele se deu, por cima das barras da galera (só ele vê).
+            linha={{ valor: (j) => j.minhaAutoavaliacao, rotulo: "sua nota", leitura: "Você" }}
             mesDestacado={ehGeral ? null : periodo}
             descrever={(j) => nomeDoGrupo(j.grupoId)}
             rotuloMedia="média geral"
@@ -431,7 +433,7 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
           />
           <Text style={styles.notaDica}>
             Como quem jogou com você avaliou a sua partida, de 0 a 100. A nota aparece quando a
-            votação fecha, 48h depois do jogo.
+            votação fecha, 48h depois do jogo. A linha branca é a nota que você se deu (só você vê).
           </Text>
         </View>
       )}

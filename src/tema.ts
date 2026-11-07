@@ -101,3 +101,9 @@ export const tipografia = {
   rotulo: { fontSize: 13, fontWeight: "600" as const, fontFamily: fontes.semibold, color: cores.slate300 },
   corpo: { fontSize: 14, lineHeight: 21, fontFamily: fontes.regular, color: cores.slate200 },
 } as const;
+
+// Texto do botão de ação fixo no rodapé (Salvar, Gerenciar jogadores, Novo
+// jogador, Chegaram todos...). Maior que o text-base (16) do site de propósito:
+// no celular o botão ocupa a largura toda e o 16 ficava pequeno lá dentro.
+// Todo botão de rodapé usa este número, pra não desalinhar entre telas.
+export const FONTE_BOTAO_RODAPE = 18;

@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { ChevronLeft, Eye, EyeOff, Shield, Star, Users, type LucideIcon } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
-import { cores, raio } from "@/tema";
+import { cores, FONTE_BOTAO_RODAPE, raio } from "@/tema";
 
 // Peças compartilhadas pelas 4 telas do ciclo da partida (check-in, configurar,
 // ao vivo, resultado). Visual portado do site: fundo escuro, eyebrow mono teal,
@@ -350,7 +350,7 @@ export function Rodape({
       <View style={styles.rodapeLinha}>
         {onVoltar && (
           <Pressable style={styles.rodapeVoltar} onPress={onVoltar}>
-            <ChevronLeft size={16} color={cores.branco} />
+            <ChevronLeft size={18} color={cores.branco} />
             <Text style={styles.rodapeVoltarTexto}>{voltarRotulo ?? "Voltar"}</Text>
           </Pressable>
         )}
@@ -388,7 +388,7 @@ export function BotaoPrimario({
       onPress={onPress}
       disabled={desativado}
     >
-      {Icone ? <Icone size={16} color={texto} /> : null}
+      {Icone ? <Icone size={compacto ? 16 : 18} color={texto} /> : null}
       <Text style={[styles.primarioTexto, compacto && styles.primarioTextoCompacto, { color: texto }]}>
         {titulo}
       </Text>
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeVoltarTexto: { fontSize: 16, color: cores.branco },
+  rodapeVoltarTexto: { fontSize: FONTE_BOTAO_RODAPE, color: cores.branco },
   primario: {
     flex: 1,
     height: 45,
@@ -548,8 +548,8 @@ const styles = StyleSheet.create({
   },
   primarioCompacto: { height: 36 },
   primarioOff: { opacity: 0.5 },
-  // 16 = text-base dos botões de rodapé do site. O compacto (no meio da tela,
+  // Botão de rodapé: FONTE_BOTAO_RODAPE (ver tema.ts). O compacto (no meio da tela,
   // tipo "Eu vou jogar") fica um pouco menor.
-  primarioTexto: { fontSize: 16, fontWeight: "700" },
+  primarioTexto: { fontSize: FONTE_BOTAO_RODAPE, fontWeight: "700" },
   primarioTextoCompacto: { fontSize: 15 },
 });

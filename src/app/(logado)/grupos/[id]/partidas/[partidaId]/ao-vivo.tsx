@@ -476,7 +476,7 @@ export default function TelaAoVivo() {
         />
 
         {abaVisivel === "ARTILHEIROS" ? (
-          <View style={{ gap: 10 }}>
+          <View style={{ gap: 8 }}>
             {aoVivo.cameraAtiva && aoVivo.lancesImportantesHabilitado && (
               <BotaoPrimario
                 titulo="Lance importante"
@@ -567,7 +567,6 @@ export default function TelaAoVivo() {
               </View>
               <CardsReplay
                 gols={lancesComVideo}
-                grupoNome={g.nome}
                 vazioTexto="Nenhum lance importante gravado ainda."
               />
             </View>
@@ -611,7 +610,6 @@ export default function TelaAoVivo() {
               <ReplaysDoJogadorInline
                 jogador={jogadorDoReplay}
                 gols={golsDoReplayInline}
-                grupoNome={g.nome}
                 apenasUmGol={!!replayInline.golId}
               />
             )}

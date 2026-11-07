@@ -139,6 +139,7 @@ export default function EnquetesDoGrupoTela() {
         )}
         {podeCriarEnquete && (
           <BotaoLaranja
+            rodape
             titulo="Criar enquete"
             onPress={() => router.push(`/grupos/${id}/enquetes/nova`)}
           />

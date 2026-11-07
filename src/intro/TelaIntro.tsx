@@ -389,7 +389,7 @@ function VisualEntrar({ ativo, palco }: { ativo: boolean; palco: number }) {
       <Peca ativo={ativo} atraso={0} flutua={5} giro="-3deg" style={{ left: 0, top: palco * 0.02 }}>
         <View style={[v.balao, v.balaoConversa]}>
           <View>
-            <Text style={[v.infoPequena, { color: cores.orange, fontWeight: "700" }]}>Grupo da pelada</Text>
+            <Text style={[v.infoPequena, { color: cores.orange, fontWeight: "700" }]}>Grupo do racha</Text>
             <Text style={[v.info, { color: cores.branco, marginTop: 2 }]}>Bora! Entra aí:</Text>
             <Text style={v.link}>weracha.app/convite/…</Text>
           </View>

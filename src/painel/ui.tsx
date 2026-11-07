@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 
 import type { LucideIcon } from "@/ui/Icone";
-import { cores, raio } from "@/tema";
+import { cores, FONTE_BOTAO_RODAPE, raio } from "@/tema";
 
 // Peças de UI do /painel e do onboarding, mesmo padrão de src/acesso/ui.tsx.
 // Visual portado de weracha-site/app/painel.
@@ -21,11 +21,14 @@ export function BotaoLaranja({
   onPress,
   carregando,
   Icone,
+  rodape,
 }: {
   titulo: string;
   onPress: () => void;
   carregando?: boolean;
   Icone?: LucideIcon;
+  /** Botão fixo no rodapé da tela: texto em FONTE_BOTAO_RODAPE. */
+  rodape?: boolean;
 }) {
   return (
     <Pressable
@@ -37,8 +40,8 @@ export function BotaoLaranja({
         <ActivityIndicator color={cores.dark} />
       ) : (
         <>
-          {Icone && <Icone size={16} color={cores.dark} />}
-          <Text style={styles.botaoLaranjaTexto}>{titulo}</Text>
+          {Icone && <Icone size={rodape ? 18 : 16} color={cores.dark} />}
+          <Text style={[styles.botaoLaranjaTexto, rodape && styles.textoRodape]}>{titulo}</Text>
         </>
       )}
     </Pressable>
@@ -175,6 +178,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   botaoLaranjaTexto: { color: cores.dark, fontSize: 16, fontWeight: "700" },
+  textoRodape: { fontSize: FONTE_BOTAO_RODAPE },
   inativo: { opacity: 0.6 },
   botaoContorno: {
     height: 45,

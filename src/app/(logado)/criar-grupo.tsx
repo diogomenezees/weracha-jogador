@@ -317,7 +317,7 @@ export default function CriarGrupo() {
       </ScrollTeclado>
 
       <View style={[styles.rodape, { paddingBottom: 12 + insets.bottom }]}>
-        <BotaoLaranja titulo="Salvar" onPress={() => void salvar()} carregando={salvando} />
+        <BotaoLaranja rodape titulo="Salvar" onPress={() => void salvar()} carregando={salvando} />
       </View>
     </SafeAreaView>
   );

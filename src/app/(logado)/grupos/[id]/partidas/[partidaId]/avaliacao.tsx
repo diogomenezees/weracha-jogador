@@ -10,14 +10,17 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import {
   BarraDeNota,
   nomeCurto,
+  notaJaFechadaPraMim,
   textoFechaEm,
+  textoNotaParcial,
+  textoParticipacao,
 } from "@/partida/AvaliacaoGalera";
-import { BotaoPrimario, Eyebrow, Rodape, TelaPartida } from "@/partida/ui";
+import { BotaoPrimario, Cabecalho, Rodape, TelaPartida } from "@/partida/ui";
 import { useSessao } from "@/sessao/contexto";
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import { ArrowRight, PartyPopper, ThumbsUp } from "@/ui/Icone";
 import { Text, FAMILIA_MONO } from "@/ui/Texto";
-import { cores } from "@/tema";
+import { cores, raio } from "@/tema";
 
 // Votação da avaliação pós-partida ("nota da galera"): um colega por tela, em
 // ordem aleatória, arrasta e solta a bolinha = voto gravado (sem editar). Pular
@@ -99,6 +102,18 @@ export default function TelaAvaliacao() {
     [],
   );
 
+  // Fim da fila: busca o estado de novo (só o estado, sem remontar a fila) pra
+  // tela final mostrar a parcial e a participação atualizadas. Uma vez só.
+  const fimDaFila = estado !== null && fila.length > 0 && indice >= fila.length;
+  const atualizouNoFim = useRef(false);
+  useEffect(() => {
+    if (!fimDaFila || atualizouNoFim.current) return;
+    atualizouNoFim.current = true;
+    buscarAvaliacao(chamarApi, partidaId)
+      .then(setEstado)
+      .catch(() => {});
+  }, [fimDaFila, chamarApi, partidaId]);
+
   const avancar = useCallback(() => {
     setTrocando(false);
     setErroVoto(null);
@@ -160,8 +175,14 @@ export default function TelaAvaliacao() {
 
   if (!estado.aberta || !estado.souJogador || !item) {
     const fim = estado.aberta && estado.souJogador;
+    const parcial = fim ? estado.minhaNotaParcial : null;
+    const participacao = fim ? textoParticipacao(estado) : null;
+    // Todo mundo já me avaliou: a nota não muda mais (sai o "parcial" e o aviso de prazo).
+    const notaFechada = fim && notaJaFechadaPraMim(estado);
     const motivo = fim
-      ? `Sua nota aparece no resultado da partida quando a votação fechar, ${textoFechaEm(estado.fechaEm)}.`
+      ? parcial
+        ? `A nota pode mudar até a votação fechar, ${textoFechaEm(estado.fechaEm)}.`
+        : `Sua nota aparece no resultado da partida quando a votação fechar, ${textoFechaEm(estado.fechaEm)}.`
       : !estado.souJogador
         ? "Só quem jogou essa partida avalia a galera."
         : !estado.ligada
@@ -171,14 +192,42 @@ export default function TelaAvaliacao() {
             : "A avaliação abre quando a partida acabar.";
     return (
       <TelaPartida voltar="Resultado" onVoltar={irProResultado}>
+        <View style={styles.topoFim}>
+          <Cabecalho titulo="Nota da galera" Icone={ThumbsUp} grupoNome={estado.grupoNome ?? ""} />
+        </View>
         <View style={styles.centro}>
           {fim ? (
             <PartyPopper size={48} color={cores.orange} />
           ) : (
             <ThumbsUp size={40} color={cores.slate500} />
           )}
-          {fim && <Text style={styles.valeu}>Valeu!</Text>}
-          <Text style={styles.motivo}>{motivo}</Text>
+          {/* Com a nota parcial à mostra, o "Valeu!" sobra: fica só o ícone. */}
+          {fim && parcial?.media == null && <Text style={styles.valeu}>Valeu!</Text>}
+          {/* Parcial + autoavaliação + quem falta votar (site antigo sem os campos: só o texto). */}
+          {parcial && (
+            <View style={styles.parcialCaixa}>
+              {parcial.media !== null ? (
+                <>
+                  <Text style={styles.parcialRotulo}>
+                    {notaFechada ? "Sua nota final" : "Sua nota parcial"}
+                  </Text>
+                  <Text style={styles.parcialNumero}>{parcial.media}</Text>
+                </>
+              ) : (
+                <Text style={styles.parcialTexto}>{textoNotaParcial(estado)}</Text>
+              )}
+              {/* A minha autoavaliação, pra comparar com a da galera (só eu vejo). */}
+              {estado.minhaAutoavaliacao !== null && (
+                <View style={styles.parcialAuto}>
+                  <Text style={styles.parcialAutoTexto}>Você se deu {estado.minhaAutoavaliacao}</Text>
+                </View>
+              )}
+              {/* Sem a quantidade de avaliações: quantas pessoas me avaliaram não
+                  importa pro jogador, só quem ainda falta votar. */}
+              {participacao && <Text style={styles.parcialSub}>{participacao}</Text>}
+            </View>
+          )}
+          {!notaFechada && <Text style={styles.motivo}>{motivo}</Text>}
         </View>
         <Rodape
           primario={
@@ -204,7 +253,8 @@ export default function TelaAvaliacao() {
   return (
     <TelaPartida voltar="Resultado" onVoltar={irProResultado}>
       <View style={[styles.corpo, { paddingBottom: 24 + insets.bottom }]}>
-        <Eyebrow>Nota da galera</Eyebrow>
+        {/* Mesmo cabeçalho das outras telas da partida (título + grupo embaixo). */}
+        <Cabecalho titulo="Nota da galera" Icone={ThumbsUp} grupoNome={estado.grupoNome ?? ""} />
         <View style={styles.progressoLinha}>
           <View style={styles.progressoTrilho}>
             <View
@@ -313,7 +363,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: cores.slate400,
   },
-  meio: { flex: 1, alignItems: "center", justifyContent: "center", gap: 20 },
+  // paddingBottom: sobe o miolo (o cabeçalho em cima empurrava o centro pra baixo).
+  meio: { flex: 1, alignItems: "center", justifyContent: "center", gap: 20, paddingBottom: 48 },
   nome: {
     fontSize: 20,
     fontWeight: "700",
@@ -347,14 +398,46 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   pularTexto: { fontSize: 14, fontWeight: "500", color: cores.slate300 },
+  topoFim: { paddingHorizontal: 24, paddingTop: 12 },
   centro: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 32,
+    // Sobe o conteúdo: o Rodape ("Ver resultado") é absoluto e cobre o fim da área,
+    // então o centro calculado ficava baixo. 140 ≈ altura do rodapé + folga.
+    paddingBottom: 140,
     gap: 14,
   },
   valeu: { fontSize: 24, fontWeight: "700", color: cores.branco },
+  parcialCaixa: {
+    alignSelf: "stretch",
+    alignItems: "center",
+    borderRadius: raio.card,
+    borderWidth: 1,
+    borderColor: cores.avisoBorda,
+    backgroundColor: cores.avisoFundo,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  parcialRotulo: { fontSize: 16, fontWeight: "600", color: cores.teal },
+  parcialNumero: {
+    fontFamily: FAMILIA_MONO,
+    fontSize: 36,
+    fontWeight: "700",
+    color: cores.branco,
+  },
+  parcialSub: { marginTop: 4, fontSize: 14, color: cores.slate400, textAlign: "center" },
+  parcialTexto: { fontSize: 14, color: cores.slate300, textAlign: "center" },
+  // Selo laranja (cor do ❤) da autoavaliação, pra comparar com a parcial de relance.
+  parcialAuto: {
+    marginTop: 8,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    backgroundColor: "rgba(242, 140, 30, 0.15)",
+  },
+  parcialAutoTexto: { fontSize: 14, fontWeight: "600", color: cores.orange },
   motivo: {
     fontSize: 15,
     color: cores.slate300,

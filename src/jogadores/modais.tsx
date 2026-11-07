@@ -252,6 +252,12 @@ export function ModalPerfil({
                 ))}
               </View>
             ) : null}
+            {/* Uma linha explicando a aba aberta (mesmo texto do site). */}
+            {temGrafico ? (
+              <Text style={styles.abaDica} numberOfLines={1}>
+                {dicaDaAbaPerfil(aba, grupoId !== null)}
+              </Text>
+            ) : null}
 
             {aba === "resumo" || !temGrafico ? (
               <View style={[styles.statsCard, temGrafico && styles.depoisDasAbas]}>
@@ -286,6 +292,19 @@ export function ModalPerfil({
       )}
     </ModalCartao>
   );
+}
+
+// Texto curto embaixo das abas do perfil. No grupo, partidas/gols/gráfico são
+// só daquele grupo (Grupos é sempre o total); no perfil geral, tudo soma.
+function dicaDaAbaPerfil(aba: "resumo" | "gols", noGrupo: boolean): string {
+  if (aba === "resumo") {
+    return noGrupo
+      ? "Partidas e gols só neste grupo."
+      : "Partidas e gols em todos os grupos.";
+  }
+  return noGrupo
+    ? "Gols nos últimos jogos deste grupo."
+    : "Gols nos últimos jogos de todos os grupos.";
 }
 
 function Stat({
@@ -451,6 +470,7 @@ const styles = StyleSheet.create({
   abaTexto: { fontSize: 12, fontWeight: "600", color: cores.slate400 },
   abaTextoAtivo: { color: cores.branco },
   depoisDasAbas: { marginTop: 8 },
+  abaDica: { marginTop: 8, fontSize: 12, lineHeight: 16, color: cores.slate400 },
   // Última informação do modal, pequena e à direita.
   ultimoJogo: {
     marginTop: 8,

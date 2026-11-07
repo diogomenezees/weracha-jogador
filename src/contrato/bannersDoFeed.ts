@@ -34,7 +34,7 @@ export const MENSAGENS_BANNER_INSTAGRAM: MensagemBannerInstagram[] = [
   },
   {
     titulo: "Siga a gente no Instagram",
-    texto: `Os melhores lances das peladas aparecem no @${INSTAGRAM_USUARIO}.`,
+    texto: `Os melhores lances dos rachas aparecem no @${INSTAGRAM_USUARIO}.`,
   },
   {
     titulo: "Quer seu lance no nosso perfil?",

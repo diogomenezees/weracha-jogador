@@ -17,7 +17,7 @@ import {
   Users,
 } from "@/ui/Icone";
 import { baixarReplay, mensagemDownload, nomeArquivoReplay } from "@/replay/baixarReplay";
-import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
+import { BotaoBaixarVideoIcone } from "@/replay/BotaoBaixarVideo";
 import { BotaoFavorito, SeloExpiracao } from "@/replay/BotaoFavorito";
 import { PlayerReplay } from "@/replay/PlayerReplay";
 import { SeletorCamera } from "@/replay/SeletorCamera";
@@ -34,12 +34,12 @@ type ChamarApi = <T>(
 
 // O mesmo card serve a tela /replays (meus gols, de qualquer grupo): lá quem chama
 // passa `meus`, que acrescenta o nome do grupo no cabeçalho, adiciona o atalho
-// "Ir para o grupo" ao menu, troca o "Baixar vídeo" do menu pelo botão laranja embaixo
-// do vídeo e, se o jogador saiu do grupo, esconde os atalhos pro grupo/resultado e a
+// "Ir para o grupo" ao menu e, se o jogador saiu do grupo, esconde os atalhos pro grupo/resultado e a
 // resenha (ele perdeu o acesso; aí o ⋮ some, sem item). Gol/lance com mais de uma câmera
 // ganha os chips de câmera (SeletorCamera) à direita do título "Resenha". A aba
 // Favoritos passa `favoritos` (mesmo tratamento de "fora do grupo", mas o replay pode ser
-// de qualquer pessoa). O coração (BotaoFavorito) fica ao lado do ⋮. Espelha
+// de qualquer pessoa). No cabeçalho de todo card com vídeo: coração (BotaoFavorito),
+// ícone de baixar (download também segue no ⋮) e o ⋮. Espelha
 // ResenhaBlocoCard do site.
 export function BlocoCard({
   bloco,
@@ -60,7 +60,7 @@ export function BlocoCard({
   podeComentar: PodeComentar;
   meus?: { grupoNome: string; grupoRemovido: boolean };
   // Aba Favoritos de /replays: replay de qualquer pessoa, fora da tela do grupo. Mostra
-  // o nome do grupo no cabeçalho, "Ir para o grupo" no menu e o botão laranja de baixar.
+  // o nome do grupo no cabeçalho e "Ir para o grupo" no menu.
   favoritos?: { grupoNome: string };
   // Borda teal: o bloco que a tela abriu de propósito (?video=, vindo das
   // "Atividades recentes" do painel).
@@ -69,8 +69,7 @@ export function BlocoCard({
   const { avisar } = useDialogos();
   const ehLance = bloco.tipo === "LANCE";
   const grupoRemovido = meus?.grupoRemovido ?? false;
-  // Card fora da tela do grupo (Meus replays, Favoritos): nome do grupo, atalho pra ele
-  // e o "Baixar vídeo" como botão laranja embaixo do vídeo.
+  // Card fora da tela do grupo (Meus replays, Favoritos): nome do grupo e atalho pra ele.
   const grupoNoCabecalho = meus?.grupoNome ?? favoritos?.grupoNome;
   const foraDoGrupo = !!grupoNoCabecalho;
   const tituloConversa = meus
@@ -125,8 +124,9 @@ export function BlocoCard({
       onPress: () => router.push(`/grupos/${grupoId}/partidas/${bloco.partidaId}/resultado`),
     });
   }
-  // Meus replays: o download é o botão laranja embaixo do vídeo, não item de menu.
-  if (video && !foraDoGrupo) {
+  // Download no menu também (além do ícone ao lado do ❤), pra quem procurar aqui.
+  // Quem saiu do grupo fica só com o ícone (o ⋮ some, igual o site).
+  if (video && !grupoRemovido) {
     itensMenu.push({
       rotulo: "Baixar vídeo",
       Icone: Download,
@@ -196,6 +196,14 @@ export function BlocoCard({
         <View style={styles.acoes}>
           {/* Favoritar: só com vídeo e acesso ao grupo (quem saiu não favorita). */}
           {video && !grupoRemovido && <BotaoFavorito pedidoReplayId={bloco.pedidoReplayId} />}
+          {/* Baixar como ícone depois do ❤, em todo card com vídeo (o item do ⋮
+              continua, pra quem procurar lá). */}
+          {video && (
+            <BotaoBaixarVideoIcone
+              link={video.link}
+              nomeArquivo={nomeArquivoReplay(bloco.tipo, bloco.criadoEm, video.idCamera)}
+            />
+          )}
           {itensMenu.length > 0 && (
             <Pressable hitSlop={8} onPress={() => setMenuAberto(true)}>
               <EllipsisVertical size={18} color={cores.slate400} />
@@ -221,16 +229,6 @@ export function BlocoCard({
           />
           {/* Sem resenha (saiu do grupo), o seletor fica sozinho embaixo do vídeo. */}
           {grupoRemovido && seletor && <View style={styles.seletorSozinho}>{seletor}</View>}
-          {/* Meus replays: o botão laranja fica à mostra embaixo do vídeo (igual ao card
-              de gol dos Artilheiros), em vez de escondido no menu ⋮. */}
-          {foraDoGrupo && (
-            <View style={styles.baixar}>
-              <BotaoBaixarVideo
-                link={video.link}
-                nomeArquivo={nomeArquivoReplay(bloco.tipo, bloco.criadoEm, video.idCamera)}
-              />
-            </View>
-          )}
         </View>
       ) : (
         <View style={[styles.video, grupoRemovido && styles.videoSemResenha]}>
@@ -376,7 +374,6 @@ const styles = StyleSheet.create({
   },
   resenhaTituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   seletorSozinho: { marginTop: 10 },
-  baixar: { marginTop: 10 },
   resenhaTitulo: {
     fontSize: 12,
     fontWeight: "700",

@@ -835,6 +835,15 @@ export type DestaquesPainel = {
   } | null;
 };
 
+// Votação da avaliação aberta pra mim numa partida (cópia de AvaliacaoAbertaPraMim do
+// site, lib/services/avaliacoes.ts).
+export type AvaliacaoAbertaPraMim = {
+  grupoId: string;
+  grupoNome: string;
+  partidaId: string;
+  data: string;
+};
+
 export type DadosDoPainel = {
   exclusaoPendente: boolean;
   grupos: GrupoPainel[];
@@ -847,6 +856,9 @@ export type DadosDoPainel = {
   destaques: DestaquesPainel;
   // Card "Meus indicadores". Opcional: um site anterior a ele não manda.
   meusIndicadores?: MeusIndicadoresPainel | null;
+  // Partidas com votação da avaliação aberta pra mim (mais recente primeiro): card
+  // laranja "Avaliar" nas Ações rápidas (desde 2026-11-07). Opcional: site antigo não manda.
+  avaliacoesAbertas?: AvaliacaoAbertaPraMim[];
 };
 
 // ── Meus indicadores (GET /api/v1/estatisticas + card do painel) ───────────
@@ -869,6 +881,9 @@ export type JogoDoJogador = {
   presentesOutros: number;
   /** Nota da galera desse jogo (votação fechada, com o mínimo). Desde 2026-11-05. */
   notaGalera?: number | null;
+  // A nota que ele se deu nesse jogo (autoavaliação), só nos jogos com
+  // `notaGalera`: linha branca do gráfico. Desde 2026-11-07. Opcional: site antigo não manda.
+  minhaAutoavaliacao?: number | null;
 };
 
 export type DadosEstatisticas = {

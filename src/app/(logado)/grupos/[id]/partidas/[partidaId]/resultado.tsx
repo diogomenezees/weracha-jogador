@@ -44,7 +44,6 @@ import {
 import { AvatarJogador } from "@/ui/AvatarJogador";
 import {
   CardAvaliacaoDaGalera,
-  PilulaAvaliouGalera,
   useEstadoAvaliacao,
 } from "@/partida/AvaliacaoGalera";
 import {
@@ -473,8 +472,6 @@ export default function TelaResultado() {
               </Text>
             </View>
           )}
-          {/* Já deu nota pra todo mundo: o card de avaliação some e fica isto. */}
-          {encerrada && <PilulaAvaliouGalera estado={estadoAvaliacao} />}
         </ScrollView>
         {/* Só no resultado de partida finalizada e com mais de uma pra navegar.
             replace: o "Grupo" do topo continua indo pro grupo, sem passar por cada
@@ -486,8 +483,8 @@ export default function TelaResultado() {
             onTrocar={(outra) => router.replace(`/grupos/${id}/partidas/${outra}/resultado`)}
           />
         )}
-        {/* Avaliação pós-partida: convite pra votar, ou a minha nota e o Craque da
-            galera depois de fechar. Some sozinho quando não se aplica. */}
+        {/* Avaliação pós-partida: convite pra votar ou a minha nota (parcial ou
+            final), mais o craque da partida (pra todo o grupo). Some sozinho quando não se aplica. */}
         {encerrada && (
           <CardAvaliacaoDaGalera
             grupoId={id}
@@ -635,7 +632,6 @@ export default function TelaResultado() {
               <ReplaysDoJogadorInline
                 jogador={jogadorDoReplay}
                 gols={golsDoReplayInline}
-                grupoNome={g.nome}
                 apenasUmGol={!!replayInline.golId}
                 campanhas={campanhas}
                 comentar={{
@@ -658,7 +654,6 @@ export default function TelaResultado() {
             </View>
             <CardsReplay
               gols={lancesComVideo}
-              grupoNome={g.nome}
               vazioTexto="Nenhum lance importante registrado nessa partida."
               campanhas={campanhas}
               comentar={{

@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Settings,
   Star,
+  ThumbsUp,
   Trophy,
   UserPlus,
   type LucideIcon,
@@ -28,7 +29,8 @@ import type { MomentoDoMeuScore } from "@/grupos";
 // laranja; quando o score congela (1h antes) volta pro lugar com cadeado — o
 // modal ainda abre (a posição não congela) e explica a trava. Jogador novo no
 // grupo também tem o card em primeiro e em laranja, o tempo todo, até jogar a
-// 1ª partida. Ver momentoDoMeuScore em src/grupos.ts. Espelha
+// 1ª partida. Ver momentoDoMeuScore em src/grupos.ts. "Avaliar" (laranja, em
+// primeiro) só existe durante a votação da avaliação aberta pra mim (48h). Espelha
 // weracha-site/components/funcoes-do-grupo.tsx.
 
 type Funcao = {
@@ -41,6 +43,7 @@ type Funcao = {
 };
 
 export function FuncoesDoGrupo({
+  avaliar,
   grupoId,
   onConvidar,
   onAdicionarPartida,
@@ -49,6 +52,9 @@ export function FuncoesDoGrupo({
   onMeuScore,
   souAdmin,
 }: {
+  // Votação da avaliação aberta pra mim (48h depois da partida): card laranja
+  // "Avaliar" em primeiro, direto pra votação. Fora da janela, undefined.
+  avaliar?: { partidaId: string; data: string };
   grupoId: string;
   onConvidar: () => void;
   onAdicionarPartida?: () => void;
@@ -81,6 +87,17 @@ export function FuncoesDoGrupo({
           onPress: onMeuScore,
         };
   const funcoes: Funcao[] = [
+    ...(avaliar
+      ? [
+          {
+            titulo: "Avaliar",
+            subtitulo: `Jogo de ${diaMes(new Date(avaliar.data))}`,
+            Icone: ThumbsUp,
+            destaque: true,
+            onPress: ir(`/grupos/${grupoId}/partidas/${avaliar.partidaId}/avaliacao`),
+          },
+        ]
+      : []),
     ...(emDestaque ? [cardMeuScore] : []),
     {
       titulo: "Artilheiros",
@@ -169,6 +186,10 @@ export function FuncoesDoGrupo({
       </Carrossel>
     </View>
   );
+}
+
+function diaMes(d: Date): string {
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 const styles = StyleSheet.create({

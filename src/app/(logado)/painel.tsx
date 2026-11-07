@@ -160,7 +160,10 @@ export default function Painel() {
           <ProximoJogo jogo={dados.proximoJogo} agora={carregadoEm} />
         )}
         {temGrupo && dados && !exclusaoPendente && (
-          <AcoesRapidas ultimoResultado={dados.ultimoResultado} />
+          <AcoesRapidas
+            ultimoResultado={dados.ultimoResultado}
+            avaliacaoAberta={dados.avaliacoesAbertas?.[0] ?? null}
+          />
         )}
         {temGrupo && dados && !exclusaoPendente && dados.meusIndicadores && (
           <MeusIndicadores indicadores={dados.meusIndicadores} />
@@ -332,6 +335,7 @@ function Rodape({
     nota = "Sua conta está marcada para exclusão. Reative para voltar a usar o app normalmente.";
     botao = (
       <BotaoLaranja
+        rodape
         titulo={reativando ? "Reativando..." : "Reativar minha conta"}
         onPress={onReativar}
         carregando={reativando}
@@ -339,14 +343,14 @@ function Rodape({
     );
   } else if (!onboardingConcluido) {
     nota = "Veja os dois jeitos de começar.";
-    botao = <BotaoLaranja titulo="Começar" onPress={onComecar} />;
+    botao = <BotaoLaranja rodape titulo="Começar" onPress={onComecar} />;
   } else {
     // Tour feito e sem grupo: sorteio avulso ou grupo, igual o rodapé do site.
     nota = "Crie um grupo pra organizar os jogos e chamar a galera.";
     botao = (
       <>
         <BotaoContorno titulo="Sorteio rápido" onPress={onSorteio} />
-        <BotaoLaranja titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />
+        <BotaoLaranja rodape titulo="Criar grupo" onPress={onCriarGrupo} Icone={Plus} />
       </>
     );
   }

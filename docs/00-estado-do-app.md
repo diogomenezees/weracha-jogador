@@ -523,8 +523,8 @@ mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]).
   (só com 2+ grupos) e "Meses" (só com 2+ meses) embaixo do título, via `?grupo=`/`?mes=`
   (opções em `grupos`/`meses` da resposta; `src/ui/FiltroChips.tsx`, mesmo visual dos
   Artilheiros). Filtro sem resultado mostra "Nenhum replay seu nesse filtro" + "Ver todos
-  os replays". No card com `meus`, "Baixar vídeo" saiu do menu ⋮ e virou o botão laranja
-  (`BotaoBaixarVideo`) embaixo do vídeo; sem item no menu (saiu do grupo), o ⋮ some.
+  os replays". (Download: ícone ao lado do ❤ + item no ⋮ em todo card com vídeo, desde
+  2026-11-06; antes era o botão laranja `BotaoBaixarVideo` embaixo do vídeo.)
   A Resenha do grupo ganhou o mesmo chip "Meses" acima das abas, filtrando as duas
   (`?mes=` em `buscarFeedResenha`).
 - **Favoritos** (2026-10-22, junto com o site; regra em `14-resenha.md` do site): coração
@@ -533,7 +533,7 @@ mesma decisão da resenha (ver [[weracha_pager_replay_scroll_snap]]).
   (`GET /api/v1/replays/favoritos/ids`, recarrega se trocar o jogador logado), toque
   otimista. A tela ganhou abas "Meus vídeos" e "Favoritos" (`GET /api/v1/replays/favoritos`,
   `src/api/favoritos.ts`, tipos `PaginaFavoritos`/`ItemFavorito` no contrato); o `BlocoCard`
-  ganhou a prop `favoritos` (nome do grupo + "Ir para o grupo" + botão laranja de baixar).
+  ganhou a prop `favoritos` (nome do grupo + "Ir para o grupo").
 - **Expiração dos replays** (2026-10-23, junto com o site; regra completa em
   `17-expiracao-de-replays.md` do site): replay vence aos 4 meses (comunicado "acima de 3").
   Vencido some pra todo mundo (resultado, Resenha, Meus vídeos); com ❤ só quem favoritou assiste,
@@ -713,7 +713,7 @@ marketing/SEO, `/admin/*`, páginas legais.
   `src/replay/PlayerReplay.tsx` (`expo-video`, pôster com play, `VideoView` só monta no
   toque, um por vez; o pôster mostra a capa = 1º quadro do vídeo via
   `generateThumbnailsAsync` do próprio expo-video, gerada numa fila de 1 em 1 e guardada
-  por link), `BotaoBaixarVideo` + `baixarReplay.ts` (`expo-file-system` baixa do
+  por link), `BotaoBaixarVideoIcone` (ícone ao lado do ❤ desde 2026-11-06) + `baixarReplay.ts` (`expo-file-system` baixa do
   R2 pro cache, `expo-media-library/legacy` grava na Galeria, só escrita/só vídeo).
   Ligado em `CardsReplay` e `BlocoCard`. **2026-10-28:** a caixa deixou de ser 16:9 fixo:
   usa a proporção de `largura`/`altura` que o Cam manda (via API), senão a da capa, senão

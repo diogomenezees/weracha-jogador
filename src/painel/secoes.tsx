@@ -34,6 +34,7 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
+  ThumbsUp,
   TriangleAlert,
   Trophy,
   UserCheck,
@@ -58,6 +59,7 @@ import type {
   MeusIndicadoresPainel,
   ProximoJogoPainel,
   UltimoResultadoPainel,
+  AvaliacaoAbertaPraMim,
 } from "@/contrato/tipos";
 
 // Seções do /painel com grupo. Espelha weracha-site/app/painel/page.tsx:
@@ -241,12 +243,37 @@ export function ProximoJogo({ jogo, agora }: { jogo: ProximoJogoPainel; agora: n
 
 // ── Ações rápidas ────────────────────────────────────────────────────────────
 
-type AcaoRapida = { titulo: string; subtitulo: string; Icone: LucideIcon; rota: string | null };
+type AcaoRapida = {
+  titulo: string;
+  subtitulo: string;
+  Icone: LucideIcon;
+  rota: string | null;
+  destaque?: boolean;
+};
 
 // Atalhos pras telas gerais do menu. "Resultados" abre direto o resultado
 // mais recente entre todos os grupos; sem nenhum ainda, fica desativado.
-export function AcoesRapidas({ ultimoResultado }: { ultimoResultado: UltimoResultadoPainel | null }) {
+// "Avaliar" (laranja, à esquerda de tudo) só existe enquanto tenho votação da
+// avaliação aberta (48h depois da partida) e abre direto a votação. Igual o site.
+export function AcoesRapidas({
+  ultimoResultado,
+  avaliacaoAberta,
+}: {
+  ultimoResultado: UltimoResultadoPainel | null;
+  avaliacaoAberta: AvaliacaoAbertaPraMim | null;
+}) {
   const acoes: AcaoRapida[] = [
+    ...(avaliacaoAberta
+      ? [
+          {
+            titulo: "Avaliar",
+            subtitulo: `Jogo de ${formatarDiaMes(new Date(avaliacaoAberta.data))}`,
+            Icone: ThumbsUp,
+            rota: `/grupos/${avaliacaoAberta.grupoId}/partidas/${avaliacaoAberta.partidaId}/avaliacao`,
+            destaque: true,
+          },
+        ]
+      : []),
     {
       titulo: "Resultados",
       subtitulo: ultimoResultado
@@ -267,16 +294,16 @@ export function AcoesRapidas({ ultimoResultado }: { ultimoResultado: UltimoResul
     <View>
       <TituloSecao Icone={Zap} titulo="Ações rápidas" />
       <Carrossel>
-        {acoes.map(({ titulo, subtitulo, Icone, rota }) => (
+        {acoes.map(({ titulo, subtitulo, Icone, rota, destaque }) => (
           <Pressable
             key={titulo}
             disabled={!rota}
             onPress={() => rota && router.push(rota as never)}
-            style={[styles.card, styles.acao, !rota && styles.desativado]}
+            style={[styles.card, styles.acao, destaque && styles.acaoDestaque, !rota && styles.desativado]}
           >
-            <Icone size={20} color={rota ? cores.teal : cores.slate500} />
+            <Icone size={20} color={destaque ? cores.orange : rota ? cores.teal : cores.slate500} />
             <Text style={styles.acaoTitulo}>{titulo}</Text>
-            <Text style={styles.acaoSub}>{subtitulo}</Text>
+            <Text style={[styles.acaoSub, destaque && styles.acaoSubDestaque]}>{subtitulo}</Text>
           </Pressable>
         ))}
       </Carrossel>
@@ -948,6 +975,9 @@ const styles = StyleSheet.create({
   acao: { width: 104, alignItems: "center", gap: 6, paddingHorizontal: 8, paddingVertical: 12 },
   acaoTitulo: { fontSize: 13, fontWeight: "600", color: cores.branco, textAlign: "center" },
   acaoSub: { fontSize: 11, lineHeight: 15, color: cores.slate400, textAlign: "center" },
+  // Mesmo laranja do card em destaque dos Atalhos do grupo (FuncoesDoGrupo).
+  acaoDestaque: { borderColor: "rgba(242, 140, 30, 0.6)", backgroundColor: "rgba(242, 140, 30, 0.15)" },
+  acaoSubDestaque: { color: "#fed7aa" },
 
   // Meus indicadores
   verDetalhes: { flexDirection: "row", alignItems: "center", gap: 2 },

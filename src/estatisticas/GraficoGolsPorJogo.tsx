@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import Svg, { Line, Path, Rect, Text as SvgText } from "react-native-svg";
+import Svg, { Circle, Line, Path, Rect, Text as SvgText } from "react-native-svg";
 
 import { Text } from "@/ui/Texto";
 import { ChevronDown, ChevronUp } from "@/ui/Icone";
@@ -51,6 +51,7 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   altura: ALTURA = ALTURA_PADRAO,
   compacto = false,
   resumo,
+  linha,
 }: {
   jogos: T[];
   // "AAAA-MM" quando um mês está escolhido; null no Geral.
@@ -77,6 +78,11 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   // Troca a linha de resumo (sem coluna tocada). Ex.: a nota da galera, que não
   // é "N por jogo".
   resumo?: (qtd: number, mediaGeral: number) => ReactNode;
+  // Linha branca com bolinhas por cima das colunas, na MESMA escala (ex.: a nota
+  // que o jogador se deu, sobre a nota da galera). Jogo sem valor fica sem
+  // bolinha e quebra a linha (só liga jogos seguidos com valor). `leitura` entra
+  // na linha de leitura do jogo tocado ("Você 85").
+  linha?: { valor: (jogo: T) => number | null | undefined; rotulo: string; leitura: string };
 }) {
   const rolagem = useRef<ScrollView>(null);
   const [ativo, setAtivo] = useState<number | null>(null);
@@ -85,7 +91,15 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
   // por ela toda em vez de ficar amontoados à esquerda.
   const [disponivel, setDisponivel] = useState(0);
 
-  const maxGols = Math.max(1, ...jogos.map((j) => j.gols), comparacao?.valor ?? 0);
+  // Valor da linha em cada jogo (null = sem bolinha). Entra no topo da escala pra
+  // bolinha nunca sair do gráfico.
+  const valoresLinha = jogos.map((j) => (linha ? (linha.valor(j) ?? null) : null));
+  const maxGols = Math.max(
+    1,
+    ...jogos.map((j) => j.gols),
+    comparacao?.valor ?? 0,
+    ...valoresLinha.map((v) => v ?? 0),
+  );
   // Escala sempre em inteiros "redondos".
   const passo = maxGols <= 5 ? 1 : maxGols <= 10 ? 2 : maxGols <= 25 ? 5 : 25;
   const topoEscala = Math.ceil(maxGols / passo) * passo;
@@ -104,6 +118,17 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
         ? "abaixo"
         : "na mesma";
   const jogoAtivo = ativo !== null ? jogos[ativo] : null;
+  const valorLinhaAtivo = ativo !== null ? valoresLinha[ativo] : null;
+  const temLinha = valoresLinha.some((v) => v !== null);
+  // Caminho da linha: liga só jogos SEGUIDOS com valor (jogo sem valor quebra).
+  const centro = (i: number) => i * slot + slot / 2;
+  const caminhoLinha = valoresLinha
+    .map((v, i) => {
+      if (v === null) return "";
+      const anterior = i > 0 ? valoresLinha[i - 1] : null;
+      return `${anterior === null ? "M" : "L"}${centro(i)},${y(v)}`;
+    })
+    .join(" ");
 
   return (
     <View style={[styles.caixa, compacto && styles.caixaCompacta]}>
@@ -114,6 +139,14 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
             <Text style={styles.leituraForte}>
               {jogoAtivo.gols} {jogoAtivo.gols === 1 ? unidade.um : unidade.varios}
             </Text>
+            {linha && valorLinhaAtivo !== null ? (
+              <>
+                {" · "}
+                <Text style={styles.leituraForte}>
+                  {linha.leitura} {valorLinhaAtivo}
+                </Text>
+              </>
+            ) : null}
             {` · ${rotular(jogoAtivo)}${descrever ? ` · ${descrever(jogoAtivo)}` : ""}`}
           </>
         ) : resumo ? (
@@ -212,6 +245,24 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
                 strokeDasharray="4 3"
               />
             )}
+            {/* Linha branca com bolinhas por cima das colunas. */}
+            {temLinha ? (
+              <Path d={caminhoLinha} fill="none" stroke="rgba(255, 255, 255, 0.8)" strokeWidth={1.5} />
+            ) : null}
+            {valoresLinha.map((v, i) =>
+              v === null ? null : (
+                <Circle
+                  key={`linha-${jogos[i].partidaId}`}
+                  cx={centro(i)}
+                  cy={y(v)}
+                  r={ativo === i ? 4 : 3}
+                  fill={cores.branco}
+                  stroke={cores.dark}
+                  strokeWidth={1.5}
+                  opacity={!mesDestacado || jogos[i].mes === mesDestacado || ativo === i ? 1 : 0.4}
+                />
+              ),
+            )}
             {/* Áreas de toque por cima de tudo: o slot inteiro, mais alto que a
                 coluna. Tocar de novo no mesmo jogo volta pro resumo. */}
             {jogos.map((j, i) => (
@@ -242,6 +293,15 @@ export function GraficoGolsPorJogo<T extends JogoNoGrafico>({
             <Text style={styles.legendaTexto}>
               {comparacao.rotulo} ({formatarMedia(comparacao.valor)})
             </Text>
+          </View>
+        ) : null}
+        {linha && temLinha ? (
+          <View style={styles.legendaItem}>
+            <View style={styles.legendaLinhaBolinha}>
+              <View style={styles.legendaLinhaBranca} />
+              <View style={styles.legendaBolinha} />
+            </View>
+            <Text style={styles.legendaTexto}>{linha.rotulo}</Text>
           </View>
         ) : null}
       </View>
@@ -308,6 +368,10 @@ const styles = StyleSheet.create({
     borderColor: "rgba(203, 213, 225, 0.7)",
   },
   legendaTexto: { fontSize: 10, color: cores.slate500 },
+  // Legenda da linha "sua nota": traço branco com a bolinha no meio.
+  legendaLinhaBolinha: { width: 16, height: 6, alignItems: "center", justifyContent: "center" },
+  legendaLinhaBranca: { position: "absolute", width: 16, height: 1, backgroundColor: "rgba(255, 255, 255, 0.8)" },
+  legendaBolinha: { width: 6, height: 6, borderRadius: 3, backgroundColor: cores.branco },
   listaBloco: {
     marginTop: 12,
     paddingTop: 10,

@@ -41,7 +41,7 @@ const SLIDES: Slide[] = [
     eyebrow: "Sorteio rápido",
     titulo: "Times na hora, sem cadastro",
     descricao:
-      "Digite os nomes de quem veio e o app divide os times. Ninguém precisa ter conta e nada fica salvo. Bom pra pelada de última hora.",
+      "Digite os nomes de quem veio e o app divide os times. Ninguém precisa ter conta e nada fica salvo. Bom pro racha de última hora.",
     Visual: VisualSorteio,
   },
   {

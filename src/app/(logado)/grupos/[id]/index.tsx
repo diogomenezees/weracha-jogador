@@ -96,7 +96,7 @@ import { SeletorData, SeletorDuracao, SeletorHora } from "@/grupo/pickers";
 import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { useDialogos } from "@/ui/Dialogos";
-import { cores, fontes, raio } from "@/tema";
+import { cores, FONTE_BOTAO_RODAPE, fontes, raio } from "@/tema";
 import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/tipos";
 import type { AtividadeGrupo } from "@/contrato/atividades";
 import { buscarAtividadesDoGrupo } from "@/api/atividades";
@@ -104,11 +104,12 @@ import { ListaAtividades } from "@/atividades/ListaAtividades";
 
 type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
 
-// Quantas partidas finalizadas aparecem antes do "Ver mais" (mesmo valor do
-// site). Poucas pra "Atividades recentes", logo abaixo, não ficar longe.
+// Quantos itens cada seção (próximas, anteriores, atividades) mostra antes do
+// "Ver mais"/"Ver histórico" embaixo da lista (mesmos valores do site).
+const PARTIDAS_PROXIMAS_VISIVEIS = 3;
 const PARTIDAS_PASSADAS_VISIVEIS = 3;
-// A API devolve 10 por página (o "Ver tudo" já abre com mais); a seção mostra 5.
-const ATIVIDADES_NA_SECAO = 5;
+// A API devolve 10 por página (o "Ver histórico" já abre com mais); a seção mostra 3.
+const ATIVIDADES_NA_SECAO = 3;
 
 // "Como funciona" do modal Convidar (mesmo texto do site).
 const PASSOS_CONVITE = ["Copie o link", "Mande no grupo do WhatsApp", "A galera entra e confirma presença"];
@@ -133,6 +134,7 @@ export default function TelaGrupo() {
   // (weracha-site/components/dialog-primeiros-jogadores.tsx).
   const [boasVindasAberto, setBoasVindasAberto] = useState(bemVindo === "1");
   const [verTodasPassadas, setVerTodasPassadas] = useState(false);
+  const [verTodasProximas, setVerTodasProximas] = useState(false);
   const [atividades, setAtividades] = useState<{ lista: AtividadeGrupo[]; em: number }>({
     lista: [],
     em: 0,
@@ -578,6 +580,9 @@ export default function TelaGrupo() {
     (x, y) => new Date(x.data).getTime() - new Date(y.data).getTime()
   );
   const passadas = partidasPassadas(grupo);
+  // Atalho laranja "Avaliar" nos Atalhos do grupo: a partida mais recente com a
+  // votação aberta pra mim (48h); fora da janela, sem atalho.
+  const partidaParaAvaliar = passadas.find((p) => idsAvaliacaoAberta.has(p.id));
   const renovar = aguardandoRenovacao(grupo);
   const proximoMes = nomeDoMes(mesDeRenovacao(grupo).mes);
 
@@ -683,6 +688,11 @@ export default function TelaGrupo() {
             logo abaixo dos alertas. "Adicionar partida" (grupo avulso) aparece aqui
             e no menu ⋮ do topo. */}
         <FuncoesDoGrupo
+          avaliar={
+            partidaParaAvaliar
+              ? { partidaId: partidaParaAvaliar.id, data: partidaParaAvaliar.data }
+              : undefined
+          }
           grupoId={grupo.id}
           onConvidar={() => setAba("convidar")}
           meuScore={grupo.meuScore}
@@ -739,7 +749,7 @@ export default function TelaGrupo() {
               onPress={souAdmin ? () => abrirAdicionarPartida() : () => void chamarGalera()}
             />
           )}
-          {proximas.map((p) => (
+          {(verTodasProximas ? proximas : proximas.slice(0, PARTIDAS_PROXIMAS_VISIVEIS)).map((p) => (
             <CardPartida
               key={p.id}
               partida={p}
@@ -754,6 +764,27 @@ export default function TelaGrupo() {
               onAoVivo={() => router.push(`/grupos/${id}/partidas/${p.id}/ao-vivo`)}
             />
           ))}
+          {/* Embaixo da lista, igual Partidas anteriores: abre as outras ali mesmo. */}
+          {proximas.length > PARTIDAS_PROXIMAS_VISIVEIS && (
+            <Pressable
+              hitSlop={8}
+              style={styles.verMaisPartidas}
+              onPress={() => setVerTodasProximas((v) => !v)}
+            >
+              <Text style={styles.verMaisPartidasTexto}>
+                {verTodasProximas
+                  ? "Ver menos"
+                  : `Ver mais ${proximas.length - PARTIDAS_PROXIMAS_VISIVEIS} ${
+                      proximas.length - PARTIDAS_PROXIMAS_VISIVEIS === 1 ? "partida" : "partidas"
+                    }`}
+              </Text>
+              {verTodasProximas ? (
+                <ChevronUp size={14} color={cores.slate400} />
+              ) : (
+                <ChevronDown size={14} color={cores.slate400} />
+              )}
+            </Pressable>
+          )}
           {!renovar && proximas.length === 0 && grupo.tipo === "RECORRENTE" && (
             <Text style={styles.vazio}>Nenhuma partida por aqui.</Text>
           )}
@@ -819,7 +850,9 @@ export default function TelaGrupo() {
                   <Bell size={14} color={cores.teal} />
                   <Text style={styles.secaoTitulo}>Atividades recentes</Text>
                 </View>
-                {/* Só quando há mais do que a seção mostra (igual Partidas anteriores). */}
+                {/* Ao lado do título (leva pra outra tela, diferente do "Ver mais"
+                    das partidas, que abre ali mesmo). Só quando há mais do que a
+                    seção mostra. */}
                 {atividades.lista.length > ATIVIDADES_NA_SECAO && (
                   <Pressable
                     hitSlop={8}
@@ -849,7 +882,7 @@ export default function TelaGrupo() {
           style={styles.rodapeBotaoLaranja}
           onPress={() => router.push(`/grupos/${grupo.id}/jogadores`)}
         >
-          <Users size={16} color={cores.dark} />
+          <Users size={18} color={cores.dark} />
           <Text style={styles.rodapeBotaoLaranjaTexto}>
             {souAdmin ? "Gerenciar jogadores" : "Ver jogadores"} · {dados.totalMembros}
           </Text>
@@ -1919,7 +1952,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  rodapeBotaoLaranjaTexto: { fontSize: 16, fontWeight: "700", color: cores.dark },
+  rodapeBotaoLaranjaTexto: { fontSize: FONTE_BOTAO_RODAPE, fontWeight: "700", color: cores.dark },
 
   modalEyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   modalEyebrow: {

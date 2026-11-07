@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
   type LayoutChangeEvent,
@@ -11,11 +12,13 @@ import { router, useFocusEffect } from "expo-router";
 import { buscarAvaliacao } from "@/api/avaliacoes";
 import type { OpcoesRequisicao } from "@/api/cliente";
 import {
+  MINIMO_AVALIACOES_PRA_MEDIA,
   NOTA_MAX,
   NOTA_MIN,
   type EstadoAvaliacao,
 } from "@/contrato/avaliacoes";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
+import { AvatarJogador } from "@/ui/AvatarJogador";
 import { ChevronRight, Crown, ThumbsUp } from "@/ui/Icone";
 import { Text, FAMILIA_MONO } from "@/ui/Texto";
 import { cores, raio } from "@/tema";
@@ -67,7 +70,7 @@ export function useEstadoAvaliacao(
 }
 
 // Votação aberta e eu já dei nota pra todo mundo (autoavaliação inclusa): o
-// card some e fica só a pílula "Avaliou a galera" (Resultado já é carregado).
+// card deixa de ser convite e passa a mostrar a minha parcial.
 export function avalieiTodos(estado: EstadoAvaliacao | null): boolean {
   if (!estado || !estado.temSorteio || !estado.aberta || !estado.souJogador) return false;
   return (
@@ -76,19 +79,73 @@ export function avalieiTodos(estado: EstadoAvaliacao | null): boolean {
   );
 }
 
-// Pílula na fileira do topo do Resultado, no lugar do card depois de votar.
-export function PilulaAvaliouGalera({ estado }: { estado: EstadoAvaliacao | null }) {
-  if (!avalieiTodos(estado)) return null;
+// Todos os outros jogadores já me avaliaram: como voto não muda, a nota não muda
+// mais até fechar. Aí o texto deixa de dizer "parcial" (sem push; o push segue no
+// fechamento das 48h). Critério é "todos me avaliaram", não "todos votaram em
+// alguém": quem votou e me pulou ainda pode voltar e me dar nota.
+export function notaJaFechadaPraMim(estado: EstadoAvaliacao): boolean {
+  const p = estado.minhaNotaParcial;
+  const part = estado.participacao;
+  return !!p && p.media !== null && !!part && part.total > 0 && p.quantidade >= part.total;
+}
+
+// Linha da minha nota enquanto a votação está aberta: "Sua nota parcial: 72" (ou
+// "Sua nota final: 72" quando todos já me avaliaram). Abaixo do mínimo a média não
+// vem da API: só o aviso de que aparece com 3. Servidor antigo (sem o campo): null.
+export function textoNotaParcial(estado: EstadoAvaliacao): string | null {
+  const p = estado.minhaNotaParcial;
+  if (!p) return null;
+  if (p.media !== null) {
+    return `${notaJaFechadaPraMim(estado) ? "Sua nota final" : "Sua nota parcial"}: ${p.media}`;
+  }
+  if (p.quantidade === 0) return "Ninguém te avaliou ainda.";
+  return `Sua nota aparece com ${MINIMO_AVALIACOES_PRA_MEDIA} avaliações.`;
+}
+
+// "6 jogadores ainda não votaram." Só quem falta (a linha de cima já fala de quem
+// me avaliou; "4 de 10 já votaram" ali confundia). Sem contar a mim mesmo (só quem jogou
+// recebe `participacao`).
+export function textoParticipacao(estado: EstadoAvaliacao): string | null {
+  const p = estado.participacao;
+  if (!p) return null;
+  const faltam = Math.max(0, p.total - p.votaram);
+  return faltam === 0
+    ? "Todos os jogadores já votaram."
+    : faltam === 1
+      ? "1 jogador ainda não votou."
+      : `${faltam} jogadores ainda não votaram.`;
+}
+
+// Card do craque (de outro jogador) ao lado do meu: só nome e foto, nunca a nota.
+// "Craque parcial" enquanto a votação está aberta (muda a cada voto). Espelha o
+// CardCraque de weracha-site/components/avaliacao-galera.tsx.
+function CardCraque({ craque }: { craque: NonNullable<EstadoAvaliacao["craque"]> }) {
   return (
-    <View style={styles.pilula}>
-      <ThumbsUp size={12} color={cores.zinc500} />
-      <Text style={styles.pilulaTexto}>Avaliou a galera</Text>
+    <View style={[styles.card, styles.cardLaranja, styles.cardCraque]}>
+      <AvatarJogador id={craque.id} nome={craque.nome} fotoUrl={craque.fotoUrl} tamanho={32} />
+      <View style={{ flex: 1 }}>
+        <View style={styles.craqueRotuloLinha}>
+          <Crown size={11} color={cores.orange} />
+          <Text style={styles.craqueRotulo}>
+            {craque.parcial ? "Craque parcial" : "Craque da partida"}
+          </Text>
+        </View>
+        <Text style={styles.titulo} numberOfLines={1}>
+          {nomeCurto(craque)}
+        </Text>
+      </View>
     </View>
   );
 }
 
-// Card no topo do Resultado (partida encerrada): convite/progresso enquanto
-// falta alguém, ou a minha nota e o Craque da galera depois de fechar.
+// Card no topo do Resultado (partida encerrada). Duas peças:
+// - o MEU card (só pra quem jogou): convite/progresso enquanto falta alguém, a
+//   minha parcial depois de votar em todos, ou a minha nota final no fechamento;
+//   se EU sou o craque (parcial ou final), ele vira laranja com a coroa;
+// - o card do CRAQUE (pra qualquer um do grupo, desde 2026-11-07): nome e foto,
+//   parcial durante a votação. Some quando o craque sou eu e meu card já tem a coroa.
+// As duas juntas viram um carrossel com espiada (meu card em 90%, arrasta pro
+// craque); sozinha, largura inteira. Nunca o pior.
 export function CardAvaliacaoDaGalera({
   grupoId,
   partidaId,
@@ -100,63 +157,148 @@ export function CardAvaliacaoDaGalera({
 }) {
   if (!estado || !estado.temSorteio) return null;
 
-  const total = estado.avaliados.length;
-  const avaliei = estado.avaliados.filter((a) => a.minhaNota !== null).length;
+  // `craque` é novo; site antigo só manda o legado (e só pro próprio craque).
+  const craque = estado.craque ?? null;
+  const souCraque = (craque?.id ?? estado.craqueDaGalera?.id) === estado.meuId;
 
-  // Tudo votado: some (a pílula "Avaliou a galera" assume).
-  if (estado.aberta && estado.souJogador) {
-    if (avalieiTodos(estado)) return null;
-    return (
-      <Pressable
-        style={[styles.card, styles.cardLaranja]}
-        onPress={() =>
-          router.push(`/grupos/${grupoId}/partidas/${partidaId}/avaliacao`)
-        }
-      >
-        <ThumbsUp size={20} color={cores.orange} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.titulo}>
-            {avaliei === 0
-              ? "Avalie a galera"
-              : `Você avaliou ${avaliei} de ${total}`}
-          </Text>
-          <Text style={styles.sub}>
-            Dê a sua nota de 0 a 100. Fecha {textoFechaEm(estado.fechaEm)}.
-          </Text>
-        </View>
-        <ChevronRight size={16} color={cores.orange} />
-      </Pressable>
-    );
+  const meu = meuCard(estado, grupoId, partidaId, souCraque);
+  // Meu card com a coroa já diz que o craque sou eu.
+  const mostrarCraque = !!craque && !(souCraque && meu?.comCoroa);
+
+  if (!meu && !mostrarCraque) return null;
+  if (meu && mostrarCraque) {
+    return <CarrosselEspiada itens={[meu.no, <CardCraque key="craque" craque={craque!} />]} />;
+  }
+  return meu ? meu.no : <CardCraque craque={craque!} />;
+}
+
+const GAP_CARROSSEL = 8;
+
+// Carrossel com "espiada": cada card em 90% da largura, a pontinha do próximo
+// aparece à direita e arrasta pro lado pra ver (meu card → craque). Uma linha de
+// altura só (lado a lado em 50/50 quebrava os textos e ficava alto demais).
+function CarrosselEspiada({ itens }: { itens: React.ReactNode[] }) {
+  const [largura, setLargura] = useState(0);
+  const larguraCard = Math.round(largura * 0.9);
+  return (
+    <View onLayout={(e) => setLargura(e.nativeEvent.layout.width)}>
+      {largura > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={larguraCard + GAP_CARROSSEL}
+          decelerationRate="fast"
+          contentContainerStyle={{ gap: GAP_CARROSSEL }}
+        >
+          {itens.map((item, i) => (
+            <View key={i} style={[styles.itemCarrossel, { width: larguraCard }]}>
+              {item}
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+function meuCard(
+  estado: EstadoAvaliacao,
+  grupoId: string,
+  partidaId: string,
+  souCraque: boolean,
+): { no: React.ReactNode; comCoroa: boolean } | null {
+  if (!estado.souJogador) return null;
+
+  // Votação aberta e ainda falta gente: convite (ou progresso).
+  if (estado.aberta && !avalieiTodos(estado)) {
+    const total = estado.avaliados.length;
+    const avaliei = estado.avaliados.filter((a) => a.minhaNota !== null).length;
+    return {
+      comCoroa: false,
+      no: (
+        <Pressable
+          style={[styles.card, styles.cardLaranja, styles.cardCheio]}
+          onPress={() => router.push(`/grupos/${grupoId}/partidas/${partidaId}/avaliacao`)}
+        >
+          <ThumbsUp size={20} color={cores.orange} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.titulo}>
+              {avaliei === 0 ? "Avalie a galera" : `Você avaliou ${avaliei} de ${total}`}
+            </Text>
+            <Text style={styles.sub}>
+              {/* Uma linha só: sem o "Fecha {data}" (o prazo aparece no fim da votação). */}
+              {estado.minhaNotaParcial?.media != null
+                ? `Sua nota parcial: ${estado.minhaNotaParcial.media}.`
+                : "Dê a sua nota de 0 a 100."}
+            </Text>
+          </View>
+          <ChevronRight size={16} color={cores.orange} />
+        </Pressable>
+      ),
+    };
   }
 
-  // Votação fechada: um card só, com a minha nota (só eu vejo). Sem o mínimo de
-  // avaliações (inclui partida de antes da avaliação existir) não mostra nada.
-  // Fui o Craque da galera: o card vira laranja com a coroa.
-  if (!estado.encerrada) return null;
-  const minha = estado.minhaNota;
-  if (!minha || minha.media === null) return null;
-  const souCraque = estado.craqueDaGalera?.id === estado.meuId;
+  // Votação aberta, já votei em todos: a minha parcial.
+  if (estado.aberta) {
+    const coroa = souCraque && estado.minhaNotaParcial?.media != null;
+    return {
+      comCoroa: coroa,
+      no: (
+        <CaixaNota
+          coroa={coroa}
+          titulo={textoNotaParcial(estado) ?? "Você avaliou a galera."}
+          auto={estado.minhaAutoavaliacao}
+          sub={[coroa ? "Você é o craque parcial!" : null, textoParticipacao(estado)]
+            .filter(Boolean)
+            .join(" ")}
+        />
+      ),
+    };
+  }
 
+  // Votação fechada: a minha nota final (só eu vejo). Sem o mínimo de avaliações
+  // (inclui partida de antes da avaliação existir) não mostra nada.
+  const minha = estado.minhaNota;
+  if (!estado.encerrada || !minha || minha.media === null) return null;
+  return {
+    comCoroa: souCraque,
+    no: (
+      <CaixaNota
+        coroa={souCraque}
+        titulo={`Sua nota final: ${minha.media}`}
+        auto={estado.minhaAutoavaliacao}
+        sub={souCraque ? "Você foi o craque da partida!" : "Só você vê essa nota."}
+      />
+    ),
+  };
+}
+
+// Card da minha nota: teal com joinha, ou laranja com coroa quando sou o craque.
+// Nota + selo laranja da autoavaliação na mesma linha (igual o "Valeu!").
+function CaixaNota({
+  coroa,
+  titulo,
+  auto,
+  sub,
+}: {
+  coroa: boolean;
+  titulo: string;
+  auto: number | null;
+  sub: string;
+}) {
   return (
-    <View style={[styles.card, souCraque ? styles.cardLaranja : styles.cardTeal]}>
-      {souCraque ? (
-        <Crown size={20} color={cores.orange} />
-      ) : (
-        <ThumbsUp size={20} color={cores.teal} />
-      )}
+    <View style={[styles.card, coroa ? styles.cardLaranja : styles.cardTeal, styles.cardCheio]}>
+      {coroa ? <Crown size={20} color={cores.orange} /> : <ThumbsUp size={20} color={cores.teal} />}
       <View style={{ flex: 1 }}>
-        <Text style={styles.titulo}>
-          Sua nota da galera: <Text style={styles.numero}>{minha.media}</Text>{" "}
-          <Text style={styles.sub}>
-            ({plural(minha.quantidade, "avaliação", "avaliações")})
-          </Text>
-        </Text>
-        <Text style={styles.sub}>
-          {souCraque ? "Você foi o craque da galera! " : ""}
-          {estado.minhaAutoavaliacao !== null
-            ? `Você se deu ${estado.minhaAutoavaliacao} (só você vê essa nota).`
-            : "(só você vê essa nota)"}
-        </Text>
+        <View style={styles.linhaParcial}>
+          <Text style={styles.titulo}>{titulo}</Text>
+          {auto !== null && (
+            <View style={styles.seloAuto}>
+              <Text style={styles.seloAutoTexto}>Você se deu {auto}</Text>
+            </View>
+          )}
+        </View>
+        {sub ? <Text style={styles.sub}>{sub}</Text> : null}
       </View>
     </View>
   );
@@ -259,25 +401,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
+  // Item do carrossel (meu card + craque): o card estica pra mesma altura.
+  itemCarrossel: { flexDirection: "row" },
+  cardCheio: { flexGrow: 1 },
+  cardCraque: { gap: 10, paddingHorizontal: 12, flexGrow: 1 },
+  craqueRotuloLinha: { flexDirection: "row", alignItems: "center", gap: 4 },
+  craqueRotulo: { fontSize: 11, fontWeight: "600", color: cores.orange },
   cardLaranja: {
     borderColor: cores.laranjaBorda,
     backgroundColor: cores.laranjaFundo,
   },
-  pilula: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: "rgba(113, 113, 122, 0.15)",
-  },
-  pilulaTexto: { fontSize: 12, color: cores.zinc500 },
   cardTeal: {
     borderColor: cores.avisoBorda,
     backgroundColor: cores.avisoFundo,
   },
   titulo: { fontSize: 14, fontWeight: "600", color: cores.branco },
+  linhaParcial: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 2 },
+  // Selo laranja (cor do ❤) da autoavaliação, igual o da tela "Valeu!".
+  seloAuto: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    backgroundColor: "rgba(242, 140, 30, 0.15)",
+  },
+  seloAutoTexto: { fontSize: 11, fontWeight: "600", color: cores.orange },
   sub: { fontSize: 12, fontWeight: "400", color: cores.slate400 },
   numero: {
     fontFamily: FAMILIA_MONO,

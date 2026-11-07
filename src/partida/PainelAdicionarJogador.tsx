@@ -181,7 +181,7 @@ export function PainelAdicionarJogador({
 
 const styles = StyleSheet.create({
   topo: { gap: 6, paddingHorizontal: 4, paddingBottom: 14 },
-  corpo: { gap: 10, paddingHorizontal: 4 },
+  corpo: { gap: 8, paddingHorizontal: 4 },
   eyebrowLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   eyebrow: {
     fontSize: 11,

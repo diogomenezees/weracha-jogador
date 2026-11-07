@@ -46,7 +46,7 @@ import { Navbar } from "@/ui/Navbar";
 import { useSessao } from "@/sessao/contexto";
 import { useDialogos } from "@/ui/Dialogos";
 import { SeloPapel } from "@/ui/SeloPapel";
-import { cores, raio } from "@/tema";
+import { cores, FONTE_BOTAO_RODAPE, raio } from "@/tema";
 import type { DadosDaTelaJogadoresDoGrupo, JogadorDoGrupo, MembroGrupo } from "@/contrato/tipos";
 
 type Ordenacao = "NOME" | "CHEGADA" | "MENSALISTA" | "SCORE";
@@ -475,75 +475,79 @@ export default function GerenciarJogadores() {
 
         {linhas.length === 0 && <Text style={styles.sub}>Nenhum jogador encontrado.</Text>}
 
-        {linhas.map((m) => {
-          const j = jogadoresPorId.get(m.jogadorId);
-          if (!j) return null;
-          const mensalista = ehMensalistaHoje(m);
-          const ehDono = j.id === grupo.adminId;
-          const eu = j.id === dados.meuId;
-          const detalhes: ReactNode[] = [];
-          if (j.apelido) {
-            detalhes.push(<Text style={styles.linhaDetalhesTexto}>{j.apelido}</Text>);
-          }
-          const nomePosicao = m.posicaoId ? posicoesPorId.get(m.posicaoId) : null;
-          if (nomePosicao) {
-            detalhes.push(
-              <View style={styles.linhaDetalhesItem}>
-                <Shield size={11} color={cores.slate400} />
-                <Text style={styles.linhaDetalhesTexto}>{nomePosicao}</Text>
-              </View>
-            );
-          }
-          if (podeVerScore && m.score !== null) {
-            detalhes.push(
-              <View style={styles.linhaDetalhesItem}>
-                <Star size={11} color={cores.slate400} />
-                <Text style={styles.linhaDetalhesTexto}>Score {m.score}</Text>
-              </View>
-            );
-          }
-          return (
-            <View key={m.id} style={[styles.linha, eu && styles.linhaEu]}>
-              <Pressable style={styles.linhaEsq} onPress={() => setPerfilId(j.id)}>
-                <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={40} />
-                <View style={styles.linhaNomes}>
-                  <View style={styles.linhaNomeTopo}>
-                    <Text style={styles.linhaNome} numberOfLines={1}>
-                      {j.nome}
-                    </Text>
-                    {(ehDono || m.papel === "ADMIN") && <SeloPapel papel={ehDono ? "DONO" : "ADMIN"} />}
-                  </View>
-                  {detalhes.length > 0 && (
-                    <View style={styles.linhaDetalhes}>
-                      {detalhes.map((item, i) => (
-                        <View key={i} style={styles.linhaDetalhesItem}>
-                          {i > 0 && <Text style={styles.linhaDetalhesSeparador}>·</Text>}
-                          {item}
-                        </View>
-                      ))}
+        {/* Lista própria com gap 8 (gap-2 do site): o gap 12 da rolagem
+            afastava demais uma linha da outra. */}
+        <View style={styles.lista}>
+          {linhas.map((m) => {
+            const j = jogadoresPorId.get(m.jogadorId);
+            if (!j) return null;
+            const mensalista = ehMensalistaHoje(m);
+            const ehDono = j.id === grupo.adminId;
+            const eu = j.id === dados.meuId;
+            const detalhes: ReactNode[] = [];
+            if (j.apelido) {
+              detalhes.push(<Text style={styles.linhaDetalhesTexto}>{j.apelido}</Text>);
+            }
+            const nomePosicao = m.posicaoId ? posicoesPorId.get(m.posicaoId) : null;
+            if (nomePosicao) {
+              detalhes.push(
+                <View style={styles.linhaDetalhesItem}>
+                  <Shield size={11} color={cores.slate400} />
+                  <Text style={styles.linhaDetalhesTexto}>{nomePosicao}</Text>
+                </View>
+              );
+            }
+            if (podeVerScore && m.score !== null) {
+              detalhes.push(
+                <View style={styles.linhaDetalhesItem}>
+                  <Star size={11} color={cores.slate400} />
+                  <Text style={styles.linhaDetalhesTexto}>Score {m.score}</Text>
+                </View>
+              );
+            }
+            return (
+              <View key={m.id} style={[styles.linha, eu && styles.linhaEu]}>
+                <Pressable style={styles.linhaEsq} onPress={() => setPerfilId(j.id)}>
+                  <AvatarJogador id={j.id} nome={j.nome} fotoUrl={j.fotoUrl} tamanho={40} />
+                  <View style={styles.linhaNomes}>
+                    <View style={styles.linhaNomeTopo}>
+                      <Text style={styles.linhaNome} numberOfLines={1}>
+                        {j.nome}
+                      </Text>
+                      {(ehDono || m.papel === "ADMIN") && <SeloPapel papel={ehDono ? "DONO" : "ADMIN"} />}
                     </View>
+                    {detalhes.length > 0 && (
+                      <View style={styles.linhaDetalhes}>
+                        {detalhes.map((item, i) => (
+                          <View key={i} style={styles.linhaDetalhesItem}>
+                            {i > 0 && <Text style={styles.linhaDetalhesSeparador}>·</Text>}
+                            {item}
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </Pressable>
+                <View style={styles.linhaAcoes}>
+                  <Pressable
+                    style={[styles.mensalPill, mensalista && styles.mensalPillAtiva]}
+                    onPress={() => souAdmin && confirmarMensalista(m, j)}
+                    disabled={!souAdmin}
+                  >
+                    <Text style={[styles.mensalTexto, mensalista && styles.mensalTextoAtivo]}>
+                      {mensalista ? "MENSAL" : "AVULSO"}
+                    </Text>
+                  </Pressable>
+                  {souAdmin && (
+                    <Pressable hitSlop={8} onPress={() => abrirMenuJogador(m, j)}>
+                      <Text style={styles.menuPonto}>⋯</Text>
+                    </Pressable>
                   )}
                 </View>
-              </Pressable>
-              <View style={styles.linhaAcoes}>
-                <Pressable
-                  style={[styles.mensalPill, mensalista && styles.mensalPillAtiva]}
-                  onPress={() => souAdmin && confirmarMensalista(m, j)}
-                  disabled={!souAdmin}
-                >
-                  <Text style={[styles.mensalTexto, mensalista && styles.mensalTextoAtivo]}>
-                    {mensalista ? "MENSAL" : "AVULSO"}
-                  </Text>
-                </Pressable>
-                {souAdmin && (
-                  <Pressable hitSlop={8} onPress={() => abrirMenuJogador(m, j)}>
-                    <Text style={styles.menuPonto}>⋯</Text>
-                  </Pressable>
-                )}
               </View>
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
 
         {linhas.length > 0 && (
           <Text style={styles.rodapeNota}>
@@ -729,6 +733,7 @@ const styles = StyleSheet.create({
     color: cores.teal,
     textTransform: "uppercase",
   },
+  lista: { gap: 8 },
   linha: {
     flexDirection: "row",
     alignItems: "center",
@@ -779,5 +784,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  novoBtnTexto: { fontSize: 16, fontWeight: "700", color: cores.dark },
+  novoBtnTexto: { fontSize: FONTE_BOTAO_RODAPE, fontWeight: "700", color: cores.dark },
 });

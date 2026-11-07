@@ -7,8 +7,8 @@ import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
 import { BannerDoFeed } from "@/resenha/BannerDoFeed";
 import { RespostaReplay } from "@/resenha/RespostaReplay";
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { Ban, Clock, Goal, Smartphone, Sparkles, Users, VideoOff } from "@/ui/Icone";
-import { BotaoBaixarVideo } from "@/replay/BotaoBaixarVideo";
+import { Ban, Clock, Goal, Smartphone, Sparkles, VideoOff } from "@/ui/Icone";
+import { BotaoBaixarVideoIcone } from "@/replay/BotaoBaixarVideo";
 import { nomeArquivoReplay } from "@/replay/baixarReplay";
 import { BotaoFavorito, SeloExpiracao } from "@/replay/BotaoFavorito";
 import { PlayerReplay } from "@/replay/PlayerReplay";
@@ -30,13 +30,12 @@ function formatarHoraCompleta(d: Date): string {
 
 // Lista vertical de replays (lances ou gols de um jogador) no formato do `GolCard` do
 // site (weracha-site/components/gols-pager.tsx): cabeçalho com quem/tipo + horário
-// completo, vídeo, chips de câmera (SeletorCamera, à direita — "Registrado por" fica só
-// na aba Histórico), "Baixar vídeo" e a resenha embaixo. O site mostra um por tela num pager de Stories; aqui é uma lista vertical
+// completo + ❤ + ícone de baixar, vídeo, chips de câmera (SeletorCamera, à direita —
+// "Registrado por" fica só na aba Histórico) e a resenha embaixo. O site mostra um por tela num pager de Stories; aqui é uma lista vertical
 // (o app abandonou o pager, ver memória weracha_pager_replay_scroll_snap) e o vídeo toca
 // embutido no card (`PlayerReplay`, expo-video), igual ao <video> do site.
 export function CardsReplay({
   gols,
-  grupoNome,
   vazioTexto,
   comentar,
   ocultarJogador = false,
@@ -44,7 +43,6 @@ export function CardsReplay({
 }: {
   gols: GolComVideos[];
   /** Só usado no card de lance (sem jogador vinculado). */
-  grupoNome: string;
   vazioTexto: string;
   comentar?: {
     chamarApi: ChamarApi;
@@ -81,7 +79,6 @@ export function CardsReplay({
           <Fragment key={g.golId}>
             <CardReplay
               gol={g}
-              grupoNome={grupoNome}
               comentar={comentar}
               ocultarJogador={ocultarJogador}
             />
@@ -95,12 +92,10 @@ export function CardsReplay({
 
 function CardReplay({
   gol,
-  grupoNome,
   comentar,
   ocultarJogador,
 }: {
   gol: GolComVideos;
-  grupoNome: string;
   comentar?: Parameters<typeof CardsReplay>[0]["comentar"];
   ocultarJogador: boolean;
 }) {
@@ -134,50 +129,65 @@ function CardReplay({
   return (
     <View style={[styles.card, cancelado && styles.cardCancelado]}>
       <View style={styles.cabecalho}>
-        <View style={{ flex: 1 }}>
-          <View style={styles.tituloLinha}>
-            {cancelado ? (
-              <Ban size={15} color={cores.erroTexto} />
-            ) : ehLance ? (
-              <Sparkles size={15} color={cores.orange} />
-            ) : (
-              <Goal size={15} color={cores.teal} />
-            )}
-            <Text style={styles.titulo}>
-              {cancelado ? "Gol cancelado" : ehLance ? "Lance importante" : "Gol marcado"}
-            </Text>
-          </View>
-          {ehLance ? (
-            <View style={styles.subLinha}>
-              <Users size={13} color={cores.slate400} />
-              <Text style={styles.subTexto} numberOfLines={1}>
-                {grupoNome}
-              </Text>
-            </View>
+        {/* Ícone grande ocupando as duas linhas (título + hora), igual ao avatar do
+            card da Resenha; a hora saiu da direita pra deixar só ❤ e baixar lá. */}
+        <View
+          style={[
+            styles.iconeTipo,
+            {
+              backgroundColor: cancelado
+                ? "rgba(239, 68, 68, 0.1)"
+                : ehLance
+                  ? cores.laranjaFundo
+                  : cores.avisoFundo,
+            },
+          ]}
+        >
+          {cancelado ? (
+            <Ban size={20} color={cores.erroTexto} />
+          ) : ehLance ? (
+            <Sparkles size={20} color={cores.orange} />
           ) : (
-            gol.jogador &&
-            !ocultarJogador && (
-              <View style={styles.subLinha}>
-                <AvatarJogador
-                  id={gol.jogador.id}
-                  nome={gol.jogador.nome}
-                  fotoUrl={gol.jogador.fotoUrl}
-                  tamanho={20}
-                />
-                <Text style={[styles.subTexto, { color: cores.slate300 }]} numberOfLines={1}>
-                  {gol.jogador.apelido || gol.jogador.nome}
-                </Text>
-              </View>
-            )
+            <Goal size={20} color={cores.teal} />
           )}
         </View>
-        <View style={styles.horaLinha}>
-          <Clock size={13} color={cores.slate400} />
-          <Text style={styles.hora}>{formatarHoraCompleta(new Date(gol.criadoEm))}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.titulo}>
+            {cancelado ? "Gol cancelado" : ehLance ? "Lance importante" : "Gol marcado"}
+          </Text>
+          <View style={styles.horaLinha}>
+            <Clock size={13} color={cores.slate400} />
+            <Text style={styles.hora}>{formatarHoraCompleta(new Date(gol.criadoEm))}</Text>
+          </View>
+          {/* Lance não tem jogador; o nome do grupo saiu (a tela já é do grupo). */}
+          {!ehLance && gol.jogador && !ocultarJogador && (
+            <View style={styles.subLinha}>
+              <AvatarJogador
+                id={gol.jogador.id}
+                nome={gol.jogador.nome}
+                fotoUrl={gol.jogador.fotoUrl}
+                tamanho={20}
+              />
+              <Text style={[styles.subTexto, { color: cores.slate300 }]} numberOfLines={1}>
+                {gol.jogador.apelido || gol.jogador.nome}
+              </Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.acoes}>
           {/* Favoritar: só replay com vídeo na nuvem (gol cancelado não conta pra nada). */}
           {temVideoNuvem && gol.pedidoReplayId && !cancelado && (
             <View style={styles.favorito}>
               <BotaoFavorito pedidoReplayId={gol.pedidoReplayId} />
+            </View>
+          )}
+          {/* Baixar depois do ❤ (mesmo padrão da Resenha); vale até pro gol cancelado. */}
+          {temVideoNuvem && (
+            <View style={styles.favorito}>
+              <BotaoBaixarVideoIcone
+                link={videoAtual.link}
+                nomeArquivo={nomeArquivoReplay(gol.tipo, gol.criadoEm, videoAtual.idCamera)}
+              />
             </View>
           )}
         </View>
@@ -223,10 +233,6 @@ function CardReplay({
               Movido de {gol.migracao.deNome} por {gol.migracao.porNome}
             </Text>
           )}
-          <BotaoBaixarVideo
-            link={videoAtual.link}
-            nomeArquivo={nomeArquivoReplay(gol.tipo, gol.criadoEm, videoAtual.idCamera)}
-          />
         </View>
       ) : videoLocal ? (
         <View style={[styles.aviso, styles.avisoTeal]}>
@@ -310,13 +316,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  tituloLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
+  iconeTipo: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   titulo: { fontSize: 14, fontWeight: "700", color: cores.branco },
   subLinha: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
   subTexto: { flexShrink: 1, fontSize: 12, color: cores.slate400 },
-  horaLinha: { flexDirection: "row", alignItems: "center", gap: 5 },
+  horaLinha: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
   hora: { fontSize: 12, color: cores.slate400 },
-  favorito: { marginLeft: 6 },
+  acoes: { flexDirection: "row", alignItems: "center" },
+  favorito: { marginLeft: 10 },
   corpo: { paddingHorizontal: 14, gap: 8, paddingBottom: 14 },
   migracao: { fontSize: 12, color: "rgba(251, 191, 36, 0.8)", textAlign: "right" },
   aviso: {
