@@ -3,8 +3,9 @@
 // Avaliação pós-partida ("nota da galera"). Ver 16-api-v1.md e
 // weracha-site/docs/especificacao/19-avaliacao-pos-partida.md.
 
-// Abaixo disso a média de uma pessoa nunca vem da API (vem null).
-export const MINIMO_AVALIACOES_PRA_MEDIA = 3;
+// Abaixo disso a média de uma pessoa nunca vem da API (vem null). Era 3; desde
+// 2026-11-10 é 1 (grupo pequeno nunca via nota nem craque).
+export const MINIMO_AVALIACOES_PRA_MEDIA = 1;
 export const JANELA_AVALIACAO_HORAS = 48;
 export const NOTA_MIN = 0;
 export const NOTA_MAX = 100;
@@ -49,7 +50,9 @@ export type EstadoAvaliacao = {
   // Parcial da minha nota enquanto a votação está aberta (desde 2026-11-06), só
   // pra quem jogou; `media` null abaixo do mínimo. Opcional: site antigo não manda.
   minhaNotaParcial?: { media: number | null; quantidade: number } | null;
-  // Quantos COLEGAS (sem mim) já votaram em alguém e quantos colegas jogaram. Só pra quem jogou.
+  // Quantos COLEGAS (sem mim) já votaram em alguém e quantos colegas jogaram. Pra quem
+  // jogou, sempre; pra quem não jogou (desde 2026-11-10), durante a votação e depois de
+  // fechar, contando o elenco inteiro (card "A galera está se avaliando" no Resultado).
   participacao?: { votaram: number; total: number } | null;
   // Só depois de encerrada e só se eu fui o craque; pros outros, sempre null.
   craqueDaGalera: CraqueDaGalera | null;

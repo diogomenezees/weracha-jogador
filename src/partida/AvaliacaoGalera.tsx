@@ -91,7 +91,7 @@ export function notaJaFechadaPraMim(estado: EstadoAvaliacao): boolean {
 
 // Linha da minha nota enquanto a votação está aberta: "Sua nota parcial: 72" (ou
 // "Sua nota final: 72" quando todos já me avaliaram). Abaixo do mínimo a média não
-// vem da API: só o aviso de que aparece com 3. Servidor antigo (sem o campo): null.
+// vem da API: só o aviso do mínimo (hoje 1, então só "Ninguém te avaliou"). Servidor antigo (sem o campo): null.
 export function textoNotaParcial(estado: EstadoAvaliacao): string | null {
   const p = estado.minhaNotaParcial;
   if (!p) return null;
@@ -116,10 +116,18 @@ export function textoParticipacao(estado: EstadoAvaliacao): string | null {
       : `${faltam} jogadores ainda não votaram.`;
 }
 
+// Craque popular (mais bem avaliado pela galera). "Popular" porque o craque de
+// verdade é o artilheiro (decisão de 2026-11-10; antes "Craque da partida").
+export function rotuloCraque(parcial: boolean): string {
+  return parcial ? "Craque popular (parcial)" : "Craque popular";
+}
+
 // Card do craque (de outro jogador) ao lado do meu: só nome e foto, nunca a nota.
-// "Craque parcial" enquanto a votação está aberta (muda a cada voto). Espelha o
-// CardCraque de weracha-site/components/avaliacao-galera.tsx.
+// "(parcial)" enquanto a votação está aberta (muda a cada voto). Nome completo
+// em destaque e o apelido ao lado, sem destaque.
+// Espelha o CardCraque de weracha-site/components/avaliacao-galera.tsx.
 function CardCraque({ craque }: { craque: NonNullable<EstadoAvaliacao["craque"]> }) {
+  const apelido = craque.apelido?.trim();
   return (
     <View style={[styles.card, styles.cardLaranja, styles.cardCraque]}>
       <AvatarJogador id={craque.id} nome={craque.nome} fotoUrl={craque.fotoUrl} tamanho={32} />
@@ -127,11 +135,12 @@ function CardCraque({ craque }: { craque: NonNullable<EstadoAvaliacao["craque"]>
         <View style={styles.craqueRotuloLinha}>
           <Crown size={11} color={cores.orange} />
           <Text style={styles.craqueRotulo}>
-            {craque.parcial ? "Craque parcial" : "Craque da partida"}
+            {rotuloCraque(craque.parcial)}
           </Text>
         </View>
         <Text style={styles.titulo} numberOfLines={1}>
-          {nomeCurto(craque)}
+          {craque.nome}
+          {apelido ? <Text style={styles.apelido}> {apelido}</Text> : null}
         </Text>
       </View>
     </View>
@@ -139,9 +148,10 @@ function CardCraque({ craque }: { craque: NonNullable<EstadoAvaliacao["craque"]>
 }
 
 // Card no topo do Resultado (partida encerrada). Duas peças:
-// - o MEU card (só pra quem jogou): convite/progresso enquanto falta alguém, a
+// - o MEU card: pra quem jogou, convite/progresso enquanto falta alguém, a
 //   minha parcial depois de votar em todos, ou a minha nota final no fechamento;
-//   se EU sou o craque (parcial ou final), ele vira laranja com a coroa;
+//   se EU sou o craque (parcial ou final), ele vira laranja com a coroa; pra quem
+//   não jogou, o card de acompanhamento ("A galera está se avaliando");
 // - o card do CRAQUE (pra qualquer um do grupo, desde 2026-11-07): nome e foto,
 //   parcial durante a votação. Some quando o craque sou eu e meu card já tem a coroa.
 // As duas juntas viram um carrossel com espiada (meu card em 90%, arrasta pro
@@ -207,7 +217,7 @@ function meuCard(
   partidaId: string,
   souCraque: boolean,
 ): { no: React.ReactNode; comCoroa: boolean } | null {
-  if (!estado.souJogador) return null;
+  if (!estado.souJogador) return cardDeQuemNaoJogou(estado);
 
   // Votação aberta e ainda falta gente: convite (ou progresso).
   if (estado.aberta && !avalieiTodos(estado)) {
@@ -248,7 +258,7 @@ function meuCard(
           coroa={coroa}
           titulo={textoNotaParcial(estado) ?? "Você avaliou a galera."}
           auto={estado.minhaAutoavaliacao}
-          sub={[coroa ? "Você é o craque parcial!" : null, textoParticipacao(estado)]
+          sub={[coroa ? "Você é o craque popular, por enquanto!" : null, textoParticipacao(estado)]
             .filter(Boolean)
             .join(" ")}
         />
@@ -267,10 +277,50 @@ function meuCard(
         coroa={souCraque}
         titulo={`Sua nota final: ${minha.media}`}
         auto={estado.minhaAutoavaliacao}
-        sub={souCraque ? "Você foi o craque da partida!" : "Só você vê essa nota."}
+        sub={souCraque ? "Você foi o craque popular!" : "Só você vê essa nota."}
       />
     ),
   };
+}
+
+// Quem é do grupo mas não jogou (desde 2026-11-10): não vota, só acompanha
+// quantos já votaram. Só números, nunca quem nem nota. Sem toque (a votação não
+// é dele). Fechada sem nenhum voto (ou site antigo sem `participacao`): nada.
+function cardDeQuemNaoJogou(
+  estado: EstadoAvaliacao,
+): { no: React.ReactNode; comCoroa: boolean } | null {
+  const texto = textoAcompanhamento(estado);
+  if (!texto) return null;
+  return {
+    comCoroa: false,
+    no: <CaixaNota coroa={false} titulo={texto.titulo} auto={null} sub={texto.sub} />,
+  };
+}
+
+export function textoAcompanhamento(
+  estado: EstadoAvaliacao,
+): { titulo: string; sub: string } | null {
+  const p = estado.participacao;
+  if (!p || p.total === 0) return null;
+  const jogadores = plural(p.total, "jogador", "jogadores");
+  if (estado.aberta) {
+    return {
+      titulo: "A galera está se avaliando",
+      sub:
+        p.votaram === 0
+          ? "Ninguém votou ainda."
+          : p.votaram >= p.total
+            ? "Todos os jogadores já votaram."
+            : `${p.votaram} de ${jogadores} já ${p.votaram === 1 ? "votou" : "votaram"}.`,
+    };
+  }
+  if (estado.encerrada && p.votaram > 0) {
+    return {
+      titulo: "Avaliação encerrada",
+      sub: `${p.votaram} de ${jogadores} ${p.votaram === 1 ? "votou" : "votaram"}.`,
+    };
+  }
+  return null;
 }
 
 // Card da minha nota: teal com joinha, ou laranja com coroa quando sou o craque.
@@ -416,6 +466,8 @@ const styles = StyleSheet.create({
     backgroundColor: cores.avisoFundo,
   },
   titulo: { fontSize: 14, fontWeight: "600", color: cores.branco },
+  // Apelido do craque ao lado do nome completo, sem destaque.
+  apelido: { fontWeight: "400", color: cores.slate400 },
   linhaParcial: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 2 },
   // Selo laranja (cor do ❤) da autoavaliação, igual o da tela "Valeu!".
   seloAuto: {
