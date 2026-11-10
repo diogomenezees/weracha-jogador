@@ -29,6 +29,10 @@ export type CraqueDaGalera = JogadorEmPartida & { media: number; quantidade: num
 // Craque público (desde 2026-11-07): só quem é, sem nota. `parcial` = votação aberta.
 export type CraqueDaPartida = JogadorEmPartida & { parcial: boolean };
 
+// Uma linha do ranking das notas da galera (desde 2026-11-10): média recebida
+// (sem a autoavaliação) e de quantos votos. `media` null = sem voto (fica no fim).
+export type NotaNoRanking = JogadorEmPartida & { media: number | null; quantidade: number };
+
 // GET /api/v1/partidas/{partidaId}/avaliacao
 export type EstadoAvaliacao = {
   // Nome do grupo, pro cabeçalho da votação (desde 2026-11-07). Opcional: site antigo não manda.
@@ -59,6 +63,10 @@ export type EstadoAvaliacao = {
   // Craque da partida pra qualquer um do grupo (desde 2026-11-07), parcial durante a
   // votação. Só nome/foto. Opcional: site antigo não manda.
   craque?: CraqueDaPartida | null;
+  // Ranking das notas da galera (desde 2026-11-10), pra qualquer um do grupo: todo o
+  // elenco, maior média primeiro, sem voto no fim. Parcial durante a votação; null
+  // antes de abrir. Opcional: site antigo não manda (tela trata como sem dados).
+  ranking?: NotaNoRanking[] | null;
 };
 
 // POST /api/v1/partidas/{partidaId}/avaliacao

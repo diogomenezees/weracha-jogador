@@ -7,7 +7,7 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, type Href } from "expo-router";
 
 import { buscarAvaliacao } from "@/api/avaliacoes";
 import type { OpcoesRequisicao } from "@/api/cliente";
@@ -126,10 +126,22 @@ export function rotuloCraque(parcial: boolean): string {
 // "(parcial)" enquanto a votação está aberta (muda a cada voto). Nome completo
 // em destaque e o apelido ao lado, sem destaque.
 // Espelha o CardCraque de weracha-site/components/avaliacao-galera.tsx.
-function CardCraque({ craque }: { craque: NonNullable<EstadoAvaliacao["craque"]> }) {
+// Abre as "Notas da galera" pra quem não jogou, ou pra quem jogou só quando o
+// craque sou eu (`href`); senão é só leitura, sem seta.
+function CardCraque({
+  craque,
+  href,
+}: {
+  craque: NonNullable<EstadoAvaliacao["craque"]>;
+  href?: Href;
+}) {
   const apelido = craque.apelido?.trim();
   return (
-    <View style={[styles.card, styles.cardLaranja, styles.cardCraque]}>
+    <Pressable
+      style={[styles.card, styles.cardLaranja, styles.cardCraque]}
+      disabled={!href}
+      onPress={() => href && router.push(href)}
+    >
       <AvatarJogador id={craque.id} nome={craque.nome} fotoUrl={craque.fotoUrl} tamanho={32} />
       <View style={{ flex: 1 }}>
         <View style={styles.craqueRotuloLinha}>
@@ -143,7 +155,8 @@ function CardCraque({ craque }: { craque: NonNullable<EstadoAvaliacao["craque"]>
           {apelido ? <Text style={styles.apelido}> {apelido}</Text> : null}
         </Text>
       </View>
-    </View>
+      {href ? <ChevronRight size={16} color={cores.orange} /> : null}
+    </Pressable>
   );
 }
 
@@ -155,7 +168,8 @@ function CardCraque({ craque }: { craque: NonNullable<EstadoAvaliacao["craque"]>
 // - o card do CRAQUE (pra qualquer um do grupo, desde 2026-11-07): nome e foto,
 //   parcial durante a votação. Some quando o craque sou eu e meu card já tem a coroa.
 // As duas juntas viram um carrossel com espiada (meu card em 90%, arrasta pro
-// craque); sozinha, largura inteira. Nunca o pior.
+// craque); sozinha, largura inteira. Desde 2026-11-10 os cards levam pra tela "Notas da galera" (o gráfico),
+// menos o convite pra votar (abre a votação) e o craque quando não sou eu.
 export function CardAvaliacaoDaGalera({
   grupoId,
   partidaId,
@@ -171,15 +185,16 @@ export function CardAvaliacaoDaGalera({
   const craque = estado.craque ?? null;
   const souCraque = (craque?.id ?? estado.craqueDaGalera?.id) === estado.meuId;
 
-  const meu = meuCard(estado, grupoId, partidaId, souCraque);
+  const hrefNotas = `/grupos/${grupoId}/partidas/${partidaId}/notas` as Href;
+  const meu = meuCard(estado, grupoId, partidaId, souCraque, hrefNotas);
   // Meu card com a coroa já diz que o craque sou eu.
   const mostrarCraque = !!craque && !(souCraque && meu?.comCoroa);
 
   if (!meu && !mostrarCraque) return null;
   if (meu && mostrarCraque) {
-    return <CarrosselEspiada itens={[meu.no, <CardCraque key="craque" craque={craque!} />]} />;
+    return <CarrosselEspiada itens={[meu.no, <CardCraque key="craque" craque={craque!} href={!estado.souJogador || souCraque ? hrefNotas : undefined} />]} />;
   }
-  return meu ? meu.no : <CardCraque craque={craque!} />;
+  return meu ? meu.no : <CardCraque craque={craque!} href={!estado.souJogador || souCraque ? hrefNotas : undefined} />;
 }
 
 const GAP_CARROSSEL = 8;
@@ -216,8 +231,9 @@ function meuCard(
   grupoId: string,
   partidaId: string,
   souCraque: boolean,
+  hrefNotas: Href,
 ): { no: React.ReactNode; comCoroa: boolean } | null {
-  if (!estado.souJogador) return cardDeQuemNaoJogou(estado);
+  if (!estado.souJogador) return cardDeQuemNaoJogou(estado, hrefNotas);
 
   // Votação aberta e ainda falta gente: convite (ou progresso).
   if (estado.aberta && !avalieiTodos(estado)) {
@@ -255,6 +271,7 @@ function meuCard(
       comCoroa: coroa,
       no: (
         <CaixaNota
+          href={hrefNotas}
           coroa={coroa}
           titulo={textoNotaParcial(estado) ?? "Você avaliou a galera."}
           auto={estado.minhaAutoavaliacao}
@@ -266,7 +283,7 @@ function meuCard(
     };
   }
 
-  // Votação fechada: a minha nota final (só eu vejo). Sem o mínimo de avaliações
+  // Votação fechada: a minha nota final. Sem o mínimo de avaliações
   // (inclui partida de antes da avaliação existir) não mostra nada.
   const minha = estado.minhaNota;
   if (!estado.encerrada || !minha || minha.media === null) return null;
@@ -274,26 +291,30 @@ function meuCard(
     comCoroa: souCraque,
     no: (
       <CaixaNota
+        href={hrefNotas}
         coroa={souCraque}
         titulo={`Sua nota final: ${minha.media}`}
         auto={estado.minhaAutoavaliacao}
-        sub={souCraque ? "Você foi o craque popular!" : "Só você vê essa nota."}
+        sub={souCraque ? "Você foi o craque popular!" : "Veja as notas da galera."}
       />
     ),
   };
 }
 
 // Quem é do grupo mas não jogou (desde 2026-11-10): não vota, só acompanha
-// quantos já votaram. Só números, nunca quem nem nota. Sem toque (a votação não
-// é dele). Fechada sem nenhum voto (ou site antigo sem `participacao`): nada.
+// quantos já votaram. Toque abre as "Notas da galera" (não a votação, que não é
+// dele). Só com a votação aberta: depois de fechar, quem não jogou vê só o craque.
 function cardDeQuemNaoJogou(
   estado: EstadoAvaliacao,
+  hrefNotas: Href,
 ): { no: React.ReactNode; comCoroa: boolean } | null {
   const texto = textoAcompanhamento(estado);
   if (!texto) return null;
   return {
     comCoroa: false,
-    no: <CaixaNota coroa={false} titulo={texto.titulo} auto={null} sub={texto.sub} />,
+    no: (
+      <CaixaNota href={hrefNotas} coroa={false} titulo={texto.titulo} auto={null} sub={texto.sub} />
+    ),
   };
 }
 
@@ -314,30 +335,31 @@ export function textoAcompanhamento(
             : `${p.votaram} de ${jogadores} já ${p.votaram === 1 ? "votou" : "votaram"}.`,
     };
   }
-  if (estado.encerrada && p.votaram > 0) {
-    return {
-      titulo: "Avaliação encerrada",
-      sub: `${p.votaram} de ${jogadores} ${p.votaram === 1 ? "votou" : "votaram"}.`,
-    };
-  }
+  // Depois de fechar, quem não jogou não vê a contagem (fica só o craque final).
   return null;
 }
 
 // Card da minha nota: teal com joinha, ou laranja com coroa quando sou o craque.
 // Nota + selo laranja da autoavaliação na mesma linha (igual o "Valeu!").
+// Tocar abre as "Notas da galera".
 function CaixaNota({
+  href,
   coroa,
   titulo,
   auto,
   sub,
 }: {
+  href: Href;
   coroa: boolean;
   titulo: string;
   auto: number | null;
   sub: string;
 }) {
   return (
-    <View style={[styles.card, coroa ? styles.cardLaranja : styles.cardTeal, styles.cardCheio]}>
+    <Pressable
+      style={[styles.card, coroa ? styles.cardLaranja : styles.cardTeal, styles.cardCheio]}
+      onPress={() => router.push(href)}
+    >
       {coroa ? <Crown size={20} color={cores.orange} /> : <ThumbsUp size={20} color={cores.teal} />}
       <View style={{ flex: 1 }}>
         <View style={styles.linhaParcial}>
@@ -350,7 +372,8 @@ function CaixaNota({
         </View>
         {sub ? <Text style={styles.sub}>{sub}</Text> : null}
       </View>
-    </View>
+      <ChevronRight size={16} color={coroa ? cores.orange : cores.teal} />
+    </Pressable>
   );
 }
 
