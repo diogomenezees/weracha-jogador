@@ -185,7 +185,12 @@ export function CardAvaliacaoDaGalera({
   const craque = estado.craque ?? null;
   const souCraque = (craque?.id ?? estado.craqueDaGalera?.id) === estado.meuId;
 
-  const hrefNotas = `/grupos/${grupoId}/partidas/${partidaId}/notas` as Href;
+  // Sem `notasVisiveis` (grupo não abriu as notas pra todos e não sou admin) os
+  // cards ficam só de leitura. Site antigo não manda o campo: abre como antes.
+  const hrefNotas =
+    estado.notasVisiveis === false
+      ? undefined
+      : (`/grupos/${grupoId}/partidas/${partidaId}/notas` as Href);
   const meu = meuCard(estado, grupoId, partidaId, souCraque, hrefNotas);
   // Meu card com a coroa já diz que o craque sou eu.
   const mostrarCraque = !!craque && !(souCraque && meu?.comCoroa);
@@ -231,7 +236,7 @@ function meuCard(
   grupoId: string,
   partidaId: string,
   souCraque: boolean,
-  hrefNotas: Href,
+  hrefNotas: Href | undefined,
 ): { no: React.ReactNode; comCoroa: boolean } | null {
   if (!estado.souJogador) return cardDeQuemNaoJogou(estado, hrefNotas);
 
@@ -295,7 +300,13 @@ function meuCard(
         coroa={souCraque}
         titulo={`Sua nota final: ${minha.media}`}
         auto={estado.minhaAutoavaliacao}
-        sub={souCraque ? "Você foi o craque popular!" : "Veja as notas da galera."}
+        sub={
+          souCraque
+            ? "Você foi o craque popular!"
+            : hrefNotas
+              ? "Veja as notas da galera."
+              : "Só você vê a sua nota."
+        }
       />
     ),
   };
@@ -306,7 +317,7 @@ function meuCard(
 // dele). Só com a votação aberta: depois de fechar, quem não jogou vê só o craque.
 function cardDeQuemNaoJogou(
   estado: EstadoAvaliacao,
-  hrefNotas: Href,
+  hrefNotas: Href | undefined,
 ): { no: React.ReactNode; comCoroa: boolean } | null {
   const texto = textoAcompanhamento(estado);
   if (!texto) return null;
@@ -349,7 +360,8 @@ function CaixaNota({
   auto,
   sub,
 }: {
-  href: Href;
+  // Sem href (notas fechadas pra mim): mesmo card, só leitura e sem seta.
+  href: Href | undefined;
   coroa: boolean;
   titulo: string;
   auto: number | null;
@@ -358,7 +370,8 @@ function CaixaNota({
   return (
     <Pressable
       style={[styles.card, coroa ? styles.cardLaranja : styles.cardTeal, styles.cardCheio]}
-      onPress={() => router.push(href)}
+      onPress={href ? () => router.push(href) : undefined}
+      disabled={!href}
     >
       {coroa ? <Crown size={20} color={cores.orange} /> : <ThumbsUp size={20} color={cores.teal} />}
       <View style={{ flex: 1 }}>
@@ -372,7 +385,7 @@ function CaixaNota({
         </View>
         {sub ? <Text style={styles.sub}>{sub}</Text> : null}
       </View>
-      <ChevronRight size={16} color={coroa ? cores.orange : cores.teal} />
+      {href && <ChevronRight size={16} color={coroa ? cores.orange : cores.teal} />}
     </Pressable>
   );
 }

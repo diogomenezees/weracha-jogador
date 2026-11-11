@@ -95,8 +95,8 @@ export async function salvarConfiguracoesDoGrupo(
     limiteCheckins: number | null;
     jogadoresPorTime: number;
     scoreVisivelTodos: boolean;
-    // Site anterior ao campo ignora (mantém ligada).
-    avaliacaoAtiva?: boolean;
+    // Site anterior ao campo ignora (mantém o valor atual).
+    notasVisiveisTodos?: boolean;
   }
 ) {
   const { grupo } = await chamarApi<{ ok: true; grupo?: Grupo }>(

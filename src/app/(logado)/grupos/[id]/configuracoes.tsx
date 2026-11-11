@@ -18,7 +18,17 @@ import {
 } from "@/partidas";
 import { Navbar } from "@/ui/Navbar";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
-import { Clock, Settings, Star, ThumbsUp, UserCheck, Users, type LucideIcon } from "@/ui/Icone";
+import {
+  BarChart3,
+  Clock,
+  Eye,
+  HeartHandshake,
+  Settings,
+  Star,
+  UserCheck,
+  Users,
+  type LucideIcon,
+} from "@/ui/Icone";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { Grupo } from "@/contrato/tipos";
@@ -26,7 +36,8 @@ import type { Grupo } from "@/contrato/tipos";
 // Configurações do grupo (só admin, card "Configurações" nos Atalhos do grupo),
 // igual a /grupos/[id]/configuracoes do site: quando o check-in abre, limite de
 // jogadores por partida (opcional) e o valor inicial de jogadores por time da
-// tela Configurar partida. Salva as três juntas.
+// tela Configurar partida, e (seção "Comparação entre jogadores") se todos veem o
+// score e a tela "Notas da galera". Salva tudo junto.
 
 export default function ConfiguracoesDoGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,7 +50,7 @@ export default function ConfiguracoesDoGrupo() {
   const [limite, setLimite] = useState(20);
   const [porTime, setPorTime] = useState(5);
   const [scoreTodos, setScoreTodos] = useState(false);
-  const [avaliacao, setAvaliacao] = useState(true);
+  const [notasTodos, setNotasTodos] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -65,8 +76,7 @@ export default function ConfiguracoesDoGrupo() {
         setLimite(limiteAtual ?? Math.max(LIMITE_CHECKINS_MIN, d.grupo.jogadoresPorTime * 2));
         setPorTime(d.grupo.jogadoresPorTime);
         setScoreTodos(!!d.grupo.scoreVisivelTodos);
-        // Site anterior ao campo: trata como ligada (o padrão).
-        setAvaliacao(d.grupo.avaliacaoAtiva ?? true);
+        setNotasTodos(!!d.grupo.notasVisiveisTodos);
       })
       .catch(() => vivo && router.replace(`/grupos/${id}`));
     return () => {
@@ -84,7 +94,7 @@ export default function ConfiguracoesDoGrupo() {
         limiteCheckins: comLimite ? limite : null,
         jogadoresPorTime: porTime,
         scoreVisivelTodos: scoreTodos,
-        avaliacaoAtiva: avaliacao,
+        notasVisiveisTodos: notasTodos,
       });
       voltarParaGrupo();
     } catch (e) {
@@ -152,94 +162,87 @@ export default function ConfiguracoesDoGrupo() {
           </View>
         </Secao>
 
-        <Secao
-          Icone={Users}
-          titulo="Jogadores por time"
-          descricao="Valor que já vem preenchido ao configurar cada partida. Dá pra mudar lá, só naquela partida."
-        >
-          <View style={styles.contador}>
-            <Stepper valor={porTime} onChange={setPorTime} min={1} max={JOGADORES_POR_TIME_MAX} />
-            <Text style={styles.contadorSufixo}>por time</Text>
-          </View>
-        </Secao>
-
-        <Secao
-          Icone={UserCheck}
-          titulo="Limite de jogadores"
-          descricao="Quantas pessoas podem fazer check-in em cada partida. Quando lotar, o botão some e aparece o aviso de lotado. Os admins ainda conseguem incluir alguém."
-          acao={
-            <Switch
-              value={comLimite}
-              onValueChange={setComLimite}
-              trackColor={{ false: "rgba(255, 255, 255, 0.15)", true: cores.teal }}
-              thumbColor={cores.branco}
-              accessibilityLabel="Limitar jogadores por partida"
-            />
-          }
-        >
-          {comLimite ? (
-            <>
-              <View style={styles.contador}>
+        {/* Jogadores por time e limite juntos: o limite é pensado em times
+            completos (a dica embaixo faz a conta com o "por time"). */}
+        <SecaoAgrupada Icone={Users} titulo="Times e vagas">
+          {/* Stepper na linha do título, à direita: economiza altura e deixa a
+              explicação com a largura inteira. */}
+          <Linha
+            Icone={Users}
+            titulo="Jogadores por time"
+            descricao="Valor que já vem preenchido ao configurar cada partida. Dá pra mudar lá, só naquela partida."
+            acao={
+              <Stepper valor={porTime} onChange={setPorTime} min={1} max={JOGADORES_POR_TIME_MAX} />
+            }
+          />
+          <View style={styles.divisor} />
+          <Linha
+            Icone={UserCheck}
+            titulo="Limite de jogadores"
+            descricao="Quantas pessoas podem fazer check-in em cada partida. Quando lotar, o botão some e aparece o aviso de lotado. Os admins ainda conseguem incluir alguém."
+            acao={
+              <Interruptor
+                ligado={comLimite}
+                onChange={setComLimite}
+                rotulo="Limitar jogadores por partida"
+              />
+            }
+          >
+            {comLimite ? (
+              <View style={styles.linhaLimite}>
+                <Text style={[styles.dica, { flex: 1 }]}>
+                  {timesCompletos >= 2
+                    ? `Dá ${timesCompletos} times completos de ${porTime}.`
+                    : `Com ${porTime} por time, ${limite} não fecha 2 times completos.`}
+                </Text>
                 <Stepper
                   valor={limite}
                   onChange={setLimite}
                   min={LIMITE_CHECKINS_MIN}
                   max={LIMITE_CHECKINS_MAX}
                 />
-                <Text style={styles.contadorSufixo}>jogadores</Text>
               </View>
-              <Text style={styles.dica}>
-                {timesCompletos >= 2
-                  ? `Dá ${timesCompletos} times completos de ${porTime}.`
-                  : `Com ${porTime} por time, ${limite} não fecha 2 times completos.`}
+            ) : (
+              <Text style={styles.dica}>Sem limite. Todo mundo do grupo pode entrar.</Text>
+            )}
+          </Linha>
+        </SecaoAgrupada>
+
+        {/* Score e notas na mesma seção: são as duas chaves que expõem a
+            avaliação de uma pessoa pras outras, por isso o aviso logo abaixo do título. */}
+        <SecaoAgrupada
+          Icone={Eye}
+          titulo="Comparação entre jogadores"
+          aviso={
+            <View style={styles.aviso}>
+              <HeartHandshake size={16} color={cores.orange} style={{ marginTop: 1 }} />
+              <Text style={styles.avisoTexto}>
+                Comparar notas e score pode constranger quem fica lá embaixo.
               </Text>
-            </>
-          ) : (
-            <Text style={styles.semLimite}>Sem limite. Todo mundo do grupo pode entrar.</Text>
-          )}
-        </Secao>
-
-        <Secao
-          Icone={Star}
-          titulo="Todos veem o score"
-          descricao="Ligado, qualquer jogador do grupo pode mostrar o score dos outros nas listas e nos times. Desligado, só os admins veem."
-          acao={
-            <Switch
-              value={scoreTodos}
-              onValueChange={setScoreTodos}
-              trackColor={{ false: "rgba(255, 255, 255, 0.15)", true: cores.teal }}
-              thumbColor={cores.branco}
-              accessibilityLabel="Todos os jogadores veem o score"
-            />
+            </View>
           }
         >
-          <Text style={styles.dica}>
-            {scoreTodos
-              ? "Atenção: sabendo o score dos outros, fica mais fácil alguém se rebaixar pra cair no time dos amigos."
-              : "Cada jogador continua vendo o próprio score."}
-          </Text>
-        </Secao>
-
-        <Secao
-          Icone={ThumbsUp}
-          titulo="Avaliação pós-partida"
-          descricao="Depois de cada partida, quem jogou dá uma nota de 0 a 100 pros colegas, por 48 horas. A votação é anônima e cada um só vê a própria nota."
-          acao={
-            <Switch
-              value={avaliacao}
-              onValueChange={setAvaliacao}
-              trackColor={{ false: "rgba(255, 255, 255, 0.15)", true: cores.teal }}
-              thumbColor={cores.branco}
-              accessibilityLabel="Avaliação pós-partida ligada"
-            />
-          }
-        >
-          <Text style={styles.dica}>
-            {avaliacao
-              ? "O score continua sendo definido pelos admins. A nota da galera não muda o sorteio."
-              : "Desligada, ninguém recebe convite pra avaliar e a votação aberta para de aceitar notas."}
-          </Text>
-        </Secao>
+          <Linha
+            Icone={Star}
+            titulo="Todos veem o score"
+            descricao="Ligado, qualquer jogador do grupo pode mostrar o score dos outros nas listas e nos times. Desligado, só os admins veem. Cada um sempre vê o próprio."
+            acao={<Interruptor ligado={scoreTodos} onChange={setScoreTodos} rotulo="Todos veem o score" />}
+          >
+            {scoreTodos ? (
+              <Text style={styles.dica}>
+                Sabendo o score dos outros, fica mais fácil alguém se rebaixar pra cair no time dos
+                amigos.
+              </Text>
+            ) : null}
+          </Linha>
+          <View style={styles.divisor} />
+          <Linha
+            Icone={BarChart3}
+            titulo="Notas pós-partida"
+            descricao="A galera sempre se avalia depois do jogo e cada um vê a própria nota. Ligado, todo mundo do grupo também vê a tela com a nota de cada jogador, da maior pra menor. Desligado, só os admins veem."
+            acao={<Interruptor ligado={notasTodos} onChange={setNotasTodos} rotulo="Notas pós-partida" />}
+          />
+        </SecaoAgrupada>
 
         {erro ? <CaixaErro>{erro}</CaixaErro> : null}
       </ScrollTeclado>
@@ -283,7 +286,99 @@ function Secao({
   );
 }
 
+// Seção com várias opções relacionadas numa caixa só, separadas por linha
+// (Times e vagas, Comparação entre jogadores). `aviso` fica entre o título e a
+// caixa.
+function SecaoAgrupada({
+  Icone,
+  titulo,
+  aviso,
+  children,
+}: {
+  Icone: LucideIcon;
+  titulo: string;
+  aviso?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <View>
+      <View style={styles.secaoTituloLinha}>
+        <Icone size={16} color={cores.teal} />
+        <Text style={styles.secaoTitulo}>{titulo}</Text>
+      </View>
+      {aviso}
+      <View style={[styles.secao, styles.secaoSemGap]}>{children}</View>
+    </View>
+  );
+}
+
+// Uma opção dentro de uma SecaoAgrupada: título com o controle à direita
+// (interruptor ou stepper), a explicação com a largura inteira embaixo e, por
+// último, o que mais a opção precisar.
+function Linha({
+  Icone,
+  titulo,
+  descricao,
+  acao,
+  children,
+}: {
+  Icone: LucideIcon;
+  titulo: string;
+  descricao: string;
+  acao?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <View style={styles.linha}>
+      <View style={styles.linhaTopo}>
+        <View style={styles.linhaTitulo}>
+          <Icone size={16} color={cores.slate400} />
+          <Text style={styles.linhaTituloTexto} numberOfLines={1}>
+            {titulo}
+          </Text>
+        </View>
+        {acao}
+      </View>
+      <Text style={styles.linhaDescricao}>{descricao}</Text>
+      {children}
+    </View>
+  );
+}
+
+function Interruptor({
+  ligado,
+  onChange,
+  rotulo,
+}: {
+  ligado: boolean;
+  onChange: (v: boolean) => void;
+  rotulo: string;
+}) {
+  return (
+    <Switch
+      value={ligado}
+      onValueChange={onChange}
+      trackColor={{ false: "rgba(255, 255, 255, 0.15)", true: cores.teal }}
+      thumbColor={cores.branco}
+      accessibilityLabel={rotulo}
+    />
+  );
+}
+
 const styles = StyleSheet.create({
+  secaoSemGap: { gap: 0, padding: 0 },
+  linha: { gap: 8, padding: 16 },
+  linhaTopo: { minHeight: 36, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  linhaTitulo: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
+  linhaLimite: { flexDirection: "row", alignItems: "center", gap: 12 },
+  // flexShrink: o "…" do numberOfLines só aparece se o texto puder encolher.
+  linhaTituloTexto: { flexShrink: 1, fontSize: 14, fontWeight: "600", color: cores.branco },
+  // Sem o flex: 1 da secaoDescricao: numa coluna de altura automática ele pode
+  // zerar a altura do texto no Yoga.
+  linhaDescricao: { fontSize: 12, lineHeight: 17, color: cores.slate400 },
+  divisor: { height: 1, marginHorizontal: 16, backgroundColor: "rgba(255, 255, 255, 0.1)" },
+  aviso: { marginBottom: 12, flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  avisoTexto: { flex: 1, fontSize: 12, lineHeight: 17, color: cores.slate300 },
   tela: { flex: 1, backgroundColor: cores.dark },
   carregando: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 130, gap: 20 },
@@ -330,10 +425,7 @@ const styles = StyleSheet.create({
   opcaoAtiva: { borderColor: cores.teal, backgroundColor: cores.teal },
   opcaoTexto: { fontSize: 14, fontWeight: "500", color: cores.slate300 },
   opcaoTextoAtivo: { color: cores.dark, fontWeight: "600" },
-  contador: { flexDirection: "row", alignItems: "center", gap: 10 },
-  contadorSufixo: { fontSize: 14, color: cores.slate400 },
   dica: { fontSize: 12, color: cores.slate500 },
-  semLimite: { fontSize: 14, color: cores.slate500 },
   rodape: {
     position: "absolute",
     left: 0,

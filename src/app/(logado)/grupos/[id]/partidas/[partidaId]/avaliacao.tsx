@@ -185,11 +185,9 @@ export default function TelaAvaliacao() {
         : `Sua nota aparece no resultado da partida quando a votação fechar, ${textoFechaEm(estado.fechaEm)}.`
       : !estado.souJogador
         ? "Só quem jogou essa partida avalia a galera."
-        : !estado.ligada
-          ? "A avaliação está desligada nesse grupo."
-          : estado.encerrada
-            ? "A votação dessa partida já fechou. Veja o resultado na tela da partida."
-            : "A avaliação abre quando a partida acabar.";
+        : estado.encerrada
+          ? "A votação dessa partida já fechou. Veja o resultado na tela da partida."
+          : "A avaliação abre quando a partida acabar.";
     return (
       <TelaPartida voltar="Resultado" onVoltar={irProResultado}>
         <View style={styles.topoFim}>

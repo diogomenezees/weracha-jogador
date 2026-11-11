@@ -39,7 +39,12 @@ export type EstadoAvaliacao = {
   grupoNome?: string;
   // Meu id (o `avaliadoId` da autoavaliação).
   meuId: string;
+  // Sempre true desde 2026-11-11 (a avaliação não desliga mais).
   ligada: boolean;
+  // Posso abrir a tela "Notas da galera" (desde 2026-11-11): o grupo ligou
+  // "Notas pós-partida" nas Configurações, ou sou admin. false = `ranking` null e
+  // os cards do Resultado não levam pra lá. Site antigo não manda (trata como true).
+  notasVisiveis?: boolean;
   temSorteio: boolean;
   aberta: boolean;
   encerrada: boolean;

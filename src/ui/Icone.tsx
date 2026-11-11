@@ -142,6 +142,8 @@ export {
   Goal as Bola,
   // favoritos (coração nos cards de vídeo)
   Heart,
+  // aviso da seção "Comparação entre jogadores" (Configurações do grupo)
+  HeartHandshake,
   // atividades recentes (enquete, dedo duro / mudança da partida)
   Bell,
   Vote,

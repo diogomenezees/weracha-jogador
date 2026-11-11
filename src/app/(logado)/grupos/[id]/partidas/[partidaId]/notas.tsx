@@ -20,7 +20,8 @@ import { cores } from "@/tema";
 // "Notas da galera" (desde 2026-11-10): a média de cada jogador da partida num
 // ranking em lista com barra (maior em cima, um card por jogador, toque abre o
 // perfil), acima dele o cartão de status da votação. Pra qualquer membro do
-// grupo (quem jogou ou não), parcial durante a votação e final depois. Abre
+// grupo (quem jogou ou não) quando o grupo ligou "Notas pós-partida" nas
+// Configurações (senão só admin), parcial durante a votação e final depois. Abre
 // tocando nos cards da avaliação no Resultado. Espelha
 // weracha-site/app/grupos/[id]/partidas/[partidaId]/notas/page.tsx.
 export default function NotasDaGalera() {
@@ -99,7 +100,14 @@ export default function NotasDaGalera() {
           </View>
         </View>
 
-        {!ranking && estado.souJogador && estado.aberta ? (
+        {estado.notasVisiveis === false ? (
+          // Grupo não abriu as notas pra todos (chave "Notas pós-partida" nas
+          // Configurações) e eu não sou admin. Só chega aqui por link direto.
+          <Text style={styles.sub}>
+            Nesse grupo, as notas de cada jogador ficam só com os admins. A sua nota aparece no
+            Resultado da partida.
+          </Text>
+        ) : !ranking && estado.souJogador && estado.aberta ? (
           // Joguei e ainda não votei em todos: o site esconde a parcial pra não
           // influenciar o voto.
           <View style={styles.avaliarCaixa}>

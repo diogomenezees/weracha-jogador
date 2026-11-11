@@ -173,8 +173,11 @@ export type Grupo = {
   limiteCheckins?: number | null;
   // true = todo membro vê o score dos outros (desde 2026-10-29; opcional).
   scoreVisivelTodos?: boolean;
-  // Avaliação pós-partida ligada no grupo (desde 2026-11-05; opcional).
+  // LEGADO: sempre true desde 2026-11-11 (a avaliação não desliga mais).
   avaliacaoAtiva?: boolean;
+  // true = todo membro vê a tela "Notas da galera" (desde 2026-11-11; opcional).
+  // false/ausente = só os admins.
+  notasVisiveisTodos?: boolean;
   adminId: string;
   competenciaAno: number;
   competenciaMes: number;
