@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Redirect, Stack } from "expo-router";
 
 import { useSessao } from "@/sessao/contexto";
 import { useNotificacoes } from "@/notificacoes/useNotificacoes";
+import { registrarPrimeiroUso } from "@/avaliacao/pedirAvaliacao";
 import { cores } from "@/tema";
 
 // Tudo abaixo de `(logado)/` exige sessão. Sem ela, volta pro login.
@@ -18,6 +20,10 @@ export default function LayoutLogado() {
 // dos returns acima).
 function StackLogado() {
   useNotificacoes();
+  // Início da contagem do uso mínimo antes de pedir avaliação na loja.
+  useEffect(() => {
+    void registrarPrimeiroUso();
+  }, []);
 
   return (
     <Stack

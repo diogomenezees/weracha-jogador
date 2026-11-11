@@ -21,6 +21,7 @@ import { AvatarJogador } from "@/ui/AvatarJogador";
 import { ArrowRight, PartyPopper, ThumbsUp } from "@/ui/Icone";
 import { Text, FAMILIA_MONO } from "@/ui/Texto";
 import { cores, raio } from "@/tema";
+import { pedirAvaliacaoSePuder } from "@/avaliacao/pedirAvaliacao";
 
 // Votação da avaliação pós-partida ("nota da galera"): um colega por tela, em
 // ordem aleatória, arrasta e solta a bolinha = voto gravado (sem editar). Pular
@@ -106,9 +107,13 @@ export default function TelaAvaliacao() {
   // tela final mostrar a parcial e a participação atualizadas. Uma vez só.
   const fimDaFila = estado !== null && fila.length > 0 && indice >= fila.length;
   const atualizouNoFim = useRef(false);
+  const votouNestaTela = useRef(false);
   useEffect(() => {
     if (!fimDaFila || atualizouNoFim.current) return;
     atualizouNoFim.current = true;
+    // Notas enviadas: momento feliz e sempre depois do jogo (a avaliação só abre com a
+    // partida encerrada). Só pra quem votou agora, não pra quem reabriu a tela já feita.
+    if (votouNestaTela.current) pedirAvaliacaoSePuder("notas-enviadas", 2000);
     buscarAvaliacao(chamarApi, partidaId)
       .then(setEstado)
       .catch(() => {});
@@ -138,6 +143,7 @@ export default function TelaAvaliacao() {
         item.tipo === "auto" ? estado.meuId : item.avaliado.id,
         valor,
       );
+      votouNestaTela.current = true;
       proximo();
     } catch (e) {
       setErroVoto(mensagemDoErro(e));

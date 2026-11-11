@@ -18,6 +18,7 @@ export function ReplaysDoJogadorInline({
   apenasUmGol = false,
   comentar,
   campanhas,
+  posJogo = false,
 }: {
   jogador: { id: string; nome: string; fotoUrl: string | null };
   gols: GolComVideos[];
@@ -27,6 +28,8 @@ export function ReplaysDoJogadorInline({
   comentar?: Parameters<typeof CardsReplay>[0]["comentar"];
   /** Banners do feed entre os vídeos (ver CardsReplay). */
   campanhas?: CampanhaNoAr[];
+  /** Ver CardsReplay. */
+  posJogo?: boolean;
 }) {
   return (
     <View style={{ gap: 10 }}>
@@ -49,6 +52,7 @@ export function ReplaysDoJogadorInline({
         comentar={comentar}
         ocultarJogador
         campanhas={campanhas}
+        posJogo={posJogo}
       />
     </View>
   );

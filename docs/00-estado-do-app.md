@@ -66,6 +66,23 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: pedido de avaliação na loja (2026-11-11)
+
+`expo-store-review` (In-App Review da Play / SKStoreReview no iOS), em `src/avaliacao/`.
+Só em momentos felizes **depois do jogo**: notas pós-partida enviadas (fim da fila, só
+quem votou agora), replay baixado (depois do ✓) e replay favoritado (depois do ❤ salvo).
+Nunca no meio da partida: no Resultado só com a partida encerrada, no Ao vivo nunca, e na
+Resenha/Meus replays só 3h depois do início da partida (`depoisDaPartida`).
+
+A loja não conta se a pessoa avaliou. Travas próprias (`src/avaliacao/regras.ts`, com
+teste): 7 dias desde a 1ª abertura logada no aparelho, 90 dias entre pedidos, no máximo 3
+pedidos no total e 1 por sessão; o resto é a cota do sistema (iOS 3/ano, Play não
+divulga). Histórico no SecureStore (`weracha.avaliacaoLoja`), não sai no logout. Nada de
+"está curtindo?" antes nem botão "Avalie": as lojas proíbem.
+
+Só aparece em build de loja (Android: instalado pela Play, teste interno serve; iOS:
+TestFlight nunca mostra). Em dev, o log `[avaliacao]` diz se travou ou pediu. Falta EAS.
+
 ## Feito: avaliação pós-partida, "nota da galera" (2026-11-05)
 
 - Tela nova `grupos/[id]/partidas/[partidaId]/avaliacao.tsx`: um colega por tela em ordem

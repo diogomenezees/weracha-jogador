@@ -22,6 +22,7 @@ import { BotaoFavorito, SeloExpiracao } from "@/replay/BotaoFavorito";
 import { PlayerReplay } from "@/replay/PlayerReplay";
 import { SeletorCamera } from "@/replay/SeletorCamera";
 import { formatarDiaSemanaData, formatarHora } from "@/partidas";
+import { depoisDaPartida } from "@/avaliacao/regras";
 import { useDialogos } from "@/ui/Dialogos";
 import { cores, raio } from "@/tema";
 import { MESES_COMUNICADOS } from "@/contrato/expiracaoReplays";
@@ -78,6 +79,9 @@ export function BlocoCard({
       ? "Lance importante"
       : `Gol de ${bloco.jogador?.nome ?? "Jogador"}`;
   const dataPartida = new Date(bloco.partidaData);
+  // Feed não sabe a duração da partida: só libera o pedido de avaliação da loja
+  // passada a janela de jogo contada do início (nunca no meio do jogo).
+  const posJogo = depoisDaPartida(bloco.partidaData);
 
   const [cam, setCam] = useState(0);
   // Trocar de câmera depois de já ter dado play continua tocando.
@@ -195,13 +199,16 @@ export function BlocoCard({
         </View>
         <View style={styles.acoes}>
           {/* Favoritar: só com vídeo e acesso ao grupo (quem saiu não favorita). */}
-          {video && !grupoRemovido && <BotaoFavorito pedidoReplayId={bloco.pedidoReplayId} />}
+          {video && !grupoRemovido && (
+            <BotaoFavorito pedidoReplayId={bloco.pedidoReplayId} pedirAvaliacao={posJogo} />
+          )}
           {/* Baixar como ícone depois do ❤, em todo card com vídeo (o item do ⋮
               continua, pra quem procurar lá). */}
           {video && (
             <BotaoBaixarVideoIcone
               link={video.link}
               nomeArquivo={nomeArquivoReplay(bloco.tipo, bloco.criadoEm, video.idCamera)}
+              pedirAvaliacao={posJogo}
             />
           )}
           {itensMenu.length > 0 && (

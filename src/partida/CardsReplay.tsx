@@ -40,6 +40,7 @@ export function CardsReplay({
   comentar,
   ocultarJogador = false,
   campanhas,
+  posJogo = false,
 }: {
   gols: GolComVideos[];
   /** Só usado no card de lance (sem jogador vinculado). */
@@ -60,6 +61,11 @@ export function CardsReplay({
    * replays. A lista vem inteira, sem paginação.
    */
   campanhas?: CampanhaNoAr[];
+  /**
+   * A partida já acabou (só o Resultado de partida encerrada passa true): libera o
+   * pedido de avaliação da loja ao favoritar/baixar. No Ao vivo fica false.
+   */
+  posJogo?: boolean;
 }) {
   if (gols.length === 0) {
     return (
@@ -81,6 +87,7 @@ export function CardsReplay({
               gol={g}
               comentar={comentar}
               ocultarJogador={ocultarJogador}
+              posJogo={posJogo}
             />
             {banner !== null && campanhas && <BannerDoFeed banner={banner} campanhas={campanhas} />}
           </Fragment>
@@ -94,10 +101,12 @@ function CardReplay({
   gol,
   comentar,
   ocultarJogador,
+  posJogo,
 }: {
   gol: GolComVideos;
   comentar?: Parameters<typeof CardsReplay>[0]["comentar"];
   ocultarJogador: boolean;
+  posJogo: boolean;
 }) {
   const [cam, setCam] = useState(0);
   // Trocar de câmera depois de já ter dado play continua tocando (o site faz igual).
@@ -178,7 +187,7 @@ function CardReplay({
           {/* Favoritar: só replay com vídeo na nuvem (gol cancelado não conta pra nada). */}
           {temVideoNuvem && gol.pedidoReplayId && !cancelado && (
             <View style={styles.favorito}>
-              <BotaoFavorito pedidoReplayId={gol.pedidoReplayId} />
+              <BotaoFavorito pedidoReplayId={gol.pedidoReplayId} pedirAvaliacao={posJogo} />
             </View>
           )}
           {/* Baixar depois do ❤ (mesmo padrão da Resenha); vale até pro gol cancelado. */}
@@ -187,6 +196,7 @@ function CardReplay({
               <BotaoBaixarVideoIcone
                 link={videoAtual.link}
                 nomeArquivo={nomeArquivoReplay(gol.tipo, gol.criadoEm, videoAtual.idCamera)}
+                pedirAvaliacao={posJogo}
               />
             </View>
           )}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet } from "react-native";
 
 import { baixarReplay, mensagemDownload } from "@/replay/baixarReplay";
+import { pedirAvaliacaoSePuder } from "@/avaliacao/pedirAvaliacao";
 import { Check, Download } from "@/ui/Icone";
 import { useDialogos } from "@/ui/Dialogos";
 import { cores } from "@/tema";
@@ -9,7 +10,7 @@ import { cores } from "@/tema";
 // Estado do download (parado → baixando → pronto por 3s) e o aviso de erro.
 // Diferente do site, aqui o download tem conclusão de verdade, então o "pronto"
 // só aparece depois do vídeo estar na Galeria.
-function useBaixarReplay(link: string, nomeArquivo: string) {
+function useBaixarReplay(link: string, nomeArquivo: string, pedirAvaliacao: boolean) {
   const { avisar } = useDialogos();
   const [estado, setEstado] = useState<"parado" | "baixando" | "pronto">("parado");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -22,6 +23,8 @@ function useBaixarReplay(link: string, nomeArquivo: string) {
     if (resultado === "salvo") {
       setEstado("pronto");
       timer.current = setTimeout(() => setEstado("parado"), 3000);
+      // Depois do ✓ aparecer, nunca no toque nem se der erro.
+      if (pedirAvaliacao) pedirAvaliacaoSePuder("replay-baixado", 1500);
     } else {
       setEstado("parado");
       const { titulo, texto } = mensagemDownload(resultado);
@@ -40,11 +43,14 @@ function useBaixarReplay(link: string, nomeArquivo: string) {
 export function BotaoBaixarVideoIcone({
   link,
   nomeArquivo,
+  pedirAvaliacao = false,
 }: {
   link: string;
   nomeArquivo: string;
+  /** Pode abrir o pedido de avaliação da loja ao concluir (só depois do jogo, ver BotaoFavorito). */
+  pedirAvaliacao?: boolean;
 }) {
-  const { estado, baixar } = useBaixarReplay(link, nomeArquivo);
+  const { estado, baixar } = useBaixarReplay(link, nomeArquivo, pedirAvaliacao);
   return (
     <Pressable
       hitSlop={8}

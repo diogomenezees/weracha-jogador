@@ -4,6 +4,7 @@ import { Text } from "@/ui/Texto";
 
 import { buscarIdsFavoritos, definirFavorito } from "@/api/favoritos";
 import { useSessao } from "@/sessao/contexto";
+import { pedirAvaliacaoSePuder } from "@/avaliacao/pedirAvaliacao";
 import { textoPrazoExpiracao } from "@/contrato/expiracaoReplays";
 import { cores, raio } from "@/tema";
 import { Heart, Hourglass } from "@/ui/Icone";
@@ -54,7 +55,7 @@ function garantirCarregado(jogadorId: string, chamarApi: ChamarApi) {
   buscando = p;
 }
 
-async function alternar(pedidoReplayId: string, chamarApi: ChamarApi) {
+async function alternar(pedidoReplayId: string, chamarApi: ChamarApi): Promise<boolean> {
   const era = ids?.has(pedidoReplayId) ?? false;
   const trocar = (favorito: boolean) => {
     ids = new Set(ids ?? []);
@@ -66,8 +67,10 @@ async function alternar(pedidoReplayId: string, chamarApi: ChamarApi) {
   trocar(!era);
   try {
     await definirFavorito(chamarApi, pedidoReplayId, !era);
+    return true;
   } catch {
     trocar(era);
+    return false;
   }
 }
 
@@ -85,7 +88,15 @@ export function useFavorito(pedidoReplayId: string | null | undefined): boolean 
 // Coração vermelho: preenchido = favorito. Ao favoritar, toast "Guardado nos
 // favoritos ❤" (o site mostra um balão): ❤ é o que livra o replay da expiração
 // (ver src/contrato/expiracaoReplays.ts).
-export function BotaoFavorito({ pedidoReplayId }: { pedidoReplayId: string }) {
+// `pedirAvaliacao`: favoritar é momento feliz, então pode abrir o pedido de avaliação
+// da loja, mas só quem chama sabe se a partida já acabou (nunca no meio do jogo).
+export function BotaoFavorito({
+  pedidoReplayId,
+  pedirAvaliacao = false,
+}: {
+  pedidoReplayId: string;
+  pedirAvaliacao?: boolean;
+}) {
   const { chamarApi } = useSessao();
   const favorito = useFavorito(pedidoReplayId);
   return (
@@ -96,7 +107,10 @@ export function BotaoFavorito({ pedidoReplayId }: { pedidoReplayId: string }) {
         if (!favorito && Platform.OS === "android") {
           ToastAndroid.show("Guardado nos favoritos", ToastAndroid.SHORT);
         }
-        void alternar(pedidoReplayId, chamarApi);
+        const favoritando = !favorito;
+        void alternar(pedidoReplayId, chamarApi).then((ok) => {
+          if (ok && favoritando && pedirAvaliacao) pedirAvaliacaoSePuder("replay-favoritado", 2000);
+        });
       }}
       accessibilityRole="button"
       accessibilityLabel={favorito ? "Tirar dos favoritos" : "Favoritar"}

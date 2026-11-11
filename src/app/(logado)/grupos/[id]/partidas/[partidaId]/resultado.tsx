@@ -634,6 +634,7 @@ export default function TelaResultado() {
                 gols={golsDoReplayInline}
                 apenasUmGol={!!replayInline.golId}
                 campanhas={campanhas}
+                posJogo={encerrada}
                 comentar={{
                   chamarApi,
                   meuJogadorId: meuId,
@@ -656,6 +657,7 @@ export default function TelaResultado() {
               gols={lancesComVideo}
               vazioTexto="Nenhum lance importante registrado nessa partida."
               campanhas={campanhas}
+              posJogo={encerrada}
               comentar={{
                 chamarApi,
                 meuJogadorId: meuId,
