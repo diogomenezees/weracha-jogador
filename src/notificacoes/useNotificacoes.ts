@@ -76,8 +76,14 @@ function destinoDaNotificacao(data: Record<string, unknown> | undefined): Href |
   if (tipo === "CHECKIN_ABERTO" && partidaId) {
     return `/grupos/${grupoId}/partidas/${partidaId}/checkin`;
   }
-  // "Sua nota da galera saiu" também cai no Resultado, onde fica a nota.
-  if ((tipo === "RESULTADO_DISPONIVEL" || tipo === "AVALIACAO_RESULTADO") && partidaId) {
+  // "Sua nota da galera saiu" também cai no Resultado, onde fica a nota. "Times
+  // sorteados" cai na mesma tela (que mostra os Times enquanto a partida rola).
+  if (
+    (tipo === "RESULTADO_DISPONIVEL" ||
+      tipo === "AVALIACAO_RESULTADO" ||
+      tipo === "TIMES_SORTEADOS") &&
+    partidaId
+  ) {
     return `/grupos/${grupoId}/partidas/${partidaId}/resultado`;
   }
   // Lembrete da avaliação pós-partida: direto na votação.

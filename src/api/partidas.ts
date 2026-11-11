@@ -130,6 +130,42 @@ export async function gerarSorteio(
 // POST /api/v1/partidas/{partidaId}/resultado/refazer — desativa o resultado e
 // apaga gols/lances/replays/comentários. Pré-alocações sobrevivem. 422 se a
 // partida já encerrou.
+// GET /api/v1/partidas/{partidaId}/resultado/substitutos?jogadorId= — quem
+// pode entrar no lugar de quem não chegou, do melhor pro pior substituto. A
+// tela mostra só o primeiro; "também não chegou" passa pro seguinte.
+export async function buscarSubstitutos(
+  chamarApi: ChamarApi,
+  partidaId: string,
+  jogadorId: string
+): Promise<string[]> {
+  const { substitutos } = await chamarApi<{ substitutos: string[] }>(
+    `/api/v1/partidas/${partidaId}/resultado/substitutos?jogadorId=${encodeURIComponent(jogadorId)}`
+  );
+  return substitutos;
+}
+
+// POST /api/v1/partidas/{partidaId}/resultado/substituicao — troca quem não
+// chegou pelo substituto. Só admin, só com os times em rascunho.
+export function substituirJogador(
+  chamarApi: ChamarApi,
+  partidaId: string,
+  saiJogadorId: string,
+  entraJogadorId: string
+) {
+  return chamarApi<{ ok: true; resultado: ResultadoSalvo }>(
+    `/api/v1/partidas/${partidaId}/resultado/substituicao`,
+    { metodo: "POST", corpo: { saiJogadorId, entraJogadorId } }
+  );
+}
+
+// POST /api/v1/partidas/{partidaId}/resultado/confirmacao — "Confirmar times".
+export function confirmarTimes(chamarApi: ChamarApi, partidaId: string) {
+  return chamarApi<{ ok: true; resultado: ResultadoSalvo }>(
+    `/api/v1/partidas/${partidaId}/resultado/confirmacao`,
+    { metodo: "POST" }
+  );
+}
+
 export function refazerSorteio(chamarApi: ChamarApi, partidaId: string) {
   return chamarApi<{ ok: true }>(`/api/v1/partidas/${partidaId}/resultado/refazer`, {
     metodo: "POST",

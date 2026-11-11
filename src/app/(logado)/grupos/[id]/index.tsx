@@ -572,6 +572,7 @@ export default function TelaGrupo() {
   }
 
   const idsResultado = new Set(dados.idsComResultado);
+  const idsAguardando = new Set(dados.idsAguardandoConfirmacao ?? []);
   const idsMeuCheckin = new Set(dados.idsComMeuCheckin);
   const idsAvaliacaoAberta = new Set(dados.idsComAvaliacaoAberta ?? []);
   const emAndamento = partidasEmAndamento(grupo);
@@ -756,12 +757,14 @@ export default function TelaGrupo() {
               grupo={grupo}
               checkinAberto={idsEmAndamento.has(p.id)}
               temResultado={!p.cancelada && idsResultado.has(p.id)}
+              aguardandoConfirmacao={idsAguardando.has(p.id)}
               jaFizCheckin={idsMeuCheckin.has(p.id)}
               souAdmin={!!souAdmin}
               onAbrir={() => abrirPartida(p)}
               onMenu={() => abrirMenuPartida(p, !p.cancelada && idsResultado.has(p.id))}
               onCheckin={() => router.push(`/grupos/${id}/partidas/${p.id}/checkin`)}
               onAoVivo={() => router.push(`/grupos/${id}/partidas/${p.id}/ao-vivo`)}
+              onTimes={() => router.push(`/grupos/${id}/partidas/${p.id}/resultado`)}
             />
           ))}
           {/* Embaixo da lista, igual Partidas anteriores: abre as outras ali mesmo. */}
@@ -899,6 +902,7 @@ export default function TelaGrupo() {
             encerrada={partidaJaEncerrada(partidaSel)}
             emCheckin={!partidaSel.cancelada && idsEmAndamento.has(partidaSel.id)}
             temResultado={!partidaSel.cancelada && idsResultado.has(partidaSel.id)}
+            aguardandoConfirmacao={idsAguardando.has(partidaSel.id)}
             jaFizCheckin={idsMeuCheckin.has(partidaSel.id)}
             temToken={!!tokenConvite}
             onCopiar={() => void copiarLink(partidaSel)}
@@ -1351,12 +1355,14 @@ function CardPartida({
   passada = false,
   checkinAberto,
   temResultado,
+  aguardandoConfirmacao = false,
   jaFizCheckin,
   souAdmin,
   onAbrir,
   onMenu,
   onCheckin,
   onAoVivo,
+  onTimes,
   avaliacaoAberta = false,
   onAvaliar,
 }: {
@@ -1365,8 +1371,11 @@ function CardPartida({
   passada?: boolean;
   checkinAberto: boolean;
   temResultado: boolean;
+  /** Times sorteados e ainda não confirmados: "Times" no lugar do "Ao vivo". */
+  aguardandoConfirmacao?: boolean;
   jaFizCheckin: boolean;
   souAdmin: boolean;
+  onTimes?: () => void;
   /** Votação da avaliação pós-partida aberta pra mim: "Avaliar" no lugar do selo Concluída. */
   avaliacaoAberta?: boolean;
   onAvaliar?: () => void;
@@ -1441,6 +1450,11 @@ function CardPartida({
               <Pressable style={styles.checkinBtn} onPress={onCheckin}>
                 <Text style={styles.checkinBtnTexto}>Check-in</Text>
                 <ChevronRight size={14} color={cores.dark} />
+              </Pressable>
+            ) : temResultado && aguardandoConfirmacao && onTimes ? (
+              <Pressable style={styles.timesBtn} onPress={onTimes}>
+                <Users size={14} color={cores.dark} />
+                <Text style={styles.checkinBtnTexto}>Ver times</Text>
               </Pressable>
             ) : temResultado ? (
               <Pressable style={styles.aoVivoBtn} onPress={onAoVivo}>
@@ -1530,6 +1544,7 @@ function DetalhePartida({
   encerrada,
   emCheckin,
   temResultado,
+  aguardandoConfirmacao = false,
   jaFizCheckin,
   temToken,
   onCopiar,
@@ -1543,6 +1558,7 @@ function DetalhePartida({
   encerrada: boolean;
   emCheckin: boolean;
   temResultado: boolean;
+  aguardandoConfirmacao?: boolean;
   jaFizCheckin: boolean;
   temToken: boolean;
   onCopiar: () => void;
@@ -1632,14 +1648,17 @@ function DetalhePartida({
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <Pressable style={[styles.modalBotao, { flex: 1 }]} onPress={() => onIr("resultado")}>
-              <Text style={styles.modalBotaoTexto}>Times</Text>
+              <Text style={styles.modalBotaoTexto}>{aguardandoConfirmacao ? "Ver times" : "Times"}</Text>
             </Pressable>
-            <Pressable
-              style={[styles.modalBotao, { flex: 1, backgroundColor: "#dc2626" }]}
-              onPress={() => onIr("ao-vivo")}
-            >
-              <Text style={[styles.modalBotaoTexto, { color: cores.branco }]}>Ao vivo</Text>
-            </Pressable>
+            {/* Times ainda não confirmados: sem Ao vivo. */}
+            {!aguardandoConfirmacao && (
+              <Pressable
+                style={[styles.modalBotao, { flex: 1, backgroundColor: "#dc2626" }]}
+                onPress={() => onIr("ao-vivo")}
+              >
+                <Text style={[styles.modalBotaoTexto, { color: cores.branco }]}>Ao vivo</Text>
+              </Pressable>
+            )}
           </View>
           <Pressable onPress={() => onIr("checkin")} hitSlop={6} style={styles.verMeuCheckinLinha}>
             <Text style={styles.verMeuCheckin}>Ver meu check-in</Text>
@@ -1903,6 +1922,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   checkinBtnTexto: { fontSize: 12, fontWeight: "700", color: cores.dark },
+  timesBtn: {
+    backgroundColor: cores.teal,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   aoVivoBtn: {
     backgroundColor: "#ef4444",
     borderRadius: 8,

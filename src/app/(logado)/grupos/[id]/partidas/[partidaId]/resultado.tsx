@@ -12,6 +12,7 @@ import {
   buscarLances,
   buscarResultadoAtivo,
   buscarResumoExpiracao,
+  confirmarTimes,
   corrigirGols,
   editarDescricaoPartida,
   refazerSorteio,
@@ -28,6 +29,10 @@ import { PainelGols } from "@/partida/PainelGols";
 import { LinhaReplaysExpirados } from "@/partida/LinhaReplaysExpirados";
 import { ReplaysDoJogadorInline } from "@/partida/ReplaysDoJogadorInline";
 import { useCampanhasNoAr } from "@/resenha/BannerDoFeed";
+import {
+  ModalSubstituirJogador,
+  type JogadorParaSubstituir,
+} from "@/partida/ModalSubstituirJogador";
 import { montarResultado, type JogadorNoTime, type ResultadoMontado } from "@/partida/montarResultado";
 import {
   Abas,
@@ -48,9 +53,11 @@ import {
 } from "@/partida/AvaliacaoGalera";
 import {
   ArrowLeftRight,
+  CheckCheck,
   Clock,
   EllipsisVertical,
   Goal,
+  Hourglass,
   MapPin,
   NotebookPen,
   Plus,
@@ -114,6 +121,13 @@ export default function TelaResultado() {
   const [idsComResultado, setIdsComResultado] = useState<string[]>([]);
   const [modalQuadra, setModalQuadra] = useState(false);
   const [montado, setMontado] = useState<ResultadoMontado | null>(null);
+  // false = sorteio em rascunho (sem coletes, sem Ao vivo, admin substitui quem
+  // não chegou e confirma). Servidor antigo não manda o campo: confirmado.
+  const [timesConfirmados, setTimesConfirmados] = useState(true);
+  const [substituindo, setSubstituindo] = useState<JogadorParaSubstituir | null>(null);
+  const [confirmarTimesAberto, setConfirmarTimesAberto] = useState(false);
+  const [confirmandoTimes, setConfirmandoTimes] = useState(false);
+  const [erroConfirmarTimes, setErroConfirmarTimes] = useState<string | null>(null);
   const [gols, setGols] = useState<GolComVideos[]>([]);
   const [lances, setLances] = useState<GolComVideos[]>([]);
   const [comentarios, setComentarios] = useState<Record<string, ComentarioResenha[]>>({});
@@ -189,6 +203,7 @@ export default function TelaResultado() {
     setMontado(
       montarResultado(resultado, apoio.checkins, apoio.membros, apoio.posicoes, apoio.jogadores)
     );
+    setTimesConfirmados(resultado.confirmadoEm !== null);
 
     const ids = [
       ...gs.map((x) => x.pedidoReplayId),
@@ -248,6 +263,11 @@ export default function TelaResultado() {
     !!partida &&
     !!grupo &&
     dentroDoPrazoDeEdicaoDeGols(new Date(partida.data), duracaoDaPartida(grupo, partida));
+
+  // Rascunho: times sorteados, ainda não confirmados pelo admin na quadra.
+  // Partida que encerrou sem confirmação é tratada como confirmada (mesma regra
+  // do site), pra não ficar sem coletes pra sempre.
+  const rascunho = !timesConfirmados && !encerrada;
 
   const golsAtivos = useMemo(() => gols.filter((g) => !g.cancelado), [gols]);
   // Finalizadas (mesma regra da lista do grupo), com resultado, não canceladas, da
@@ -418,6 +438,37 @@ export default function TelaResultado() {
       ? "TIMES"
       : aba;
 
+  // Nome/foto/onde de um jogador do sorteio ou dos próximos, pro modal de
+  // substituição.
+  function descreverJogador(jogadorId: string): JogadorParaSubstituir | null {
+    if (!montado) return null;
+    const indiceTime = montado.times.findIndex((t) => t.some((j) => j.jogadorId === jogadorId));
+    const j = [...montado.times.flat(), ...montado.proximos].find((x) => x.jogadorId === jogadorId);
+    if (!j) return null;
+    return {
+      jogadorId,
+      nome: j.nome,
+      fotoUrl: j.fotoUrl,
+      score: j.score,
+      onde: indiceTime >= 0 ? `Time ${indiceTime + 1}` : "Próximos",
+    };
+  }
+
+  async function confirmarOsTimes() {
+    setConfirmandoTimes(true);
+    setErroConfirmarTimes(null);
+    try {
+      await confirmarTimes(chamarApi, partidaId);
+      setConfirmarTimesAberto(false);
+    } catch (e) {
+      setErroConfirmarTimes(mensagemDoErro(e));
+    } finally {
+      setConfirmandoTimes(false);
+      // Também no erro: já confirmado por outro aparelho, a tela reflete.
+      await carregar().catch(() => {});
+    }
+  }
+
   const IconeModoSorteio =
     montado.modoSorteio === "SORTE" ? Shuffle : montado.modoSorteio === "POSICAO" ? Shield : Star;
   const rotuloModoSorteio =
@@ -427,7 +478,7 @@ export default function TelaResultado() {
     <TelaPartida voltar="Grupo">
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Cabecalho
-          titulo={encerrada ? "Resultado" : "Times"}
+          titulo={encerrada ? "Resultado" : "Times sorteados"}
           grupoNome={g.nome}
           descricao={p.descricao}
           direita={
@@ -506,6 +557,19 @@ export default function TelaResultado() {
 
         {abaVisivel === "TIMES" ? (
           <View style={{ gap: 14 }}>
+            {rascunho && (
+              <View style={styles.avisoRascunho}>
+                <Hourglass size={16} color={cores.ambar} style={{ marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.avisoRascunhoTitulo}>Aguardando confirmação</Text>
+                  <Text style={styles.avisoRascunhoTexto}>
+                    {souAdmin
+                      ? "Se alguém não chegou, toque nos três pontinhos ao lado do nome pra substituir."
+                      : "Os times ainda podem mudar se alguém não chegar. O admin confirma na quadra."}
+                  </Text>
+                </View>
+              </View>
+            )}
             <View style={styles.timesTopo}>
               <View style={{ flexShrink: 1 }}>
                 <Eyebrow>{encerrada ? "Resultado final" : "Vão jogar agora"}</Eyebrow>
@@ -535,6 +599,12 @@ export default function TelaResultado() {
                     comecaComABola={temPartida && i + 1 === timeQueComeca}
                     escolheLado={temPartida && i < 2 && i + 1 !== timeQueComeca}
                     corHex={montado.coresTimes[i] ?? null}
+                    mostrarColete={!rascunho}
+                    onSubstituir={
+                      souAdmin && rascunho
+                        ? (jogadorId) => setSubstituindo(descreverJogador(jogadorId))
+                        : undefined
+                    }
                   />
                 ))}
                 {montado.timesDosProximos.map((time, i) => (
@@ -547,12 +617,14 @@ export default function TelaResultado() {
                     comecaComABola={false}
                     escolheLado={false}
                     corHex={null}
+                    mostrarColete={!rascunho}
                   />
                 ))}
                 {/* Legenda da camiseta riscada (ver CardTime), só quando algum
                     time aparece sem cor. */}
-                {(montado.times.some((_, i) => !montado.coresTimes[i]) ||
-                  montado.timesDosProximos.length > 0) && (
+                {!rascunho &&
+                  (montado.times.some((_, i) => !montado.coresTimes[i]) ||
+                    montado.timesDosProximos.length > 0) && (
                   <View style={styles.legendaSemCor}>
                     <Shirt size={12} color={cores.slate500} />
                     <Text style={styles.legendaSemCorTexto}>
@@ -672,7 +744,7 @@ export default function TelaResultado() {
         )}
       </ScrollView>
 
-      {!encerrada && (
+      {!encerrada && !rascunho && (
         <Rodape
           primario={
             <BotaoPrimario
@@ -684,6 +756,47 @@ export default function TelaResultado() {
           }
         />
       )}
+      {/* Rascunho: o admin confirma os times; o resto só espera (sem Ao vivo). */}
+      {rascunho && souAdmin && (
+        <Rodape
+          primario={
+            <BotaoPrimario
+              titulo="Confirmar times"
+              cor="teal"
+              Icone={CheckCheck}
+              onPress={() => {
+                setErroConfirmarTimes(null);
+                setConfirmarTimesAberto(true);
+              }}
+            />
+          }
+        />
+      )}
+
+      <ModalSubstituirJogador
+        chamarApi={chamarApi}
+        partidaId={partidaId}
+        sai={substituindo}
+        descrever={descreverJogador}
+        mostrarScore={vejoScore}
+        onFechar={() => setSubstituindo(null)}
+        onSubstituido={() => carregar().catch(() => {})}
+      />
+
+      <ModalConfirmar
+        aberto={confirmarTimesAberto}
+        Icone={CheckCheck}
+        eyebrow="Confirmar times"
+        titulo="Todo mundo chegou?"
+        descricao="Depois de confirmar não dá mais pra substituir ninguém. Os coletes aparecem e o Ao vivo é liberado."
+        confirmarLabel="Confirmar"
+        ocupado={confirmandoTimes}
+        erro={erroConfirmarTimes}
+        onConfirmar={() => void confirmarOsTimes()}
+        onFechar={() => {
+          if (!confirmandoTimes) setConfirmarTimesAberto(false);
+        }}
+      />
 
       <ModalCartao aberto={modalQuadra} onFechar={() => setModalQuadra(false)}>
         <View style={styles.modalEyebrowLinha}>
@@ -701,7 +814,7 @@ export default function TelaResultado() {
 
       <MenuAcoes
         aberto={menuMais}
-        titulo="Times"
+        titulo={encerrada ? "Resultado" : "Times sorteados"}
         itens={[
           ...(souAdmin
             ? [
@@ -845,6 +958,8 @@ function CardTime({
   comecaComABola,
   escolheLado,
   corHex,
+  mostrarColete,
+  onSubstituir,
 }: {
   numero: number;
   jogadores: JogadorNoTime[];
@@ -853,6 +968,10 @@ function CardTime({
   comecaComABola: boolean;
   escolheLado: boolean;
   corHex: string | null;
+  // Rascunho do sorteio: sem colete (só aparece depois de confirmar).
+  mostrarColete: boolean;
+  // Admin no rascunho: ⋮ em cada jogador com "Substituir jogador…".
+  onSubstituir?: (jogadorId: string) => void;
 }) {
   return (
     <View style={[styles.timeCard, styles.timeCardCinza]}>
@@ -884,9 +1003,15 @@ function CardTime({
       <View style={styles.timeCorpo}>
         <View style={styles.timeJogadores}>
           {jogadores.map((j) => (
-            <LinhaJogadorTime key={j.jogadorId} jogador={j} mostrarScore={mostrarScore} />
+            <LinhaJogadorTime
+              key={j.jogadorId}
+              jogador={j}
+              mostrarScore={mostrarScore}
+              onSubstituir={onSubstituir}
+            />
           ))}
         </View>
+        {mostrarColete && (
         <View style={styles.timeColete}>
           <View>
             <Shirt
@@ -912,6 +1037,7 @@ function CardTime({
           </View>
           <Text style={styles.timeColeteTexto}>Colete</Text>
         </View>
+        )}
       </View>
       {(comecaComABola || escolheLado) && (
         <View style={styles.timeRodape}>
@@ -936,10 +1062,13 @@ function CardTime({
 function LinhaJogadorTime({
   jogador,
   mostrarScore,
+  onSubstituir,
 }: {
   jogador: JogadorNoTime;
   mostrarScore: boolean;
+  onSubstituir?: (jogadorId: string) => void;
 }) {
+  const [menu, setMenu] = useState(false);
   const itens: ReactNode[] = [];
   if (jogador.apelido) {
     itens.push(<Text style={styles.linhaTimeMetaTexto}>{jogador.apelido}</Text>);
@@ -978,6 +1107,31 @@ function LinhaJogadorTime({
           </View>
         )}
       </View>
+      {onSubstituir && (
+        <>
+          <Pressable
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Opções de ${jogador.nome}`}
+            onPress={() => setMenu(true)}
+            style={styles.linhaTimeMenu}
+          >
+            <EllipsisVertical size={18} color={cores.slate400} />
+          </Pressable>
+          <MenuAcoes
+            aberto={menu}
+            titulo={jogador.nome}
+            itens={[
+              {
+                rotulo: "Substituir jogador…",
+                Icone: ArrowLeftRight,
+                onPress: () => onSubstituir(jogador.jogadorId),
+              },
+            ]}
+            onFechar={() => setMenu(false)}
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -1054,6 +1208,18 @@ function ModalAdicionarGol({
 }
 
 const styles = StyleSheet.create({
+  avisoRascunho: {
+    flexDirection: "row",
+    gap: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: cores.ambarFundo,
+    padding: 12,
+  },
+  avisoRascunhoTitulo: { fontSize: 14, fontWeight: "600", color: cores.ambar },
+  avisoRascunhoTexto: { fontSize: 12, lineHeight: 17, color: cores.ambar, opacity: 0.85, marginTop: 2 },
+  linhaTimeMenu: { paddingHorizontal: 4, paddingVertical: 6 },
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 150, gap: 16 },
   bridges: { flexDirection: "row", gap: 6 },
   esportePill: {

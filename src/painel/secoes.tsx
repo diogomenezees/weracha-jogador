@@ -216,6 +216,16 @@ export function ProximoJogo({ jogo, agora }: { jogo: ProximoJogoPainel; agora: n
                 <Check size={16} color={cores.dark} />
                 <Text style={[styles.botaoTexto, { color: cores.dark }]}>Fazer check-in</Text>
               </Pressable>
+            ) : jogo.aguardandoConfirmacao ? (
+              // Times sorteados, ainda não confirmados na quadra: o jogo não
+              // começou, o atalho é pros Times.
+              <Pressable
+                style={[styles.botao, { backgroundColor: cores.teal }]}
+                onPress={() => router.push(`/grupos/${jogo.grupoId}/partidas/${jogo.partidaId}/resultado`)}
+              >
+                <Users size={16} color={cores.dark} />
+                <Text style={[styles.botaoTexto, { color: cores.dark }]}>Ver times</Text>
+              </Pressable>
             ) : jogo.temResultado ? (
               <Pressable
                 style={[styles.botao, { backgroundColor: "#ef4444" }]}

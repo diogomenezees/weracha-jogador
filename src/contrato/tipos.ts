@@ -229,6 +229,9 @@ export type DadosDaTelaGrupo = {
   quadra?: Quadra;
   totalMembros: number;
   idsComResultado: string[];
+  // Sorteio feito, times ainda não confirmados (desde 2026-11-11; servidor
+  // antigo não manda): o atalho da partida vira "Ver times" em vez de "Ao vivo".
+  idsAguardandoConfirmacao?: string[];
   idsComMeuCheckin: string[];
   // Partidas em que eu posso avaliar a galera agora (desde 2026-11-05; site
   // anterior não manda).
@@ -673,6 +676,10 @@ export type ResultadoSalvo = {
   // Cópia do limite de check-ins do grupo quando os times fecharam (desde
   // 2026-10-28; servidor antigo não manda). null = sem limite.
   limiteCheckins?: number | null;
+  // Confirmação dos times (desde 2026-11-11). null = rascunho: sem coletes, sem
+  // Ao vivo, admin pode substituir quem não chegou. Servidor antigo não manda o
+  // campo (undefined): tratar como confirmado.
+  confirmadoEm?: string | null;
   ativo: boolean;
   criadoEm: string;
 };
@@ -765,6 +772,9 @@ export type ProximoJogoPainel = {
   limiteCheckins?: number | null;
   euConfirmado: boolean;
   temResultado: boolean;
+  // Sorteio feito, times ainda não confirmados (desde 2026-11-11; servidor
+  // antigo não manda): o botão vira "Ver times" em vez de "Ao vivo".
+  aguardandoConfirmacao?: boolean;
 };
 
 export type UltimoResultadoPainel = {

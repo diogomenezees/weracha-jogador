@@ -138,7 +138,13 @@ export default function TelaAoVivo() {
           router.replace(`/grupos/${id}/partidas/${partidaId}/configurar`);
           return;
         }
-        if (partidaEncerrada(new Date(p.data), duracaoDaPartida(g, p))) {
+        // Sem os times confirmados não tem Ao vivo (nem gol): volta pros Times,
+        // onde o admin substitui quem faltou e confirma. undefined = servidor
+        // antigo, sem confirmação.
+        if (
+          salvo.confirmadoEm === null ||
+          partidaEncerrada(new Date(p.data), duracaoDaPartida(g, p))
+        ) {
           router.replace(`/grupos/${id}/partidas/${partidaId}/resultado`);
           return;
         }
@@ -458,10 +464,14 @@ export default function TelaAoVivo() {
             {erroAcao && <Text style={styles.cronErro}>{erroAcao}</Text>}
           </View>
         ) : (
-          <Pressable style={styles.semCron} onPress={() => setModalConfig(true)}>
-            <Timer size={16} color={cores.slate300} />
-            <Text style={styles.semCronTexto}>Incluir cronômetro na partida?</Text>
-          </Pressable>
+          <View style={{ gap: 6 }}>
+            <Pressable style={styles.semCron} onPress={() => setModalConfig(true)}>
+              <Timer size={16} color={cores.slate300} />
+              <Text style={styles.semCronTexto}>Incluir cronômetro na partida?</Text>
+            </Pressable>
+            {/* Sem o cartão do cronômetro, o erro de incluir aparece aqui. */}
+            {erroAcao && <Text style={styles.cronErro}>{erroAcao}</Text>}
+          </View>
         )}
 
         <Abas

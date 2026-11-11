@@ -67,6 +67,8 @@ export {
   Plus,
   Minus,
   Check,
+  CheckCheck,
+  Frown,
   Play,
   Pause,
   Pencil,

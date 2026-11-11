@@ -66,6 +66,25 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Feito: confirmação dos times + substituir quem não chegou (2026-11-11)
+
+Regras em `weracha-site/docs/especificacao/07-resultado-balanceamento.md` § Confirmação
+dos times. O sorteio nasce em rascunho (`ResultadoSalvo.confirmadoEm` null):
+
+- Tela de Times (`resultado.tsx`): banner "Aguardando confirmação", sem coletes, sem
+  "Ao vivo". Admin ganha ⋮ em cada jogador ("Substituir jogador…", `MenuAcoes`) e o
+  rodapé "Confirmar times" (`ModalConfirmar`). `confirmadoEm` ausente (servidor antigo)
+  conta como confirmado.
+- `src/partida/ModalSubstituirJogador.tsx`: mostra só o substituto que o servidor escolheu
+  (`GET .../resultado/substitutos`), "Colocar X" (`POST .../substituicao`) ou "X também
+  não chegou" (próximo da lista, sem nova chamada).
+- Ao vivo devolve pra tela de Times se o sorteio for rascunho.
+- Atalhos da partida (painel e tela do grupo): com os times em rascunho, o "Ao vivo"
+  vira "Ver times" em teal (`idsAguardandoConfirmacao` / `aguardandoConfirmacao`; servidor
+  antigo não manda e fica "Ao vivo").
+- Push `TIMES_SORTEADOS` abre a tela de Times. App antigo cai no grupo (tipo desconhecido)
+  e, se marcar gol num rascunho, o servidor confirma os times sozinho.
+
 ## Feito: pedido de avaliação na loja (2026-11-11)
 
 `expo-store-review` (In-App Review da Play / SKStoreReview no iOS), em `src/avaliacao/`.
