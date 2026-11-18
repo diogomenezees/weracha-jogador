@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AppState, Linking, Pressable, StyleSheet, View } from "react-native";
+import { AppState, Linking, Platform, Pressable, StyleSheet, View } from "react-native";
 import Constants from "expo-constants";
 import { Text } from "@/ui/Texto";
 
@@ -32,9 +32,12 @@ import { cores, raio } from "@/tema";
 
 const versaoAtual = Constants.expoConfig?.version ?? null;
 
-// Pra trava guardada no disco, que vale antes de o site responder. Mesmo valor
-// de URL_LOJA_ANDROID no site (lib/appVersao.ts).
-const URL_LOJA = "https://play.google.com/store/apps/details?id=com.weracha.jogador";
+// Pra trava guardada no disco, que vale antes de o site responder. Mesmos
+// valores de URL_LOJA_APP no site (lib/appVersao.ts), cada um na sua loja.
+const URL_LOJA =
+  Platform.OS === "ios"
+    ? "https://apps.apple.com/br/app/id6831132395"
+    : "https://play.google.com/store/apps/details?id=com.weracha.jogador";
 
 function trava(minima: string | null): boolean {
   return !!versaoAtual && !!minima && abaixoDaMinima(versaoAtual, minima);

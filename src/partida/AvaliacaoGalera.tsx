@@ -81,7 +81,7 @@ export function avalieiTodos(estado: EstadoAvaliacao | null): boolean {
 
 // Todos os outros jogadores já me avaliaram: como voto não muda, a nota não muda
 // mais até fechar. Aí o texto deixa de dizer "parcial" (sem push; o push segue no
-// fechamento das 48h). Critério é "todos me avaliaram", não "todos votaram em
+// fechamento das 24h). Critério é "todos me avaliaram", não "todos votaram em
 // alguém": quem votou e me pulou ainda pode voltar e me dar nota.
 export function notaJaFechadaPraMim(estado: EstadoAvaliacao): boolean {
   const p = estado.minhaNotaParcial;

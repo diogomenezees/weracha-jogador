@@ -28,6 +28,7 @@ export function ModalScore({
   aberto,
   nome,
   scoreAtual,
+  aviso,
   salvando,
   erro,
   onSalvar,
@@ -36,6 +37,8 @@ export function ModalScore({
   aberto: boolean;
   nome: string;
   scoreAtual: number;
+  /** Linha embaixo do número (ex.: no check-in, se o score desta partida muda junto). */
+  aviso?: string;
   salvando: boolean;
   erro: string | null;
   onSalvar: (score: number) => void;
@@ -64,6 +67,7 @@ export function ModalScore({
           <Text style={styles.stepBtnTexto}>+</Text>
         </Pressable>
       </View>
+      {aviso ? <Text style={styles.aviso}>{aviso}</Text> : null}
       {erro ? <Text style={styles.erro}>{erro}</Text> : null}
       <View style={styles.acoes}>
         <Pressable style={styles.btnSec} onPress={onFechar} disabled={salvando}>
@@ -409,6 +413,7 @@ const styles = StyleSheet.create({
   descricao: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   meta: { fontSize: 13, color: cores.slate400 },
   erro: { fontSize: 13, color: cores.erroTexto },
+  aviso: { fontSize: 12, lineHeight: 17, color: cores.slate400, textAlign: "center" },
   stepper: {
     flexDirection: "row",
     alignItems: "center",

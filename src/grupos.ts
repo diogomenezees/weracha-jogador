@@ -186,10 +186,23 @@ export function proximaPartidaPeloHorario(grupo: Grupo): Date | null {
 //   primeira posição em laranja, como no check-in, e nunca trava: ele entra
 //   com o score padrão e precisa de um empurrão pra ajustar;
 // - "normal": o resto (inclusive o admin na reta final, que nunca é travado).
+// Se o grupo tirou a autoavaliação (scoreBloqueadoPeloAdmin), é "travado" o
+// tempo todo, novato incluso.
 // Espelha momentoDoMeuScore em weracha-site/lib/grupos.ts.
 export type MomentoDoMeuScore = "normal" | "checkin" | "travado" | "novato";
 
+// O grupo desligou "Jogador muda o próprio score" (Configurações do grupo) e eu
+// não sou admin: vejo meu score com cadeado, sem editar. Servidor antigo não
+// manda o campo (vira liberado). O servidor decide de verdade
+// (SCORE_BLOQUEADO_PELO_ADMIN). Espelha weracha-site/lib/grupos.ts.
+export function scoreBloqueadoPeloAdmin(
+  grupo: Pick<Grupo, "meuPapel" | "scoreEditavelPeloJogador">
+): boolean {
+  return grupo.meuPapel !== "ADMIN" && grupo.scoreEditavelPeloJogador === false;
+}
+
 export function momentoDoMeuScore(grupo: Grupo, agora: Date = new Date()): MomentoDoMeuScore {
+  if (scoreBloqueadoPeloAdmin(grupo)) return "travado";
   if (grupo.souNovato && grupo.meuPapel !== "ADMIN") return "novato";
   const emCheckin = partidasEmAndamento(grupo)[0];
   if (!emCheckin) return "normal";

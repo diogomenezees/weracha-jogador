@@ -15,7 +15,7 @@ import {
 } from "@/api/perfil";
 import { definirPosicao, definirScore, listarPosicoes } from "@/api/jogadores";
 import { formatarTelefoneBR } from "@/contrato/telefone";
-import { meuPapelNoGrupo, proximaPartidaPeloHorario } from "@/grupos";
+import { meuPapelNoGrupo, proximaPartidaPeloHorario, scoreBloqueadoPeloAdmin } from "@/grupos";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { scoreCongelado } from "@/partidas";
 import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
@@ -327,7 +327,11 @@ export default function Perfil() {
               {grupos.map((g) => {
                 const prox = proximaPartidaPeloHorario(g);
                 const souAdmin = g.meuPapel === "ADMIN";
-                const congelado = !souAdmin && !g.souNovato && scoreCongelado(prox);
+                // Cadeado nas duas travas: o grupo tirou a autoavaliação
+                // (Configurações) ou a partida está pra começar.
+                const bloqueadoPeloAdmin = scoreBloqueadoPeloAdmin(g);
+                const congelado =
+                  bloqueadoPeloAdmin || (!souAdmin && !g.souNovato && scoreCongelado(prox));
                 const editando = grupoAberto === g.id && !congelado;
                 const valor = edicoesScore[g.id] ?? g.meuScore;
                 const avisoOrigem =
@@ -378,7 +382,11 @@ export default function Perfil() {
                       )}
                     </View>
                     {congelado && (
-                      <Text style={styles.grupoNota}>Foi congelado porque a partida já vai começar.</Text>
+                      <Text style={styles.grupoNota}>
+                        {bloqueadoPeloAdmin
+                          ? "Neste grupo, só os admins mudam o score."
+                          : "Foi congelado porque a partida já vai começar."}
+                      </Text>
                     )}
                     {avisoOrigem && <Text style={styles.grupoNota}>{avisoOrigem}</Text>}
                     {editando && (

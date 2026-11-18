@@ -6,7 +6,7 @@
 // Abaixo disso a média de uma pessoa nunca vem da API (vem null). Era 3; desde
 // 2026-11-10 é 1 (grupo pequeno nunca via nota nem craque).
 export const MINIMO_AVALIACOES_PRA_MEDIA = 1;
-export const JANELA_AVALIACAO_HORAS = 48;
+export const JANELA_AVALIACAO_HORAS = 24;
 export const NOTA_MIN = 0;
 export const NOTA_MAX = 100;
 

@@ -70,6 +70,7 @@ const POR_CODIGO: Record<string, string> = {
     "Não dá pra trocar a data de nascimento por uma que te tornaria maior de idade. Se for engano, fale com o suporte.",
   FOTO_URL_INVALIDA: "Não deu pra salvar essa foto. Tente de novo.",
   SCORE_CONGELADO: "O score deste grupo travou porque a próxima partida já vai começar.",
+  SCORE_BLOQUEADO_PELO_ADMIN: "Neste grupo, só os admins mudam o score. Fale com um admin do grupo.",
   POSICAO_INVALIDA_PARA_ESPORTE: "Essa posição não é do esporte do grupo.",
   EXCLUSAO_BLOQUEADA_DONO_DE_GRUPO:
     "Você é dono de um ou mais grupos. Passe cada um pra outra pessoa ou exclua o grupo antes.",

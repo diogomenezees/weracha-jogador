@@ -97,6 +97,8 @@ export async function salvarConfiguracoesDoGrupo(
     scoreVisivelTodos: boolean;
     // Site anterior ao campo ignora (mantém o valor atual).
     notasVisiveisTodos?: boolean;
+    // Idem (desde 2026-11-17): false = só admin muda score no grupo.
+    scoreEditavelPeloJogador?: boolean;
   }
 ) {
   const { grupo } = await chamarApi<{ ok: true; grupo?: Grupo }>(

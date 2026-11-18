@@ -23,6 +23,7 @@ import {
   Clock,
   Eye,
   HeartHandshake,
+  Lock,
   Settings,
   Star,
   UserCheck,
@@ -37,7 +38,8 @@ import type { Grupo } from "@/contrato/tipos";
 // igual a /grupos/[id]/configuracoes do site: quando o check-in abre, limite de
 // jogadores por partida (opcional) e o valor inicial de jogadores por time da
 // tela Configurar partida, e (seção "Comparação entre jogadores") se todos veem o
-// score e a tela "Notas da galera". Salva tudo junto.
+// score e a tela "Notas da galera", e se o jogador muda o próprio score
+// (desligado, só admin muda). Salva tudo junto.
 
 export default function ConfiguracoesDoGrupo() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,6 +53,7 @@ export default function ConfiguracoesDoGrupo() {
   const [porTime, setPorTime] = useState(5);
   const [scoreTodos, setScoreTodos] = useState(false);
   const [notasTodos, setNotasTodos] = useState(false);
+  const [scoreEditavel, setScoreEditavel] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -77,6 +80,7 @@ export default function ConfiguracoesDoGrupo() {
         setPorTime(d.grupo.jogadoresPorTime);
         setScoreTodos(!!d.grupo.scoreVisivelTodos);
         setNotasTodos(!!d.grupo.notasVisiveisTodos);
+        setScoreEditavel(d.grupo.scoreEditavelPeloJogador !== false);
       })
       .catch(() => vivo && router.replace(`/grupos/${id}`));
     return () => {
@@ -95,6 +99,7 @@ export default function ConfiguracoesDoGrupo() {
         jogadoresPorTime: porTime,
         scoreVisivelTodos: scoreTodos,
         notasVisiveisTodos: notasTodos,
+        scoreEditavelPeloJogador: scoreEditavel,
       });
       voltarParaGrupo();
     } catch (e) {
@@ -207,6 +212,26 @@ export default function ConfiguracoesDoGrupo() {
             )}
           </Linha>
         </SecaoAgrupada>
+
+        <Secao
+          Icone={Lock}
+          titulo="Jogador muda o próprio score"
+          descricao="Ligado, cada jogador ajusta o próprio score (trava 1h antes da partida). Desligado, só os admins mudam o score, e o jogador vê o dele com cadeado."
+          acao={
+            <Interruptor
+              ligado={scoreEditavel}
+              onChange={setScoreEditavel}
+              rotulo="Jogador muda o próprio score"
+            />
+          }
+        >
+          {scoreEditavel ? (
+            <Text style={styles.dica}>
+              Com o dedo duro dá pra ver quem mexeu, mas o jogador ainda pode baixar a própria nota
+              pra cair num time mais fraco.
+            </Text>
+          ) : null}
+        </Secao>
 
         {/* Score e notas na mesma seção: são as duas chaves que expõem a
             avaliação de uma pessoa pras outras, por isso o aviso logo abaixo do título. */}

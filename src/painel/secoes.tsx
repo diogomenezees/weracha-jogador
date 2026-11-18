@@ -264,7 +264,7 @@ type AcaoRapida = {
 // Atalhos pras telas gerais do menu. "Resultados" abre direto o resultado
 // mais recente entre todos os grupos; sem nenhum ainda, fica desativado.
 // "Avaliar" (laranja, à esquerda de tudo) só existe enquanto tenho votação da
-// avaliação aberta (48h depois da partida) e abre direto a votação. Igual o site.
+// avaliação aberta (24h depois da partida) e abre direto a votação. Igual o site.
 export function AcoesRapidas({
   ultimoResultado,
   avaliacaoAberta,

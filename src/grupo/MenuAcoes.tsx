@@ -18,6 +18,8 @@ export type ItemMenu = {
   destrutivo?: boolean;
   /** Cor fixa pro ícone + texto, sobrepondo o padrão/destrutivo (ex.: laranja pra "Compartilhar"). */
   cor?: string;
+  /** Aparece apagado e não responde ao toque (ex.: "Score travado" com cadeado). */
+  desativado?: boolean;
 };
 
 export function MenuAcoes({
@@ -57,8 +59,11 @@ export function MenuAcoes({
               style={({ pressed }) => [
                 styles.item,
                 i > 0 && styles.itemComDivisor,
-                pressed && styles.itemPressionado,
+                pressed && !item.desativado && styles.itemPressionado,
+                item.desativado && styles.itemDesativado,
               ]}
+              disabled={item.desativado}
+              accessibilityState={{ disabled: !!item.desativado }}
               onPress={() => fechar(item.onPress)}
             >
               <View style={styles.itemIcone}>
@@ -110,6 +115,7 @@ const styles = StyleSheet.create({
   },
   itemComDivisor: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.08)" },
   itemPressionado: { backgroundColor: "rgba(255,255,255,0.06)" },
+  itemDesativado: { opacity: 0.45 },
   itemIcone: { width: 20, alignItems: "center" },
   itemTexto: { flex: 1, fontSize: 16, fontWeight: "600", color: cores.slate200 },
   itemTextoDestrutivo: { color: cores.destrutivoTexto },

@@ -5,7 +5,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { router } from "expo-router";
 
 import { AvatarJogador } from "@/ui/AvatarJogador";
-import { ChevronLeft, Eye, EyeOff, Shield, Star, Users, type LucideIcon } from "@/ui/Icone";
+import { ChevronLeft, Eye, EyeOff, Lock, Shield, Star, Users, type LucideIcon } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { cores, FONTE_BOTAO_RODAPE, raio } from "@/tema";
 
@@ -49,6 +49,7 @@ export function Cabecalho({
   Icone,
   grupoNome,
   meuScore,
+  meuScoreTravado,
   aoLadoDoGrupo,
   descricao,
   direita,
@@ -58,6 +59,8 @@ export function Cabecalho({
   grupoNome: string;
   /** Só o check-in passa: o próprio score, entre o grupo e a descrição. */
   meuScore?: number;
+  /** O grupo só deixa admin mudar score: cadeado depois do número. */
+  meuScoreTravado?: boolean;
   /** Só o ao vivo passa: a regra da rodada ("Rodadas de 10 min"), logo depois
    * do grupo. Nunca corta; quem corta é o nome do grupo e a descrição. */
   aoLadoDoGrupo?: string;
@@ -108,6 +111,17 @@ export function Cabecalho({
                   desce 2px pra centralizar com as letras. */}
               <Star size={12} color={cores.slate400} style={styles.subIconeInline} />
               {` Seu score: ${meuScore}`}
+              {meuScoreTravado ? (
+                <>
+                  {" "}
+                  <Lock
+                    size={12}
+                    color={cores.slate400}
+                    style={styles.subIconeInline}
+                    accessibilityLabel="Só os admins mudam o score neste grupo"
+                  />
+                </>
+              ) : null}
               {descricaoTexto}
             </Text>
           </View>

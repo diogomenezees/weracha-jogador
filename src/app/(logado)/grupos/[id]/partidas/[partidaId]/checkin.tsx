@@ -15,9 +15,13 @@ import {
   ArrowDownAZ,
   Ban,
   Clock,
+  EllipsisVertical,
   Eye,
   EyeOff,
+  Lock,
+  Pencil,
   Share2,
+  Shield,
   Star,
   Trash2,
   UserCheck,
@@ -36,11 +40,12 @@ import {
   removerCheckinDeJogador,
 } from "@/api/checkins";
 import { buscarResultadoAtivo } from "@/api/partidas";
-import { definirMensalista } from "@/api/jogadores";
+import { definirMensalista, definirPosicao, definirScore } from "@/api/jogadores";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { FormNovoJogador } from "@/jogadores/FormNovoJogador";
-import { ModalPerfil } from "@/jogadores/modais";
+import { ModalPerfil, ModalPosicao, ModalScore } from "@/jogadores/modais";
+import { MenuAcoes, type ItemMenu } from "@/grupo/MenuAcoes";
 import { ModalCartao, ModalConfirmar } from "@/grupo/modais";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import {
@@ -57,10 +62,13 @@ import {
   checkinAberto,
   horasDoCheckin,
   limiteDoGrupo,
+  proximaPartidaPeloHorario,
+  scoreBloqueadoPeloAdmin,
 } from "@/grupos";
 import {
   formatarDiaSemanaData,
   formatarHora,
+  scoreCongelado,
   textoHorasAntes,
 } from "@/partidas";
 import { useSessao } from "@/sessao/contexto";
@@ -106,6 +114,19 @@ export default function TelaCheckin() {
     | { tipo: "removerOutro"; jogador: JogadorEmPartida }
     | { tipo: "pagamento"; jogadorId: string; nome: string; novo: TipoPagamento }
   >(null);
+  // Menu "⋮" do card de quem confirmou (Editar score / Editar posição /
+  // Remover a confirmação), no lugar do antigo X. Espelha o site.
+  const [menuDe, setMenuDe] = useState<JogadorEmPartida | null>(null);
+  const [scoreDe, setScoreDe] = useState<{ jogadorId: string; nome: string; score: number } | null>(
+    null
+  );
+  const [posicaoDe, setPosicaoDe] = useState<{
+    jogadorId: string;
+    nome: string;
+    posicaoId: string | null;
+  } | null>(null);
+  const [salvandoModal, setSalvandoModal] = useState(false);
+  const [erroModal, setErroModal] = useState<string | null>(null);
   const [confOcupado, setConfOcupado] = useState(false);
   const [confErro, setConfErro] = useState<string | null>(null);
 
@@ -331,6 +352,96 @@ export default function TelaCheckin() {
 
   const podeAvancar = confirmados.length >= 2;
 
+  // Itens do menu "⋮" do card. "Remover a confirmação" é o antigo X e, como
+  // ele, só existe antes do sorteio. Editar o score antes do sorteio também
+  // atualiza o desta partida (servidor); depois, só vale da próxima. O próprio
+  // score trava com cadeado nas mesmas regras do "Meu score".
+  const meuScoreTravado =
+    !souAdmin &&
+    (scoreBloqueadoPeloAdmin(grupoAtual) ||
+      (!grupoAtual.souNovato && scoreCongelado(proximaPartidaPeloHorario(grupoAtual))));
+
+  function itensDoMenu(j: JogadorEmPartida): ItemMenu[] {
+    const souEu = j.id === meuId;
+    const g = grupoAtual!;
+    const membro = apoio?.membros.find((m) => m.jogadorId === j.id);
+    const travado = souEu && meuScoreTravado;
+    const itens: ItemMenu[] = [
+      travado
+        ? { rotulo: "Score travado", Icone: Lock, desativado: true, onPress: () => {} }
+        : {
+            rotulo: "Editar score",
+            Icone: Star,
+            onPress: () =>
+              setScoreDe({
+                jogadorId: j.id,
+                nome: j.nome,
+                score: souEu ? g.meuScore : (membro?.score ?? scorePorJogador.get(j.id) ?? 50),
+              }),
+          },
+    ];
+    if ((apoio?.posicoes.length ?? 0) > 0) {
+      itens.push({
+        rotulo: "Editar posição",
+        Icone: Shield,
+        onPress: () =>
+          setPosicaoDe({
+            jogadorId: j.id,
+            nome: j.nome,
+            posicaoId: souEu ? g.meuPosicaoId : (membro?.posicaoId ?? null),
+          }),
+      });
+    }
+    if (!resultado) {
+      itens.push({
+        rotulo: "Remover a confirmação",
+        Icone: X,
+        destrutivo: true,
+        onPress: () =>
+          souEu
+            ? setConfirmar({ tipo: "cancelarMeu" })
+            : setConfirmar({ tipo: "removerOutro", jogador: j }),
+      });
+    }
+    return itens;
+  }
+
+  async function salvarScore(valor: number) {
+    if (!scoreDe) return;
+    setSalvandoModal(true);
+    setErroModal(null);
+    try {
+      await definirScore(chamarApi, id, scoreDe.jogadorId, valor);
+      if (scoreDe.jogadorId === meuId) {
+        setGrupo((g) => (g ? { ...g, meuScore: valor } : g));
+      }
+      setScoreDe(null);
+      await carregarApoio().catch(() => {});
+    } catch (e) {
+      setErroModal(mensagemDoErro(e));
+    } finally {
+      setSalvandoModal(false);
+    }
+  }
+
+  async function salvarPosicao(posicaoId: string | null) {
+    if (!posicaoDe) return;
+    setSalvandoModal(true);
+    setErroModal(null);
+    try {
+      await definirPosicao(chamarApi, id, posicaoDe.jogadorId, posicaoId);
+      if (posicaoDe.jogadorId === meuId) {
+        setGrupo((g) => (g ? { ...g, meuPosicaoId: posicaoId } : g));
+      }
+      setPosicaoDe(null);
+      await carregarApoio().catch(() => {});
+    } catch (e) {
+      setErroModal(mensagemDoErro(e));
+    } finally {
+      setSalvandoModal(false);
+    }
+  }
+
   // Compartilha o link de convite com ?partida=, pra quem não está com o
   // celular que passa de mão em mão dar entrada sozinho (espelha
   // weracha-site/app/grupos/[id]/partidas/[partidaId]/checkin/page.tsx).
@@ -366,6 +477,7 @@ export default function TelaCheckin() {
           Icone={UserCheck}
           grupoNome={grupoAtual.nome}
           meuScore={meuCheckinScore ?? grupoAtual.meuScore}
+          meuScoreTravado={scoreBloqueadoPeloAdmin(grupoAtual)}
           descricao={partidaAtual.descricao}
           direita={
             <Pressable
@@ -430,6 +542,33 @@ export default function TelaCheckin() {
               <Text style={styles.aguardandoTexto}>
                 Presença confirmada. Aguardando o admin iniciar a partida.
               </Text>
+              {/* Pílula na cor da faixa, à direita (o texto quebra à esquerda
+                  dela), igual no site: "★ N ✎" abre o score; travado, "★ N 🔒". */}
+              {meuScoreTravado ? (
+                <View style={[styles.pilulaScore, styles.pilulaScoreTravada]}>
+                  <Star size={13} color={cores.ambar} />
+                  <Text style={styles.pilulaScoreTexto}>{grupoAtual.meuScore}</Text>
+                  <Lock size={13} color={cores.ambar} />
+                </View>
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [styles.pilulaScore, pressed && styles.pilulaScorePressionada]}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Revisar meu score (${grupoAtual.meuScore})`}
+                  onPress={() =>
+                    setScoreDe({
+                      jogadorId: meuId,
+                      nome: jogadorPorId.get(meuId)?.nome ?? "Meu score",
+                      score: grupoAtual.meuScore,
+                    })
+                  }
+                >
+                  <Star size={13} color={cores.ambar} />
+                  <Text style={styles.pilulaScoreTexto}>{grupoAtual.meuScore}</Text>
+                  <Pencil size={13} color={cores.ambar} />
+                </Pressable>
+              )}
             </View>
           ) : null
         ) : lotado && !souAdmin ? null : (
@@ -561,16 +700,14 @@ export default function TelaCheckin() {
                           </Text>
                         </View>
                       </Pressable>
-                      {(souEu ? !resultado : souAdmin && !resultado) && (
+                      {(souEu || souAdmin) && (
                         <Pressable
                           hitSlop={8}
-                          onPress={() =>
-                            souEu
-                              ? setConfirmar({ tipo: "cancelarMeu" })
-                              : setConfirmar({ tipo: "removerOutro", jogador: j })
-                          }
+                          onPress={() => setMenuDe(j)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Mais opções de ${j.nome}`}
                         >
-                          <X size={15} color={cores.slate400} />
+                          <EllipsisVertical size={18} color={cores.slate400} />
                         </Pressable>
                       )}
                     </View>
@@ -706,7 +843,35 @@ export default function TelaCheckin() {
         <Eyebrow>Presença confirmada</Eyebrow>
         <Text style={styles.modalTitulo}>Você está confirmado!</Text>
         <Text style={styles.modalDesc}>
-          Aguardando todos os jogadores chegarem pro admin iniciar a partida.
+          Aguardando todos os jogadores chegarem pro admin iniciar a partida.{" "}
+          {/* Na mesma linha, sem ocupar linha nova: hora certa de conferir o
+              score (o sorteio ainda não saiu e o novo já vale nesta partida).
+              Travado, mostra o score com cadeado. */}
+          {meuScoreTravado ? (
+            <Text>
+              Seu score: {grupoAtual.meuScore}{" "}
+              <Lock size={13} color={cores.slate400} style={styles.cadeadoInline} />
+            </Text>
+          ) : (
+            <Text
+              style={styles.revisarScoreTexto}
+              accessibilityRole="link"
+              onPress={() => {
+                setAguardando(false);
+                // Abre o de score só depois do fade deste: no iOS, um Modal
+                // apresentado enquanto outro ainda está saindo não aparece
+                // (mesmo motivo do MenuAcoes rodar a ação depois de fechar).
+                const alvo = {
+                  jogadorId: meuId,
+                  nome: jogadorPorId.get(meuId)?.nome ?? "Meu score",
+                  score: grupoAtual.meuScore,
+                };
+                setTimeout(() => setScoreDe(alvo), 350);
+              }}
+            >
+              Revise seu score ({grupoAtual.meuScore})
+            </Text>
+          )}
         </Text>
         <Pressable style={styles.modalBotao} onPress={() => setAguardando(false)}>
           <Text style={styles.modalBotaoTexto}>Fechar</Text>
@@ -752,6 +917,49 @@ export default function TelaCheckin() {
           await carregarApoio();
         }}
       />
+
+      <MenuAcoes
+        aberto={menuDe !== null}
+        titulo={menuDe?.nome}
+        itens={menuDe ? itensDoMenu(menuDe) : []}
+        onFechar={() => setMenuDe(null)}
+      />
+
+      {scoreDe && (
+        <ModalScore
+          aberto
+          nome={scoreDe.nome}
+          scoreAtual={scoreDe.score}
+          aviso={
+            resultado
+              ? "Os times desta partida já foram sorteados. O novo score vale a partir da próxima."
+              : "Também atualiza o score nesta partida, que ainda não foi sorteada."
+          }
+          salvando={salvandoModal}
+          erro={erroModal}
+          onSalvar={(v) => void salvarScore(v)}
+          onFechar={() => {
+            setScoreDe(null);
+            setErroModal(null);
+          }}
+        />
+      )}
+
+      {posicaoDe && (
+        <ModalPosicao
+          aberto
+          nome={posicaoDe.nome}
+          posicaoAtualId={posicaoDe.posicaoId}
+          posicoes={apoio.posicoes}
+          salvando={salvandoModal}
+          erro={erroModal}
+          onSalvar={(p) => void salvarPosicao(p)}
+          onFechar={() => {
+            setPosicaoDe(null);
+            setErroModal(null);
+          }}
+        />
+      )}
 
       {perfilId && (
         <ModalPerfil
@@ -846,6 +1054,20 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   aguardandoTexto: { flex: 1, fontSize: 13, lineHeight: 18, color: cores.ambar },
+  pilulaScore: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: cores.ambarBorda,
+    backgroundColor: cores.ambarFundo,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  pilulaScorePressionada: { backgroundColor: "rgba(251, 191, 36, 0.18)" },
+  pilulaScoreTravada: { opacity: 0.6 },
+  pilulaScoreTexto: { fontSize: 12, fontWeight: "600", color: cores.ambar },
   tituloLinha: {
     flexDirection: "row",
     alignItems: "center",
@@ -912,6 +1134,10 @@ const styles = StyleSheet.create({
     color: "#f87171",
   },
   modalDesc: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
+  // Sem sublinhado (no site ele só aparece no hover, que não existe no toque).
+  revisarScoreTexto: { fontWeight: "600", color: cores.teal },
+  // Ícone dentro do texto apoia na linha de base e fica alto: desce 2px.
+  cadeadoInline: { transform: [{ translateY: 2 }] },
   modalBotao: {
     height: 48,
     borderRadius: raio.campo,

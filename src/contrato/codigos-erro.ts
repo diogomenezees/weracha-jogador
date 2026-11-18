@@ -218,6 +218,7 @@ export const CODIGOS_ERRO = [
 
   // score
   "SCORE_CONGELADO",
+  "SCORE_BLOQUEADO_PELO_ADMIN",
 ] as const;
 
 export type CodigoErro = (typeof CODIGOS_ERRO)[number];

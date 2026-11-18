@@ -173,6 +173,9 @@ export type Grupo = {
   limiteCheckins?: number | null;
   // true = todo membro vê o score dos outros (desde 2026-10-29; opcional).
   scoreVisivelTodos?: boolean;
+  // true = cada jogador ajusta o próprio score; false = só os admins mudam e o
+  // jogador vê o dele com cadeado (desde 2026-11-17; opcional, ausente = true).
+  scoreEditavelPeloJogador?: boolean;
   // LEGADO: sempre true desde 2026-11-11 (a avaliação não desliga mais).
   avaliacaoAtiva?: boolean;
   // true = todo membro vê a tela "Notas da galera" (desde 2026-11-11; opcional).

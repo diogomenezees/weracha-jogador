@@ -7,7 +7,8 @@ import { ModalCartao } from "@/grupo/modais";
 import { definirPosicao, definirScore, listarPosicoes } from "@/api/jogadores";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { scoreCongelado } from "@/partidas";
-import { proximaPartidaPeloHorario } from "@/grupos";
+import { proximaPartidaPeloHorario, scoreBloqueadoPeloAdmin } from "@/grupos";
+import { SCORE_MAX, SCORE_MIN, faixaDoScore } from "@/faixasScore";
 import { cores, raio } from "@/tema";
 import type { Grupo, PosicaoEsporte } from "@/contrato/tipos";
 import type { OpcoesRequisicao } from "@/api/cliente";
@@ -23,22 +24,7 @@ import type { OpcoesRequisicao } from "@/api/cliente";
 // com `key` mudando a cada abertura, pra o formulário nascer com os valores
 // atuais do grupo.
 
-const SCORE_MIN = 0;
-const SCORE_MAX = 100;
-
-// Referência pra autoavaliação, nas faixas já decididas pro futuro sistema de
-// estrelas (weracha-site/docs/pendente/02-sistema-score-estrelas.md, seção 3).
-const FAIXAS: { min: number; nome: string; descricao: string }[] = [
-  { min: 85, nome: "Jogador caro", descricao: "Joga em outro nível, todo time quer ele" },
-  { min: 70, nome: "Bom de bola", descricao: "Categoria boa, resolve" },
-  { min: 40, nome: "Mediano", descricao: "Joga a posição direitinho" },
-  { min: 20, nome: "Ainda aprendendo", descricao: "Pegando o jogo" },
-  { min: 0, nome: "Iniciante", descricao: "Primeiros jogos, só ganhando rodagem" },
-];
-
-function faixaDoScore(score: number) {
-  return FAIXAS.find((f) => score >= f.min) ?? FAIXAS[FAIXAS.length - 1];
-}
+// Faixas de referência pra autoavaliação em src/faixasScore.ts.
 
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
@@ -65,8 +51,12 @@ export function ModalMeuScore({
   const repeticao = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const souAdmin = grupo.meuPapel === "ADMIN";
+  // Duas travas: o grupo tirou a autoavaliação (Configurações) ou a partida
+  // está pra começar. Nas duas o score aparece, mas não edita.
+  const bloqueadoPeloAdmin = scoreBloqueadoPeloAdmin(grupo);
   const congelado =
-    !souAdmin && !grupo.souNovato && scoreCongelado(proximaPartidaPeloHorario(grupo));
+    bloqueadoPeloAdmin ||
+    (!souAdmin && !grupo.souNovato && scoreCongelado(proximaPartidaPeloHorario(grupo)));
   const faixa = faixaDoScore(score);
   const posicaoEscolhida = posicoes.find((p) => p.id === posicaoId);
 
@@ -176,8 +166,9 @@ export function ModalMeuScore({
           <View style={styles.congelado}>
             <Lock size={14} color={cores.slate400} />
             <Text style={styles.congeladoTexto}>
-              O score fica travado de 1h antes da partida até ela acabar. Se precisar mudar, fale com
-              o admin do grupo.
+              {bloqueadoPeloAdmin
+                ? "Neste grupo, só os admins mudam o score. Se achar que o seu não está certo, fale com um admin do grupo."
+                : "O score fica travado de 1h antes da partida até ela acabar. Se precisar mudar, fale com o admin do grupo."}
             </Text>
           </View>
         ) : null}

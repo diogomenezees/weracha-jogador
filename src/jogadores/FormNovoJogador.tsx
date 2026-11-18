@@ -6,6 +6,7 @@ import { adicionarMembro, buscarJogadorPorTelefone, buscarSugestaoScore } from "
 import { CaixaErro } from "@/acesso/ui";
 import { formatarTelefoneBR, normalizarTelefone } from "@/contrato/telefone";
 import { mensagemDoErro } from "@/mensagens-erro";
+import { faixaDoScore } from "@/faixasScore";
 import { BotaoLaranja } from "@/painel/ui";
 import { cores, raio } from "@/tema";
 import { FolhaArrastavel } from "@/ui/FolhaArrastavel";
@@ -227,6 +228,13 @@ export function FormNovoJogador({
               </View>
             </View>
           )}
+          {/* Faixa do valor escolhido, igual no modal "Meu score" e no site. */}
+          {telefoneVerificado && (
+            <Text style={styles.faixa} numberOfLines={1}>
+              <Text style={styles.faixaNome}>{faixaDoScore(score).nome}</Text>
+              {` · ${faixaDoScore(score).descricao}`}
+            </Text>
+          )}
 
           {erro ? <CaixaErro>{erro}</CaixaErro> : null}
 
@@ -271,6 +279,8 @@ const styles = StyleSheet.create({
   nota: { fontSize: 12, color: cores.slate400 },
   label: { fontSize: 13, fontWeight: "600", color: cores.slate300 },
   scoreLinha: { flexDirection: "row", alignItems: "center", gap: 12 },
+  faixa: { marginTop: -4, fontSize: 12, color: cores.slate400, textAlign: "right" },
+  faixaNome: { fontWeight: "600", color: cores.teal },
   scoreInfo: { flex: 1, gap: 2 },
   stepper: {
     width: 150,

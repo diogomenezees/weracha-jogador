@@ -30,7 +30,7 @@ import type { MomentoDoMeuScore } from "@/grupos";
 // modal ainda abre (a posição não congela) e explica a trava. Jogador novo no
 // grupo também tem o card em primeiro e em laranja, o tempo todo, até jogar a
 // 1ª partida. Ver momentoDoMeuScore em src/grupos.ts. "Avaliar" (laranja, em
-// primeiro) só existe durante a votação da avaliação aberta pra mim (48h). Espelha
+// primeiro) só existe durante a votação da avaliação aberta pra mim (24h). Espelha
 // weracha-site/components/funcoes-do-grupo.tsx.
 
 type Funcao = {
@@ -52,7 +52,7 @@ export function FuncoesDoGrupo({
   onMeuScore,
   souAdmin,
 }: {
-  // Votação da avaliação aberta pra mim (48h depois da partida): card laranja
+  // Votação da avaliação aberta pra mim (24h depois da partida): card laranja
   // "Avaliar" em primeiro, direto pra votação. Fora da janela, undefined.
   avaliar?: { partidaId: string; data: string };
   grupoId: string;

@@ -433,7 +433,7 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
           />
           <Text style={styles.notaDica}>
             Como quem jogou com você avaliou a sua partida, de 0 a 100. A nota aparece quando a
-            votação fecha, 48h depois do jogo. A linha branca é a nota que você se deu (só você vê).
+            votação fecha, 24h depois do jogo. A linha branca é a nota que você se deu (só você vê).
           </Text>
         </View>
       )}

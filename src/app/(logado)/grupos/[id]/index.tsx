@@ -582,7 +582,7 @@ export default function TelaGrupo() {
   );
   const passadas = partidasPassadas(grupo);
   // Atalho laranja "Avaliar" nos Atalhos do grupo: a partida mais recente com a
-  // votação aberta pra mim (48h); fora da janela, sem atalho.
+  // votação aberta pra mim (24h); fora da janela, sem atalho.
   const partidaParaAvaliar = passadas.find((p) => idsAvaliacaoAberta.has(p.id));
   const renovar = aguardandoRenovacao(grupo);
   const proximoMes = nomeDoMes(mesDeRenovacao(grupo).mes);

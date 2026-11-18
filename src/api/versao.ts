@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { requisicao } from "@/api/cliente";
 
 // `versaoRecomendada` só existe desde o site de 2026-10-27; sem ela, não tem
@@ -6,8 +7,14 @@ export type VersaoMinima = { versaoMinima: string; versaoRecomendada: string | n
 
 // GET /api/v1/app/versao-minima — pública (o app consulta no boot, antes do
 // login), então vai direto pelo `requisicao`, sem Bearer. Ver 16-api-v1.md §5.
+// `plataforma` (desde 2026-11-17): cada loja tem as próprias versões e o
+// próprio link. Site anterior ignora o parâmetro.
 export async function buscarVersaoMinima(urlBase: string): Promise<VersaoMinima | null> {
-  const r = await requisicao<Partial<VersaoMinima> | undefined>(urlBase, "/api/v1/app/versao-minima");
+  const plataforma = Platform.OS === "ios" ? "ios" : "android";
+  const r = await requisicao<Partial<VersaoMinima> | undefined>(
+    urlBase,
+    `/api/v1/app/versao-minima?plataforma=${plataforma}`
+  );
   if (!r || typeof r.versaoMinima !== "string" || typeof r.urlLoja !== "string") return null;
   return {
     versaoMinima: r.versaoMinima,

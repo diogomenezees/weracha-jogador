@@ -426,7 +426,13 @@ As 4 telas do ciclo da partida. Os botões de partida (`index.tsx`) roteiam dire
   Admin: busca no elenco + adicionar, cadastrar novo (`FormNovoJogador`, agora
   devolve o `MembroGrupo` pra fazer o check-in do recém-criado), badge de
   pagamento clicável (`checkins/{id}/pagamento` + `membros/{id}/mensalista`
-  juntos), remover check-in de terceiro, toggle Score, ordenação.
+  juntos), toggle Score, ordenação. Desde 2026-11-17 o X do card virou menu "⋮"
+  (`MenuAcoes`, no próprio card pra todos e em todos pro admin): Editar score
+  (`ModalScore`; antes do sorteio também muda o score desta partida no servidor;
+  "Score travado" com cadeado nas regras do "Meu score"), Editar posição
+  (`ModalPosicao`) e Remover a confirmação (o X antigo, só antes do sorteio). A
+  faixa "Aguardando..." tem a pílula ★ N ✎ e o modal de presença confirmada o
+  link "Revise seu score", iguais ao site.
 - **Configurar** (`.../configurar.tsx`, só admin): modo de sorteio, jogadores
   por time com feedback de times/sobra, paleta de cores (grade de swatches +
   hex manual, **sem** seletor nativo de cor — não tem no Expo Go), fixação de
