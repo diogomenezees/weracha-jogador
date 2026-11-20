@@ -1,9 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import type { PurchasesPackage } from "react-native-purchases";
 
-import { buscarTelaAssinatura, patrocinarGrupo, sincronizarAssinatura } from "@/api/assinatura";
+import {
+  buscarTelaAssinatura,
+  patrocinarGrupo,
+  sincronizarAssinatura,
+} from "@/api/assinatura";
 import {
   buscarPacotePro,
   comprarPro,
@@ -17,7 +31,14 @@ import { mensagemDoErro } from "@/mensagens-erro";
 import { BotaoLaranja, Eyebrow, TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
-import { Check, Cloud, CloudOff, Crown, ExternalLink, HeartHandshake } from "@/ui/Icone";
+import {
+  Check,
+  Cloud,
+  CloudOff,
+  Crown,
+  ExternalLink,
+  HeartHandshake,
+} from "@/ui/Icone";
 import { useDialogos } from "@/ui/Dialogos";
 import { Navbar } from "@/ui/Navbar";
 import { Text } from "@/ui/Texto";
@@ -116,10 +137,12 @@ export default function Assinatura() {
         ok
           ? "Agora escolha o grupo que você quer patrocinar, aqui embaixo."
           : "A loja confirmou a compra, mas o We Racha ainda não atualizou. Puxe a tela pra baixo em alguns segundos.",
-        { eyebrow: "Assinatura", Icone: Crown }
+        { eyebrow: "Assinatura", Icone: Crown },
       );
     } catch (e) {
-      avisar("Não deu pra assinar", mensagemDoErro(e), { eyebrow: "Assinatura" });
+      avisar("Não deu pra assinar", mensagemDoErro(e), {
+        eyebrow: "Assinatura",
+      });
     } finally {
       setComprando(false);
     }
@@ -130,11 +153,17 @@ export default function Assinatura() {
     try {
       await restaurarCompras();
       await sincronizarEAtualizar();
-      avisar("Compras restauradas", "Se você já tinha o Pro nesta conta da loja, ele está de volta.", {
+      avisar(
+        "Compras restauradas",
+        "Se você já tinha o Pro nesta conta da loja, ele está de volta.",
+        {
+          eyebrow: "Assinatura",
+        },
+      );
+    } catch (e) {
+      avisar("Não deu pra restaurar", mensagemDoErro(e), {
         eyebrow: "Assinatura",
       });
-    } catch (e) {
-      avisar("Não deu pra restaurar", mensagemDoErro(e), { eyebrow: "Assinatura" });
     } finally {
       setComprando(false);
     }
@@ -157,12 +186,18 @@ export default function Assinatura() {
     try {
       await patrocinarGrupo(chamarApi, grupo.id);
       await carregar();
-      avisar(`${grupo.nome} agora é Pro`, "A galera do grupo foi avisada. No próximo racha, os gols vão pra nuvem.", {
-        eyebrow: "Patrocínio",
-        Icone: HeartHandshake,
-      });
+      avisar(
+        `${grupo.nome} agora é Pro`,
+        "A galera do grupo foi avisada. No próximo racha, os gols vão pra nuvem.",
+        {
+          eyebrow: "Patrocínio",
+          Icone: HeartHandshake,
+        },
+      );
     } catch (e) {
-      avisar("Não deu pra patrocinar", mensagemDoErro(e), { eyebrow: "Patrocínio" });
+      avisar("Não deu pra patrocinar", mensagemDoErro(e), {
+        eyebrow: "Patrocínio",
+      });
     } finally {
       setPatrocinando(null);
     }
@@ -193,7 +228,8 @@ export default function Assinatura() {
 
   const a = dados.assinatura;
   const souPro = !!a?.pro;
-  const podePatrocinar = dados.cobrancaLigada && souPro && dados.vagas.usadas < dados.vagas.max;
+  const podePatrocinar =
+    dados.cobrancaLigada && souPro && dados.vagas.usadas < dados.vagas.max;
   // Comprar só com a cobrança ligada no site: antes disso todo grupo já é Pro.
   const podeComprar = dados.cobrancaLigada && !souPro && compraDisponivel();
 
@@ -201,7 +237,10 @@ export default function Assinatura() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       <Navbar voltar="Painel" />
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: 40 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -215,8 +254,8 @@ export default function Assinatura() {
         <View style={styles.cabecalho}>
           <TituloTela Icone={Crown}>Assinatura</TituloTela>
           <Text style={styles.sub}>
-            O Free organiza o racha inteiro. O Pro acrescenta uma coisa só: os gols na nuvem, pro grupo
-            todo assistir.
+            O Free organiza o racha inteiro. O Pro acrescenta uma coisa só: os
+            gols na nuvem, pro grupo todo assistir.
           </Text>
         </View>
 
@@ -237,7 +276,9 @@ export default function Assinatura() {
             {pacote?.product.priceString ?? "R$ 19,90"}
             <Text style={styles.periodo}> /mês</Text>
           </Text>
-          <Text style={styles.porJogador}>R$ 1,00 por jogador num grupo de 20</Text>
+          <Text style={styles.porJogador}>
+            R$ 1,00 por jogador num grupo de 20
+          </Text>
           {RECURSOS_PRO.map((r) => (
             <LinhaRecurso key={r} texto={r} destaque={r.startsWith("Gols")} />
           ))}
@@ -255,7 +296,10 @@ export default function Assinatura() {
                 Você patrocina {dados.vagas.usadas} de {dados.vagas.max} grupos.
               </Text>
               {a.urlGerenciar && (
-                <Pressable onPress={() => abrirNoNavegador(a.urlGerenciar!)} style={styles.linkLinha}>
+                <Pressable
+                  onPress={() => abrirNoNavegador(a.urlGerenciar!)}
+                  style={styles.linkLinha}
+                >
                   <Text style={styles.link}>Gerenciar assinatura na loja</Text>
                   <ExternalLink size={12} color={cores.teal} />
                 </Pressable>
@@ -264,62 +308,95 @@ export default function Assinatura() {
           ) : podeComprar ? (
             <View style={styles.compra}>
               <BotaoLaranja
-                titulo={pacote ? `Assinar por ${pacote.product.priceString}/mês` : "Carregando o preço..."}
+                titulo={
+                  pacote
+                    ? `Assinar por ${pacote.product.priceString}/mês`
+                    : "Carregando o preço..."
+                }
                 onPress={() => void assinar()}
                 carregando={comprando || !pacote}
                 Icone={Crown}
               />
               <Text style={styles.letraMiuda}>
                 Assinatura mensal com renovação automática, cobrada pela{" "}
-                {pacote?.product ? "loja do seu celular" : "loja"}. Cancele quando quiser nas
-                configurações da loja.{" "}
-                <Text style={styles.link} onPress={() => abrirNoNavegador(URL_TERMOS)}>
+                {pacote?.product ? "loja do seu celular" : "loja"}. Cancele
+                quando quiser nas configurações da loja.{" "}
+                <Text
+                  style={styles.link}
+                  onPress={() => abrirNoNavegador(URL_TERMOS)}
+                >
                   Termos de uso
                 </Text>
                 {" · "}
-                <Text style={styles.link} onPress={() => abrirNoNavegador(URL_PRIVACIDADE)}>
+                <Text
+                  style={styles.link}
+                  onPress={() => abrirNoNavegador(URL_PRIVACIDADE)}
+                >
                   Privacidade
                 </Text>
               </Text>
             </View>
           ) : null}
           {dados.cobrancaLigada && compraDisponivel() && (
-            <Pressable onPress={() => void restaurar()} disabled={comprando} style={styles.restaurar}>
+            <Pressable
+              onPress={() => void restaurar()}
+              disabled={comprando}
+              style={styles.restaurar}
+            >
               <Text style={styles.link}>Restaurar compras</Text>
             </Pressable>
           )}
         </View>
 
-        <Eyebrow>Seus grupos</Eyebrow>
-        {!dados.cobrancaLigada && (
-          <View style={styles.nota}>
-            <CloudOff size={14} color={cores.teal} />
-            <Text style={styles.notaTexto}>Por enquanto a nuvem está liberada pra todos os grupos.</Text>
-          </View>
+        {/* Grupos só pra quem assina: sem assinatura não dá pra fazer nada com eles. */}
+        {souPro && (
+          <>
+            <Eyebrow>Seus grupos</Eyebrow>
+            {!dados.cobrancaLigada && (
+              <View style={styles.nota}>
+                <CloudOff size={14} color={cores.teal} />
+                <Text style={styles.notaTexto}>
+                  Por enquanto a nuvem está liberada pra todos os grupos.
+                </Text>
+              </View>
+            )}
+            {dados.grupos.length === 0 && (
+              <Text style={styles.notaTexto}>
+                Você ainda não está em nenhum grupo.
+              </Text>
+            )}
+            {dados.grupos.map((g) => (
+              <LinhaGrupo
+                key={g.id}
+                grupo={g}
+                meuId={meuId}
+                cobrancaLigada={dados.cobrancaLigada}
+                podePatrocinar={podePatrocinar}
+                patrocinando={patrocinando === g.id}
+                onPatrocinar={() => pedirPatrocinio(g)}
+              />
+            ))}
+          </>
         )}
-        {dados.grupos.length === 0 && <Text style={styles.notaTexto}>Você ainda não está em nenhum grupo.</Text>}
-        {dados.grupos.map((g) => (
-          <LinhaGrupo
-            key={g.id}
-            grupo={g}
-            meuId={meuId}
-            cobrancaLigada={dados.cobrancaLigada}
-            podePatrocinar={podePatrocinar}
-            patrocinando={patrocinando === g.id}
-            onPatrocinar={() => pedirPatrocinio(g)}
-          />
-        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function LinhaRecurso({ texto, destaque }: { texto: string; destaque?: boolean }) {
+function LinhaRecurso({
+  texto,
+  destaque,
+}: {
+  texto: string;
+  destaque?: boolean;
+}) {
   const Icone = destaque ? Cloud : Check;
   return (
     <View style={styles.recurso}>
       <Icone size={15} color={cores.teal} />
-      <Text style={[styles.recursoTexto, destaque && styles.recursoDestaque]}>{texto}</Text>
+      <Text style={[styles.recursoTexto, destaque && styles.recursoDestaque]}>
+        {texto}
+      </Text>
     </View>
   );
 }
@@ -343,7 +420,9 @@ function LinhaGrupo({
   if (!grupo.souMembro && grupo.pro.ate) {
     detalhe = `${grupo.excluido ? "Grupo excluído" : "Você saiu"}. A vaga fica ocupada até ${dataCurta(grupo.pro.ate)}.`;
   } else if (cobrancaLigada && grupo.pro.pro) {
-    detalhe = textoDoPatrocinio(grupo.pro, meuId) + (grupo.pro.ate ? `, Pro até ${dataCurta(grupo.pro.ate)}` : "");
+    detalhe =
+      textoDoPatrocinio(grupo.pro, meuId) +
+      (grupo.pro.ate ? `, Pro até ${dataCurta(grupo.pro.ate)}` : "");
   } else if (cobrancaLigada) {
     detalhe = "Sem Pro: os gols ficam só no celular do We Racha Cam.";
   }
@@ -357,7 +436,11 @@ function LinhaGrupo({
         {detalhe && <Text style={styles.grupoDetalhe}>{detalhe}</Text>}
       </View>
       {podePatrocinar && !grupo.pro.pro && grupo.souMembro && (
-        <Pressable onPress={onPatrocinar} disabled={patrocinando} style={styles.botaoPatrocinar}>
+        <Pressable
+          onPress={onPatrocinar}
+          disabled={patrocinando}
+          style={styles.botaoPatrocinar}
+        >
           {patrocinando ? (
             <ActivityIndicator color={cores.dark} size="small" />
           ) : (
@@ -383,10 +466,22 @@ const styles = StyleSheet.create({
     padding: 18,
     gap: 8,
   },
-  planoPro: { borderColor: "rgba(31,179,163,0.5)", backgroundColor: "rgba(18,137,126,0.12)" },
-  linhaTitulo: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  planoPro: {
+    borderColor: "rgba(31,179,163,0.5)",
+    backgroundColor: "rgba(18,137,126,0.12)",
+  },
+  linhaTitulo: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   planoNome: { color: cores.branco, fontSize: 20, fontWeight: "700" },
-  seuPlano: { color: cores.orange, fontSize: 11, fontWeight: "700", letterSpacing: 1 },
+  seuPlano: {
+    color: cores.orange,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
   preco: { color: cores.branco, fontSize: 28, fontWeight: "700" },
   periodo: { color: cores.slate400, fontSize: 15, fontWeight: "400" },
   porJogador: { color: cores.teal, fontSize: 13, marginTop: -4 },
