@@ -14,6 +14,7 @@ import { AvatarJogador } from "@/ui/AvatarJogador";
 import { useBlurTarget } from "@/ui/BlurTarget";
 import { LogoWeRacha } from "@/ui/LogoWeRacha";
 import {
+  Crown,
   Activity,
   BarChart3,
   ChevronLeft,
@@ -33,6 +34,7 @@ import {
   Video,
   X,
 } from "@/ui/Icone";
+import { buscarResumoPro } from "@/api/assinatura";
 
 // Cabeçalho padronizado das telas logadas. Espelha `weracha-site/components/navbar.tsx`:
 // marca à esquerda (ou um "‹ destino" quando a tela é interna) e um botão de menu
@@ -47,6 +49,10 @@ type Item =
 // Mesma ordem e mesmos ícones (lucide) do menu do site
 // (weracha-site/components/navbar.tsx). Telas não portadas cairiam no /em-breve
 // (nenhuma hoje).
+// Entra logo depois do Mural quando a assinatura está valendo pra pessoa.
+const ITEM_ASSINATURA: Item = { rotulo: "Assinatura", Icone: Crown, tipo: "rota", rota: "/assinatura" };
+const POSICAO_ASSINATURA = 7;
+
 const ITENS: Item[] = [
   { rotulo: "Perfil", Icone: CircleUserRound, tipo: "rota", rota: "/perfil" },
   { rotulo: "Início", Icone: House, tipo: "rota", rota: "/painel" },
@@ -155,8 +161,25 @@ function Gaveta({
   onFechar: () => void;
   muralNaoLidos: number;
 }) {
-  const { estado, ambiente, sair } = useSessao();
+  const { estado, ambiente, sair, chamarApi } = useSessao();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
+
+  // Item "Assinatura": só com a cobrança do Pro ligada e depois do primeiro
+  // grupo (regra do site em /api/v1/assinatura/resumo). Confere ao abrir.
+  const [mostrarAssinatura, setMostrarAssinatura] = useState(false);
+  useEffect(() => {
+    if (!aberto || !jogador) return;
+    let vivo = true;
+    buscarResumoPro(chamarApi)
+      .then((r) => vivo && setMostrarAssinatura(r.mostrarEntradas))
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [aberto, jogador, chamarApi]);
+  const itens: Item[] = mostrarAssinatura
+    ? [...ITENS.slice(0, POSICAO_ASSINATURA), ITEM_ASSINATURA, ...ITENS.slice(POSICAO_ASSINATURA)]
+    : ITENS;
   const blurTarget = useBlurTarget();
 
   // Desliza da direita, sem fade nativo do Modal por cima (igual ao
@@ -265,7 +288,7 @@ function Gaveta({
             </View>
 
             <ScrollView contentContainerStyle={styles.itens} showsVerticalScrollIndicator={false}>
-              {ITENS.map((item) => (
+              {itens.map((item) => (
                 <Pressable key={item.rotulo} style={styles.item} onPress={() => irPara(item)}>
                   <View style={styles.itemIcone}>
                     <item.Icone size={20} color={cores.slate400} />

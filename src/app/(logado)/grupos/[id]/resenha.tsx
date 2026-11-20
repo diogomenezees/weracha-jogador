@@ -22,6 +22,7 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { AbaResenha, BlocoFeedResenha, FeedResenha } from "@/contrato/tipos";
+import { BannerPro } from "@/assinatura/ui";
 
 const ABAS: { valor: AbaResenha; rotulo: string }[] = [
   { valor: "TODOS", rotulo: "Todos os vídeos" },
@@ -83,21 +84,24 @@ export default function ResenhaDoGrupo() {
     (!f.aba || f.aba === abaRef.current) &&
     (f.mes === undefined || f.mes === mesRef.current);
 
+  const [bannerPro, setBannerPro] = useState(false);
+
   const carregarPrimeira = useCallback(async () => {
     const [dados, f] = await Promise.all([
       buscarDadosDoGrupo(chamarApi, id),
       buscarFeedResenha(chamarApi, id, 0, abaRef.current, mesRef.current),
     ]);
-    return { nome: dados.grupo?.nome ?? "", f };
+    return { nome: dados.grupo?.nome ?? "", bannerPro: dados.bannerPro ?? false, f };
   }, [chamarApi, id]);
 
   useEffect(() => {
     let vivo = true;
     (async () => {
       try {
-        const { nome, f } = await carregarPrimeira();
+        const { nome, bannerPro: banner, f } = await carregarPrimeira();
         if (!vivo || !daAbaAtual(f)) return;
         setGrupoNome(nome);
+        setBannerPro(banner);
         setFeed(f);
         setBlocos(f.blocos);
         setPagina(0);
@@ -293,6 +297,8 @@ export default function ResenhaDoGrupo() {
                 </Text>
               </View>
             </View>
+            {/* Banner do Pro: a Resenha segue aberta sem o Pro (regra no site). */}
+            {bannerPro && <BannerPro style={{ marginTop: 10 }} />}
             {(!semVideos || soVencidos) && (
               <View style={styles.descLinha}>
                 <Text style={[styles.desc, { flex: 1 }]}>

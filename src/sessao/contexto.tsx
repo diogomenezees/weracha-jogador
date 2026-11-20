@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { encerrarRevenueCat } from "@/assinatura/revenuecat";
 import * as Device from "expo-device";
 
 import { emitirToken } from "@/api/auth";
@@ -164,6 +165,8 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
         // segue o logout
       }
     }
+    // Desvincula o jogador do RevenueCat (assinatura Pro). Best-effort.
+    await encerrarRevenueCat();
     credenciais.current = null;
     await limparSessao();
     setEstado({ fase: "deslogado" });

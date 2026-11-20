@@ -95,9 +95,11 @@ import type {
   GolComVideos,
   Grupo,
   PartidaResumo,
+  EstadoProGrupo,
   PodeComentar,
   Quadra,
 } from "@/contrato/tipos";
+import { SeloPro } from "@/assinatura/ui";
 
 type Aba = "TIMES" | "ARTILHEIROS" | "HISTORICO" | "LANCES";
 
@@ -166,6 +168,9 @@ export default function TelaResultado() {
   // Voltar do celular com replays abertos fecha eles (volta pra lista), não sai da tela.
   useVoltarDoCelular(replayInline !== null, () => setReplayInline(null));
 
+  // Selo PRO do grupo (assinatura Pro), abaixo do cabeçalho.
+  const [estadoPro, setEstadoPro] = useState<EstadoProGrupo | null>(null);
+
   const carregar = useCallback(async () => {
     const [dados, resultado, gs, ls, apoio, aoVivo, expirados] = await Promise.all([
       buscarDadosDoGrupo(chamarApi, id),
@@ -187,6 +192,7 @@ export default function TelaResultado() {
         : null
     );
     const g = dados.grupo ?? null;
+    setEstadoPro(dados.pro ?? null);
     const p = g ? buscarPartida(g, partidaId) ?? null : null;
     setGrupo(g);
     setPartida(p);
@@ -486,6 +492,11 @@ export default function TelaResultado() {
               <EllipsisVertical size={20} color={cores.slate300} />
             </Pressable>
           }
+        />
+        <SeloPro
+          pro={estadoPro}
+          meuId={sessao.fase === "logado" ? sessao.jogador.id : undefined}
+          style={{ marginTop: 6 }}
         />
         {/* Pílulas numa linha só: o que não couber rola pro lado. */}
         <ScrollView

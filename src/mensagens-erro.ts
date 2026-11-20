@@ -71,6 +71,11 @@ const POR_CODIGO: Record<string, string> = {
   FOTO_URL_INVALIDA: "Não deu pra salvar essa foto. Tente de novo.",
   SCORE_CONGELADO: "O score deste grupo travou porque a próxima partida já vai começar.",
   SCORE_BLOQUEADO_PELO_ADMIN: "Neste grupo, só os admins mudam o score. Fale com um admin do grupo.",
+
+  ASSINATURA_INATIVA: "Pra patrocinar um grupo você precisa ter o Pro ativo.",
+  ASSINATURA_INDISPONIVEL: "Não deu pra confirmar a assinatura agora. Tente de novo em instantes.",
+  GRUPO_JA_PRO: "Esse grupo já é Pro. Alguém já patrocina ele.",
+  VAGAS_ESGOTADAS: "Você já patrocina 5 grupos, o máximo do Pro.",
   POSICAO_INVALIDA_PARA_ESPORTE: "Essa posição não é do esporte do grupo.",
   EXCLUSAO_BLOQUEADA_DONO_DE_GRUPO:
     "Você é dono de um ou mais grupos. Passe cada um pra outra pessoa ou exclua o grupo antes.",

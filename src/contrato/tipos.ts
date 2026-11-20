@@ -239,6 +239,9 @@ export type DadosDaTelaGrupo = {
   // Partidas em que eu posso avaliar a galera agora (desde 2026-11-05; site
   // anterior não manda).
   idsComAvaliacaoAberta?: string[];
+  // Assinatura Pro (desde 2026-11-20; site anterior não manda): selo e banner.
+  pro?: EstadoProGrupo;
+  bannerPro?: boolean;
 };
 
 // ── GET /api/v1/esportes ────────────────────────────────────────────────────
@@ -875,6 +878,8 @@ export type DadosDoPainel = {
   // Partidas com votação da avaliação aberta pra mim (mais recente primeiro): card
   // laranja "Avaliar" nas Ações rápidas (desde 2026-11-07). Opcional: site antigo não manda.
   avaliacoesAbertas?: AvaliacaoAbertaPraMim[];
+  // Assinatura Pro: card acima de "Seus grupos" (desde 2026-11-20; opcional).
+  assinatura?: ResumoPro;
 };
 
 // ── Meus indicadores (GET /api/v1/estatisticas + card do painel) ───────────
@@ -940,4 +945,53 @@ export type MeusIndicadoresPainel = {
   ultimoJogo: { data: string; gols: number; mediaAntes: number | null } | null;
   sequencia: { tipo: "MARCANDO" | "JEJUM"; jogos: number } | null;
   ultimosGols: number[];
+};
+
+// ── Assinatura Pro (GET /api/v1/assinatura, /resumo) ────────────────────────
+// Cópia de weracha-site/lib/services/assinatura.ts (tipos). Spec em
+// weracha-site/docs/pendente/01-assinatura-pro.md; contrato em 16-api-v1.md §16.
+// Datas chegam como string ISO.
+
+export type OrigemPro = "COBRANCA_DESLIGADA" | "PATROCINIO" | "CORTESIA";
+
+export type EstadoProGrupo = {
+  pro: boolean;
+  origem: OrigemPro | null;
+  // Com valor = "Pro até dd/mm"; null = sem data marcada.
+  ate: string | null;
+  patrocinador: { id: string; nome: string } | null;
+};
+
+export type AssinaturaDoJogador = {
+  pro: boolean;
+  proAte: string | null;
+  renova: boolean;
+  emCarencia: boolean;
+  loja: string | null;
+  produtoId: string | null;
+  urlGerenciar: string | null;
+};
+
+export type GrupoNaAssinatura = {
+  id: string;
+  nome: string;
+  pro: EstadoProGrupo;
+  patrocinadoPorMim: boolean;
+  souMembro: boolean;
+  excluido: boolean;
+};
+
+export type TelaAssinatura = {
+  cobrancaLigada: boolean;
+  assinatura: AssinaturaDoJogador | null;
+  vagas: { usadas: number; max: number };
+  grupos: GrupoNaAssinatura[];
+};
+
+export type ResumoPro = {
+  mostrarEntradas: boolean;
+  mostrarBannerGeral: boolean;
+  ehPatrocinador: boolean;
+  algumGrupoPro: boolean;
+  vagas: { usadas: number; max: number };
 };

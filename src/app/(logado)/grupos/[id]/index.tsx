@@ -101,6 +101,7 @@ import type { DadosDaTelaGrupo, Grupo, PartidaResumo, Quadra } from "@/contrato/
 import type { AtividadeGrupo } from "@/contrato/atividades";
 import { buscarAtividadesDoGrupo } from "@/api/atividades";
 import { ListaAtividades } from "@/atividades/ListaAtividades";
+import { BannerPro, SeloPro } from "@/assinatura/ui";
 
 type Aba = "detalhe" | "convidar" | "quadra" | "horarios" | "adicionar" | null;
 
@@ -636,6 +637,8 @@ export default function TelaGrupo() {
                 <EllipsisVertical size={22} color={cores.slate400} />
               </Pressable>
             </View>
+            {/* Selo PRO abaixo do nome (assinatura Pro); toque mostra o patrocinador. */}
+            <SeloPro pro={dados?.pro} meuId={meuId} style={{ marginTop: 6 }} />
 
             {grupo.descricao ? (
               <DescricaoGrupo texto={grupo.descricao} onVerMais={() => setVerDescricaoGrupo(true)} />
@@ -791,6 +794,8 @@ export default function TelaGrupo() {
           {!renovar && proximas.length === 0 && grupo.tipo === "RECORRENTE" && (
             <Text style={styles.vazio}>Nenhuma partida por aqui.</Text>
           )}
+          {/* Banner do Pro: grupo sem Pro e eu não sou patrocinador (regra no site). */}
+          {dados?.bannerPro && <BannerPro style={{ marginTop: 12 }} />}
         </View>
 
         {passadas.length > 0 && (

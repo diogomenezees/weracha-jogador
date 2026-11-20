@@ -66,6 +66,29 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 (sem `Set-Cookie`, `definirSenhaCliente` em `lib/services/auth.ts`) cobre criar a
 1ª senha e redefinir sem abrir sessão de cookie. `senha/redefinir` segue só-web.
 
+## Em andamento: assinatura Pro (branch `assinatura-pro`, 2026-11-20)
+
+Spec e regras no site: `weracha-site/docs/pendente/01-assinatura-pro.md` (site já
+implementado na branch `assinatura-pro` de lá). No app:
+
+- `react-native-purchases` (RevenueCat). `src/assinatura/revenuecat.ts`: configura com o
+  id do jogador no layout logado e faz `logOut` no `sair`; chaves em
+  `EXPO_PUBLIC_REVENUECAT_ANDROID`/`_IOS` (dev: chave `test_` da Test Store em
+  `.env.local`, fora do git; build de loja: `goog_`/`appl_` nas variáveis do EAS).
+  **No Expo Go o SDK roda em Browser Mode e simula a compra com a chave `test_`**: o
+  fluxo inteiro testa sem build do EAS.
+- Tela `(logado)/assinatura.tsx`: planos (preço vem da loja), Assinar (só com a cobrança
+  ligada no site), Restaurar compras, Gerenciar na loja, letra miúda com Termos e
+  Privacidade (exigência da Apple), e os grupos com "Patrocinar" (alerta irreversível).
+  Depois da compra chama `POST /api/v1/assinatura/sincronizar`.
+- `src/assinatura/ui.tsx`: `SeloPro` (tela do grupo e Resultado), `BannerPro` (grupo,
+  Resenha, Replays), `CardAssinatura` (painel acima de "Seus grupos" e perfil), item
+  "Assinatura" no menu. Quem decide se aparece é o site (`bannerPro`, `/assinatura/resumo`).
+- Push novos (`GRUPO_PATROCINADO`, `AVISO_PRO`) caem no grupo pelo fallback de tipo
+  desconhecido.
+- Falta: chave `sk_` no site pra o `sincronizar` funcionar, testar a compra simulada no
+  Expo Go, chaves de produção no EAS e build.
+
 ## Feito: confirmação dos times + substituir quem não chegou (2026-11-11)
 
 Regras em `weracha-site/docs/especificacao/07-resultado-balanceamento.md` § Confirmação

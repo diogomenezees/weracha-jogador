@@ -33,6 +33,7 @@ import {
 } from "@/painel/secoes";
 import { cores, raio } from "@/tema";
 import type { DadosDoPainel } from "@/contrato/tipos";
+import { CardAssinatura } from "@/assinatura/ui";
 
 export default function Painel() {
   const { estado, chamarApi, recarregarPerfil } = useSessao();
@@ -171,6 +172,8 @@ export default function Painel() {
         {temGrupo && dados && !exclusaoPendente && (
           <DestaquesDosGrupos destaques={dados.destaques} />
         )}
+        {/* Assinatura Pro: card/banner acima de "Seus grupos" (regra no site). */}
+        {temGrupo && dados && !exclusaoPendente && <CardAssinatura resumo={dados.assinatura ?? null} />}
         {temGrupo && (
           <SeusGrupos
             grupos={grupos}

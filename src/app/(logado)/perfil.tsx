@@ -30,7 +30,9 @@ import { Check, ChevronDown, ChevronRight, CircleUserRound, Lock, Pencil, Users 
 import { Navbar } from "@/ui/Navbar";
 import { SeloPapel } from "@/ui/SeloPapel";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
-import type { Grupo, PosicaoEsporte } from "@/contrato/tipos";
+import type { Grupo, PosicaoEsporte, ResumoPro } from "@/contrato/tipos";
+import { buscarResumoPro } from "@/api/assinatura";
+import { CardAssinatura } from "@/assinatura/ui";
 
 export default function Perfil() {
   const { estado, chamarApi, urlBase, recarregarPerfil } = useSessao();
@@ -43,6 +45,8 @@ export default function Perfil() {
   const [dataNascimento, setDataNascimento] = useState<string | null>(null);
 
   const [grupos, setGrupos] = useState<Grupo[]>([]);
+  // Entrada da tela Assinatura (abaixo de "Grupos"); regra no site.
+  const [resumoPro, setResumoPro] = useState<ResumoPro | null>(null);
   const [posicoesPorEsporte, setPosicoesPorEsporte] = useState<Record<string, PosicaoEsporte[]>>({});
   const [exclusaoPendenteEm, setExclusaoPendenteEm] = useState<string | null>(null);
 
@@ -92,6 +96,9 @@ export default function Perfil() {
         setExclusaoPendenteEm(status.solicitacaoPendente?.criadoEm ?? null);
         setGrupos(lista);
         setCarregando(false);
+        buscarResumoPro(chamarApi)
+          .then((r) => vivo && setResumoPro(r))
+          .catch(() => {});
         abriu = true;
 
         // Posições por esporte numa 2ª leva, sem segurar a tela: só servem pro
@@ -419,6 +426,13 @@ export default function Perfil() {
                   </View>
                 );
               })}
+            </View>
+          )}
+
+          {resumoPro?.mostrarEntradas && (
+            <View style={styles.grupos}>
+              <Text style={styles.secaoRotulo}>Assinatura</Text>
+              <CardAssinatura resumo={resumoPro} />
             </View>
           )}
 

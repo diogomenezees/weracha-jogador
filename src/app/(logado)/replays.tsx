@@ -36,6 +36,8 @@ import type {
   PeriodoArtilheiros,
   PodeComentar,
 } from "@/contrato/tipos";
+import { buscarResumoPro } from "@/api/assinatura";
+import { BannerPro } from "@/assinatura/ui";
 
 // Abas: "Meus vídeos" (os replays dos meus gols, de qualquer grupo) e "Favoritos" (os
 // replays que marquei com o coração, de qualquer pessoa). Espelha
@@ -168,6 +170,8 @@ export default function Replays() {
     if (p.itens.length > 0 || (p.grupos?.length ?? 0) > 0 || p.temVencidos) setTemVideo(true);
   }, []);
 
+  const [bannerPro, setBannerPro] = useState(false);
+
   const carregar = useCallback(async () => {
     const carga = ++cargaRef.current;
     const [status, primeira] = await Promise.all([
@@ -177,6 +181,10 @@ export default function Replays() {
     if (carga !== cargaRef.current) return;
     setContaPendente(status.solicitacaoPendente != null);
     aplicarPrimeiraPagina(primeira);
+    // Banner do Pro: só se nenhum grupo da pessoa é Pro e ela não patrocina.
+    buscarResumoPro(chamarApi)
+      .then((r) => setBannerPro(r.mostrarBannerGeral))
+      .catch(() => {});
   }, [chamarApi, buscarPagina, aplicarPrimeiraPagina]);
 
   useEffect(() => {
@@ -334,6 +342,7 @@ export default function Replays() {
               </Text>
               {temVideo && !contaPendente && <AjudaExpiracao />}
             </View>
+            {!contaPendente && bannerPro && <BannerPro style={{ marginTop: 10 }} />}
             {!contaPendente && filtro.expirando && !favoritos && (
               <Pressable
                 style={styles.chipExpirando}

@@ -113,6 +113,8 @@ export {
   Info,
   Lock,
   Crown,
+  Cloud,
+  CloudOff,
   ThumbsUp,
   Shield,
   ShieldCheck,
