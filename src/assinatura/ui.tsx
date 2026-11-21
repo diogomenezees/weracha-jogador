@@ -94,17 +94,23 @@ export function SeloPro({
   );
 }
 
-export function BannerPro({ style }: { style?: StyleProp<ViewStyle> }) {
+// `discreto`: mesmo visual do card de partida em aberto (borda esquerda teal, fundo
+// neutro), com só o ícone em laranja. Usado no fim de "Próximas partidas" da tela do
+// grupo, que já tem verde e laranja demais. Igual ao site.
+export function BannerPro({ style, discreto }: { style?: StyleProp<ViewStyle>; discreto?: boolean }) {
   return (
-    <Pressable onPress={() => router.push("/assinatura")} style={[styles.banner, style]}>
+    <Pressable
+      onPress={() => router.push("/assinatura")}
+      style={[styles.banner, discreto && styles.bannerDiscreto, style]}
+    >
       <Cloud size={20} color={cores.orange} />
       <View style={styles.flex}>
-        <Text style={styles.bannerTitulo}>Seja o patrocinador dos replays do seu grupo</Text>
-        <Text style={styles.bannerTexto}>
-          Com o Pro, cada gol gravado vai pra nuvem e a galera toda assiste, comenta e baixa.
+        <Text style={styles.bannerTitulo}>Seja o patrocinador dos replays</Text>
+        <Text style={[styles.bannerTexto, discreto && styles.bannerTextoDiscreto]}>
+          Os gols na nuvem pra galera toda assistir.
         </Text>
       </View>
-      <ChevronRight size={16} color={cores.orange} />
+      <ChevronRight size={16} color={discreto ? cores.slate500 : cores.orange} />
     </Pressable>
   );
 }
@@ -168,6 +174,19 @@ const styles = StyleSheet.create({
   },
   bannerTitulo: { color: cores.branco, fontSize: 14, fontWeight: "600" },
   bannerTexto: { color: cores.slate300, fontSize: 12, marginTop: 2 },
+  // Igual ao `card` de partida em aberto da tela do grupo.
+  bannerDiscreto: {
+    borderColor: cores.cardBorda,
+    borderLeftWidth: 3,
+    borderLeftColor: cores.teal,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderTopRightRadius: raio.campo,
+    borderBottomRightRadius: raio.campo,
+    backgroundColor: cores.cardFundo,
+    paddingVertical: 12,
+  },
+  bannerTextoDiscreto: { color: cores.slate400 },
   card: {
     flexDirection: "row",
     alignItems: "center",

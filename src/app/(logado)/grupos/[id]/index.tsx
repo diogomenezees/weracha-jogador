@@ -787,8 +787,10 @@ export default function TelaGrupo() {
           {!renovar && proximas.length === 0 && grupo.tipo === "RECORRENTE" && (
             <Text style={styles.vazio}>Nenhuma partida por aqui.</Text>
           )}
-          {/* Banner do Pro: grupo sem Pro e eu não sou patrocinador (regra no site). */}
-          {dados?.bannerPro && <BannerPro style={{ marginTop: 12 }} />}
+          {/* Banner do Pro (grupo sem Pro e eu não sou patrocinador, regra no site) no
+              fim de "Próximas partidas", com a cara de uma partida em aberto. Só com
+              partida pela frente: sem próxima partida, some. Igual ao site. */}
+          {dados?.bannerPro && !renovar && proximas.length > 0 && <BannerPro discreto />}
         </View>
 
         {passadas.length > 0 && (
