@@ -15,6 +15,7 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { Megaphone } from "@/ui/Icone";
+import { EstadoVazio } from "@/ui/SemGrupo";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import type { AvisoDoMural } from "@/contrato/tipos";
@@ -113,7 +114,8 @@ export default function Mural() {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: 40 + insets.bottom },
+          // Sem aviso: estica pra o estado vazio ficar centralizado na tela.
+          avisos.length === 0 ? { flexGrow: 1, paddingBottom: 40 + insets.bottom } : { paddingBottom: 40 + insets.bottom },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -143,10 +145,12 @@ export default function Mural() {
         </View>
 
         {avisos.length === 0 ? (
-          <View style={styles.box}>
-            <Text style={styles.boxTitulo}>Nada por aqui</Text>
-            <Text style={styles.boxTexto}>Nenhum aviso ainda.</Text>
-          </View>
+          // Mesmo estado vazio das outras telas (ícone, título e texto, sem caixa).
+          <EstadoVazio
+            Icone={Megaphone}
+            titulo="Nenhum recado por enquanto"
+            texto="Quando o We Racha tiver uma novidade ou um recado pra galera, ele aparece aqui."
+          />
         ) : (
           <View style={styles.secao}>
             {/* Título de seção em teal, igual "Enquetes em andamento". */}
@@ -213,23 +217,6 @@ const styles = StyleSheet.create({
   cabecalho: { gap: 4 },
   sub: { fontSize: 14, lineHeight: 20, color: cores.slate400 },
   link: { color: cores.teal, textDecorationLine: "underline" },
-  box: {
-    borderRadius: raio.card,
-    borderWidth: 1,
-    borderColor: cores.cardBorda,
-    backgroundColor: cores.cardFundo,
-    padding: 18,
-    gap: 6,
-    alignItems: "center",
-  },
-  boxTitulo: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1.5,
-    color: cores.teal,
-    textTransform: "uppercase",
-  },
-  boxTexto: { fontSize: 14, color: cores.slate400, textAlign: "center" },
   // Mesmo título de seção da tela de Enquetes.
   // Título e descrição colados; a lista desce um pouco mais.
   secao: { gap: 2 },

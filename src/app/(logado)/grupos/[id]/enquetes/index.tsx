@@ -16,6 +16,7 @@ import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { Enquete, EnquetesDoGrupo } from "@/contrato/tipos";
+import { EstadoVazio } from "@/ui/SemGrupo";
 
 export default function EnquetesDoGrupoTela() {
   // `enquete` vem do link de convite (destino .../enquetes?enquete={id}): abre a
@@ -98,7 +99,10 @@ export default function EnquetesDoGrupoTela() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, ativas.length === 0 && encerradas.length === 0 && { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.cabecalho}>
           <TituloTela Icone={BarChart3}>Enquetes</TituloTela>
           <View style={styles.subLinha}>
@@ -111,10 +115,17 @@ export default function EnquetesDoGrupoTela() {
         </View>
 
         {ativas.length === 0 && encerradas.length === 0 && (
-          <View style={styles.box}>
-            <Text style={styles.boxTitulo}>Sem enquetes</Text>
-            <Text style={styles.boxTexto}>Nenhuma enquete por aqui ainda.</Text>
-          </View>
+          // Mesmo vazio da tela geral (e do site): centralizado, sem caixa. A
+          // criação fica no rodapé.
+          <EstadoVazio
+            Icone={BarChart3}
+            titulo="Nenhuma enquete ainda"
+            texto={
+              podeCriarEnquete
+                ? `Pergunte à galera do ${grupoNome || "grupo"} o horário, o local ou quem leva a bola.`
+                : "Quando alguém do grupo criar uma enquete, ela aparece aqui."
+            }
+          />
         )}
 
         {ativas.length > 0 && (

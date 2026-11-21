@@ -5,7 +5,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { useLocalSearchParams } from "expo-router";
 
 import { buscarArtilheiros } from "@/api/artilheiros";
-import { CHAVE_GERAL, golsLabel, mesNaFrase } from "@/artilheiros/ranking";
+import { CHAVE_GERAL, golsLabel, mesNaFrase, semGolAinda } from "@/artilheiros/ranking";
+import { EstadoVazio } from "@/ui/SemGrupo";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaArtilheiros } from "@/artilheiros/TelaArtilheiros";
@@ -112,7 +113,7 @@ export default function ArtilheirosDoGrupo() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { flexGrow: 1, paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
           <View style={styles.tituloLinha}>
             <TituloTela Icone={Goal}>Artilheiros</TituloTela>
@@ -133,7 +134,14 @@ export default function ArtilheirosDoGrupo() {
             </Text>
           </View>
         </View>
-        {dados.escopo.tipo === "grupo" ? (
+        {dados.escopo.tipo === "grupo" && semGolAinda(dados) ? (
+          // Grupo sem gol nenhum ainda: no lugar do pódio vazio e do elenco zerado.
+          <EstadoVazio
+            Icone={Goal}
+            titulo="Aguardando o primeiro resultado"
+            texto="Quando o primeiro racha do grupo tiver resultado, cada gol entra aqui e o ranking do mês começa."
+          />
+        ) : dados.escopo.tipo === "grupo" ? (
           <TelaArtilheiros dados={dados} aoMudarContexto={setCtx} />
         ) : (
           <Text style={styles.sub}>Não deu pra carregar o ranking desse grupo.</Text>

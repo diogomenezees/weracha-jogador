@@ -8,6 +8,7 @@ import { buscarIndicadoresDoGrupo } from "@/api/indicadoresGrupo";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { TelaIndicadoresGrupo } from "@/estatisticas/TelaIndicadoresGrupo";
 import { Activity, Users } from "@/ui/Icone";
+import { EstadoVazio } from "@/ui/SemGrupo";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
@@ -102,7 +103,7 @@ export default function IndicadoresDoGrupo() {
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]}
+        contentContainerStyle={[styles.scroll, { flexGrow: 1, paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -122,11 +123,20 @@ export default function IndicadoresDoGrupo() {
           </View>
         </View>
 
-        <TelaIndicadoresGrupo
-          dados={dados}
-          periodoCarregando={periodoCarregando}
-          aoTrocarPeriodo={(p) => void trocarPeriodo(p)}
-        />
+        {dados.partidas.length === 0 ? (
+          // Nenhuma partida com resultado: no lugar dos destaques e gráficos zerados.
+          <EstadoVazio
+            Icone={Activity}
+            titulo="Aguardando o primeiro resultado"
+            texto="Gols, presença e os destaques do grupo aparecem aqui assim que o primeiro racha tiver resultado."
+          />
+        ) : (
+          <TelaIndicadoresGrupo
+            dados={dados}
+            periodoCarregando={periodoCarregando}
+            aoTrocarPeriodo={(p) => void trocarPeriodo(p)}
+          />
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -68,7 +68,7 @@ manda `Origin`/`Sec-Fetch-Site`), e a rota nova `POST /api/v1/auth/senha/definir
 
 ## Em andamento: assinatura Pro (branch `assinatura-pro`, 2026-11-20)
 
-Spec e regras no site: `weracha-site/docs/pendente/01-assinatura-pro.md` (site já
+Spec e regras no site: `weracha-site/docs/especificacao/20-assinatura-pro.md` (site já
 implementado na branch `assinatura-pro` de lá). No app:
 
 - `react-native-purchases` (RevenueCat). `src/assinatura/revenuecat.ts`: configura com o
@@ -86,6 +86,20 @@ implementado na branch `assinatura-pro` de lá). No app:
   "Assinatura" no menu. Quem decide se aparece é o site (`bannerPro`, `/assinatura/resumo`).
 - Push novos (`GRUPO_PATROCINADO`, `AVISO_PRO`) caem no grupo pelo fallback de tipo
   desconhecido.
+- 2026-11-20/21 (igual ao site):
+  - Selo PRO/FREE no formato dos bridges, à direita de esporte/quadra/horários (grupo e
+    Resultado), sempre com o estado real do grupo. FREE cinza abre o modal "Conhecer o Pro".
+  - Chave "Cobrança do Pro" desligada: tela Assinatura sem gravação no celular, Pro "Em
+    breve", sem busca de preço no RevenueCat. Replays e Resenha mostram o convite do Pro
+    (sem vídeo e sem Pro) com a chave ligada ou não; Pro sem vídeo vê "Esperando...".
+  - Estados "Aguardando o primeiro resultado" em Performance, Artilheiros (geral e do
+    grupo) e Indicadores do grupo; chips de grupo só com grupos que têm resultado.
+  - Atalhos do grupo sem resultado: Meu score (laranja), Convidar, Partida, Enquetes e
+    Artilheiros/Indicadores/Resenha bloqueados, Configurações no fim. O alerta "score no
+    padrão" do topo virou destaque do card Meu score. Selo "Beta" da Resenha saiu.
+  - Perfil: "Score: N" abre o `ModalMeuScore` (o mesmo da tela do grupo).
+  - Mural sem aviso: estado vazio no padrão das outras telas.
+  - Nada disso rodou em device ainda.
 - Falta: chave `sk_` no site pra o `sincronizar` funcionar, testar a compra simulada no
   Expo Go, chaves de produção no EAS e build.
 

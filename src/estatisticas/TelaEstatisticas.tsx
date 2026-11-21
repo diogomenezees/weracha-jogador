@@ -196,7 +196,14 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
     }
   }
 
-  const opcoesGrupo = [{ id: null, nome: "Geral" }, ...dados.grupos];
+  // Chips de grupo: só os que já tiveram partida (realizada ou jogada por mim);
+  // grupo sem resultado só mostraria zeros. Igual ao site.
+  const gruposDosChips = dados.grupos.filter(
+    (g) =>
+      dados.partidasRealizadas.some((p) => p.grupoId === g.id && p.total > 0) ||
+      dados.jogos.some((j) => j.grupoId === g.id)
+  );
+  const opcoesGrupo = [{ id: null, nome: "Geral" }, ...gruposDosChips];
 
   const comparacaoUltimo =
     ultimo && mediaAntesDoUltimo !== null
@@ -211,7 +218,7 @@ export function TelaEstatisticas({ dados }: { dados: DadosEstatisticas }) {
     <View style={styles.container}>
       {/* Filtros (grupo, se tiver mais de um, e meses). */}
       <View style={styles.filtros}>
-        {dados.grupos.length > 1 && (
+        {gruposDosChips.length > 1 && (
           <View style={styles.filtroLinha}>
             <Text style={styles.filtroRotulo}>Grupos</Text>
             <ScrollView

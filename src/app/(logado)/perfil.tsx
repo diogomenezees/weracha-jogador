@@ -13,24 +13,22 @@ import {
   definirMuralPush,
   definirNome,
 } from "@/api/perfil";
-import { definirPosicao, definirScore, listarPosicoes } from "@/api/jogadores";
 import { formatarTelefoneBR } from "@/contrato/telefone";
 import { meuPapelNoGrupo, proximaPartidaPeloHorario, scoreBloqueadoPeloAdmin } from "@/grupos";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { scoreCongelado } from "@/partidas";
 import { BotaoLaranja, TelaCarregando, TelaErro } from "@/painel/ui";
-import { MenuAcoes } from "@/grupo/MenuAcoes";
-import { Stepper } from "@/partida/ui";
+import { ModalMeuScore } from "@/grupo/ModalMeuScore";
 import { FotoPerfil } from "@/perfil/FotoPerfil";
 import { CampoDataNascimento, CampoLeitura, CampoTexto } from "@/perfil/ui";
 import { ModalExcluirConta, ModalTrocarSenha } from "@/perfil/modais";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
-import { Check, ChevronDown, ChevronRight, CircleUserRound, Lock, Pencil, Users } from "@/ui/Icone";
+import { ChevronRight, CircleUserRound, Lock, Pencil, Users } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { SeloPapel } from "@/ui/SeloPapel";
 import { ScrollTeclado } from "@/ui/ScrollTeclado";
-import type { Grupo, PosicaoEsporte, ResumoPro } from "@/contrato/tipos";
+import type { Grupo, ResumoPro } from "@/contrato/tipos";
 import { buscarResumoPro } from "@/api/assinatura";
 import { CardAssinatura } from "@/assinatura/ui";
 
@@ -47,7 +45,6 @@ export default function Perfil() {
   const [grupos, setGrupos] = useState<Grupo[]>([]);
   // Entrada da tela Assinatura (abaixo de "Grupos"); regra no site.
   const [resumoPro, setResumoPro] = useState<ResumoPro | null>(null);
-  const [posicoesPorEsporte, setPosicoesPorEsporte] = useState<Record<string, PosicaoEsporte[]>>({});
   const [exclusaoPendenteEm, setExclusaoPendenteEm] = useState<string | null>(null);
 
   const [carregando, setCarregando] = useState(true);
@@ -60,12 +57,10 @@ export default function Perfil() {
   const [modalSenha, setModalSenha] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
   const [senhaTrocada, setSenhaTrocada] = useState(false);
-  // Grupos: igual ao site, "Score: N" abre a edição dentro do card e as mudanças
-  // de score/posição ficam pendentes até o Salvar do rodapé (junto do resto do perfil).
-  const [grupoAberto, setGrupoAberto] = useState<string | null>(null);
-  const [edicoesScore, setEdicoesScore] = useState<Record<string, number>>({});
-  const [edicoesPosicao, setEdicoesPosicao] = useState<Record<string, string | null>>({});
-  const [posicaoMenuDe, setPosicaoMenuDe] = useState<Grupo | null>(null);
+  // Grupos: igual ao site, "Score: N" abre o mesmo ModalMeuScore da tela do grupo
+  // (score + posição, salva sozinho). Antes abria a edição dentro do card e salvava
+  // pelo rodapé junto do resto do perfil.
+  const [grupoAberto, setGrupoAberto] = useState<Grupo | null>(null);
 
   const preencher = useCallback((p: {
     nome: string;
@@ -81,7 +76,6 @@ export default function Perfil() {
 
   useEffect(() => {
     let vivo = true;
-    let abriu = false;
     (async () => {
       setCarregando(true);
       setErro(null);
@@ -99,17 +93,8 @@ export default function Perfil() {
         buscarResumoPro(chamarApi)
           .then((r) => vivo && setResumoPro(r))
           .catch(() => {});
-        abriu = true;
-
-        // Posições por esporte numa 2ª leva, sem segurar a tela: só servem pro
-        // nome da posição em cada grupo (que mostra "..." até chegar).
-        const esportes = [...new Set(lista.map((g) => g.esporte))];
-        const listas = await Promise.all(esportes.map((e) => listarPosicoes(chamarApi, e)));
-        if (!vivo) return;
-        setPosicoesPorEsporte(Object.fromEntries(esportes.map((e, i) => [e, listas[i]])));
       } catch (e) {
-        // Falha nas posições não derruba a tela (ela já abriu); só a 1ª leva vira erro.
-        if (!vivo || abriu) return;
+        if (!vivo) return;
         setErro(mensagemDoErro(e));
         setCarregando(false);
       }
@@ -141,19 +126,11 @@ export default function Perfil() {
 
   const exclusaoPendente = exclusaoPendenteEm !== null;
   const nomeVazio = nome.trim() === "";
-  const gruposComScoreAlterado = grupos.filter(
-    (g) => edicoesScore[g.id] !== undefined && edicoesScore[g.id] !== g.meuScore
-  );
-  const gruposComPosicaoAlterada = grupos.filter(
-    (g) => edicoesPosicao[g.id] !== undefined && edicoesPosicao[g.id] !== g.meuPosicaoId
-  );
   // Enquanto carrega, os campos ainda estão vazios (nome "") e pareceriam
   // alterados: sem o `!carregando`, o Salvar aparecia antes dos dados.
   const sujo =
     !carregando &&
-    (gruposComScoreAlterado.length > 0 ||
-      gruposComPosicaoAlterada.length > 0 ||
-      nome.trim() !== jogador.nome ||
+    (nome.trim() !== jogador.nome ||
       (apelido.trim() || null) !== (jogador.apelido ?? null) ||
       (email.trim() || null) !== (jogador.email ?? null) ||
       (dataNascimento ?? null) !== (jogador.dataNascimento ?? null));
@@ -176,29 +153,6 @@ export default function Perfil() {
       if ((dataNascimento ?? null) !== (jogador!.dataNascimento ?? null)) {
         await definirDataNascimento(chamarApi, dataNascimento);
       }
-      for (const g of gruposComPosicaoAlterada) {
-        await definirPosicao(chamarApi, g.id, jogador!.id, edicoesPosicao[g.id]!);
-      }
-      await Promise.all(
-        gruposComScoreAlterado.map((g) => definirScore(chamarApi, g.id, jogador!.id, edicoesScore[g.id]!))
-      );
-      if (gruposComScoreAlterado.length > 0 || gruposComPosicaoAlterada.length > 0) {
-        setGrupos((gs) =>
-          gs.map((g) => ({
-            ...g,
-            ...(edicoesScore[g.id] !== undefined
-              ? {
-                  meuScore: edicoesScore[g.id]!,
-                  meuScoreOrigem: g.meuPapel === "ADMIN" ? "ADMIN" : "AUTOAVALIACAO",
-                }
-              : {}),
-            ...(edicoesPosicao[g.id] !== undefined ? { meuPosicaoId: edicoesPosicao[g.id]! } : {}),
-          }))
-        );
-        setEdicoesScore({});
-        setEdicoesPosicao({});
-        setGrupoAberto(null);
-      }
       const atualizado = await recarregarPerfil();
       preencher(atualizado);
     } catch (e) {
@@ -218,17 +172,6 @@ export default function Perfil() {
     } finally {
       setReativando(false);
     }
-  }
-
-  function posicaoDoGrupo(g: Grupo): string | null {
-    return edicoesPosicao[g.id] !== undefined ? edicoesPosicao[g.id]! : g.meuPosicaoId;
-  }
-
-  function nomeDaPosicao(g: Grupo): string {
-    const lista = posicoesPorEsporte[g.esporte];
-    // Posições ainda chegando (2ª leva do carregamento): não afirma "Nenhuma".
-    if (!lista) return posicaoDoGrupo(g) ? "..." : "Nenhuma";
-    return lista.find((p) => p.id === posicaoDoGrupo(g))?.nome ?? "Nenhuma";
   }
 
   return (
@@ -339,11 +282,9 @@ export default function Perfil() {
                 const bloqueadoPeloAdmin = scoreBloqueadoPeloAdmin(g);
                 const congelado =
                   bloqueadoPeloAdmin || (!souAdmin && !g.souNovato && scoreCongelado(prox));
-                const editando = grupoAberto === g.id && !congelado;
-                const valor = edicoesScore[g.id] ?? g.meuScore;
+                const valor = g.meuScore;
                 const avisoOrigem =
                   !congelado &&
-                  !editando &&
                   g.meuScoreOrigem !== "AUTOAVALIACAO" &&
                   !(souAdmin && g.meuScoreOrigem === "ADMIN")
                     ? g.meuScoreOrigem === "ADMIN"
@@ -369,18 +310,25 @@ export default function Perfil() {
                         </View>
                         <ChevronRight size={20} color={cores.slate500} />
                       </Pressable>
+                      {/* Os dois abrem o ModalMeuScore; travado, o modal mostra o
+                          valor e explica a trava (a posição continua editável). */}
                       {congelado ? (
-                        <View style={styles.score}>
+                        <Pressable
+                          hitSlop={8}
+                          style={({ pressed }) => [styles.score, pressed && styles.pressionado]}
+                          onPress={() => setGrupoAberto(g)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Ver score no grupo ${g.nome}`}
+                        >
                           <Text style={styles.scoreTravado}>Score: {valor}</Text>
                           <Lock size={13} color={cores.slate500} />
-                        </View>
+                        </Pressable>
                       ) : (
                         <Pressable
                           hitSlop={8}
                           style={({ pressed }) => [styles.score, pressed && styles.pressionado]}
-                          onPress={() => setGrupoAberto(editando ? null : g.id)}
+                          onPress={() => setGrupoAberto(g)}
                           accessibilityRole="button"
-                          accessibilityState={{ expanded: editando }}
                           accessibilityLabel={`Editar score no grupo ${g.nome}`}
                         >
                           <Text style={styles.scoreTexto}>Score: {valor}</Text>
@@ -396,33 +344,6 @@ export default function Perfil() {
                       </Text>
                     )}
                     {avisoOrigem && <Text style={styles.grupoNota}>{avisoOrigem}</Text>}
-                    {editando && (
-                      <>
-                        <View style={styles.grupoEdicao}>
-                          <Text style={styles.grupoEdicaoRotulo}>Seu score nesse grupo</Text>
-                          <Stepper
-                            valor={valor}
-                            min={0}
-                            max={100}
-                            onChange={(v) => setEdicoesScore((e) => ({ ...e, [g.id]: v }))}
-                          />
-                        </View>
-                        <View style={styles.grupoEdicao}>
-                          <Text style={styles.grupoEdicaoRotulo}>Sua posição nesse grupo</Text>
-                          <Pressable
-                            style={styles.seletor}
-                            onPress={() => setPosicaoMenuDe(g)}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Posição no grupo ${g.nome}`}
-                          >
-                            <Text style={styles.seletorTexto} numberOfLines={1}>
-                              {nomeDaPosicao(g)}
-                            </Text>
-                            <ChevronDown size={16} color={cores.slate400} />
-                          </Pressable>
-                        </View>
-                      </>
-                    )}
                   </View>
                 );
               })}
@@ -476,24 +397,36 @@ export default function Perfil() {
           onSolicitado={() => setExclusaoPendenteEm(new Date().toISOString())}
         />
       )}
-      <MenuAcoes
-        aberto={posicaoMenuDe !== null}
-        titulo={posicaoMenuDe ? `Sua posição em ${posicaoMenuDe.nome}` : undefined}
-        onFechar={() => setPosicaoMenuDe(null)}
-        itens={
-          posicaoMenuDe
-            ? [
-                { id: null, nome: "Nenhuma" },
-                ...(posicoesPorEsporte[posicaoMenuDe.esporte] ?? []),
-              ].map((p) => ({
-                rotulo: p.nome,
-                Icone: posicaoDoGrupo(posicaoMenuDe) === p.id ? Check : undefined,
-                cor: posicaoDoGrupo(posicaoMenuDe) === p.id ? cores.teal : undefined,
-                onPress: () => setEdicoesPosicao((e) => ({ ...e, [posicaoMenuDe.id]: p.id })),
-              }))
-            : []
-        }
-      />
+      {grupoAberto && (
+        <ModalMeuScore
+          key={grupoAberto.id}
+          aberto
+          onFechar={() => setGrupoAberto(null)}
+          grupo={grupoAberto}
+          jogadorId={jogador.id}
+          chamarApi={chamarApi}
+          onSalvo={({ score, posicaoId }) =>
+            setGrupos((gs) =>
+              gs.map((g) =>
+                g.id !== grupoAberto.id
+                  ? g
+                  : {
+                      ...g,
+                      meuScore: score,
+                      meuPosicaoId: posicaoId,
+                      // Mesma regra do site: só sai da origem atual se o valor mudou.
+                      meuScoreOrigem:
+                        score !== g.meuScore
+                          ? g.meuPapel === "ADMIN"
+                            ? "ADMIN"
+                            : "AUTOAVALIACAO"
+                          : g.meuScoreOrigem,
+                    }
+              )
+            )
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -567,8 +500,7 @@ function Autorizacoes({
           <View style={styles.autorizacaoTexto}>
             <Text style={styles.autorizacaoTitulo}>Avisos do Mural no celular</Text>
             <Text style={styles.autorizacaoSub}>
-              Notificação quando o We Racha publicar um recado no Mural. Os avisos dos seus grupos
-              não mudam.
+              Notificação quando o We Racha publicar um recado no Mural.
             </Text>
           </View>
           <Switch
@@ -708,30 +640,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  grupoEdicao: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(31,179,163,0.1)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  grupoEdicaoRotulo: { flexShrink: 1, fontSize: 14, color: cores.slate400 },
-  seletor: {
-    maxWidth: "55%",
-    height: 36,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: raio.campo,
-    borderWidth: 1,
-    borderColor: cores.campoBorda,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    paddingHorizontal: 10,
-  },
-  seletorTexto: { flexShrink: 1, fontSize: 14, color: cores.branco },
 
   rodape: {
     position: "absolute",

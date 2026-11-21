@@ -8,17 +8,32 @@ import { buscarMinhasEnquetes } from "@/api/enquetes";
 import { PRODUCAO_URL } from "@/config/links";
 import { mensagemDoErro } from "@/mensagens-erro";
 import { ModalEnquete } from "@/enquetes/ModalEnquete";
-import { BarChart3, Users } from "@/ui/Icone";
+import { Plus, BarChart3, Users } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { EnqueteComGrupo, EnquetesDoJogador } from "@/contrato/tipos";
+import {
+  ALTURA_RODAPE_SEM_GRUPO,
+  EstadoSemGrupo,
+  EstadoVazio,
+  RodapeComBotao,
+  RodapeSemGrupo,
+  useMeusGrupos,
+} from "@/ui/SemGrupo";
 
 export default function EnquetesGlobal() {
   // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
   const insets = useSafeAreaInsets();
+  // Grupos da pessoa decidem como criar enquete daqui (igual ao site):
+  // nenhum = estado de começar/criar grupo; um só = "Criar enquete" no rodapé,
+  // direto pra ele; vários = seção "Criar enquete" com a lista dos grupos.
+  const meusGrupos = useMeusGrupos();
+  const temGrupo = meusGrupos === undefined ? null : meusGrupos === null || meusGrupos.length > 0;
+  const grupoUnico = meusGrupos && meusGrupos.length === 1 ? meusGrupos[0] : null;
+  const variosGrupos = meusGrupos && meusGrupos.length > 1 ? meusGrupos : null;
   const { estado, chamarApi } = useSessao();
   const meuId = estado.fase === "logado" ? estado.jogador.id : null;
 
@@ -80,17 +95,39 @@ export default function EnquetesGlobal() {
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          temGrupo === false || grupoUnico
+            ? { paddingBottom: ALTURA_RODAPE_SEM_GRUPO + insets.bottom }
+            : { paddingBottom: 40 + insets.bottom },
+          (temGrupo === false || (todas.length === 0 && !variosGrupos)) && { flexGrow: 1 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.cabecalho}>
           <TituloTela Icone={BarChart3}>Enquetes</TituloTela>
           <Text style={styles.sub}>Todas as enquetes dos grupos que você faz parte, num só lugar.</Text>
         </View>
 
-        {todas.length === 0 && (
-          <View style={styles.box}>
-            <Text style={styles.boxTitulo}>Sem enquetes</Text>
-            <Text style={styles.boxTexto}>Nenhuma enquete nos grupos que você faz parte ainda.</Text>
-          </View>
+        {temGrupo === false && (
+          <EstadoSemGrupo
+            Icone={BarChart3}
+            titulo="As enquetes acontecem no grupo"
+            texto="Pergunte à galera o horário, o local ou quem leva a bola. Tudo começa com um grupo."
+          />
+        )}
+
+        {temGrupo !== false && todas.length === 0 && (
+          <EstadoVazio
+            Icone={BarChart3}
+            titulo="Nenhuma enquete ainda"
+            texto={
+              grupoUnico
+                ? `Pergunte à galera do ${grupoUnico.nome} o horário, o local ou quem leva a bola.`
+                : "Pergunte à galera o horário, o local ou quem leva a bola. Escolha o grupo aqui embaixo."
+            }
+          />
         )}
 
         {dados.ativas.length > 0 && (
@@ -108,7 +145,24 @@ export default function EnquetesGlobal() {
           </Secao>
         )}
 
-        <Text style={styles.avisoCriar}>Pra criar uma enquete, entre no grupo que você faz parte.</Text>
+        {variosGrupos && (
+          <Secao titulo="Criar enquete" descricao="Escolha o grupo da enquete">
+            {variosGrupos.map((g) => (
+              <Pressable
+                key={g.id}
+                style={styles.grupoCriar}
+                onPress={() => router.push(`/grupos/${g.id}/enquetes/nova`)}
+              >
+                <Users size={16} color={cores.slate400} />
+                <Text style={styles.grupoCriarNome} numberOfLines={1}>
+                  {g.nome}
+                </Text>
+                <Plus size={14} color={cores.orange} />
+                <Text style={styles.grupoCriarAcao}>Criar</Text>
+              </Pressable>
+            ))}
+          </Secao>
+        )}
       </ScrollView>
 
       <ModalEnquete
@@ -134,6 +188,14 @@ export default function EnquetesGlobal() {
         }
         onIrAoGrupo={detalhe ? () => router.push(`/grupos/${detalhe.grupoId}`) : undefined}
       />
+      {temGrupo === false && <RodapeSemGrupo />}
+      {grupoUnico && (
+        <RodapeComBotao
+          titulo="Criar enquete"
+          Icone={Plus}
+          onPress={() => router.push(`/grupos/${grupoUnico.id}/enquetes/nova`)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -195,6 +257,18 @@ function Card({ enquete, onPress }: { enquete: EnqueteComGrupo; onPress: () => v
 const styles = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.dark },
   scroll: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40, gap: 20 },
+  grupoCriar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: raio.campo,
+    padding: 12,
+  },
+  grupoCriarNome: { flex: 1, minWidth: 0, color: cores.branco, fontSize: 14, fontWeight: "600" },
+  grupoCriarAcao: { color: cores.orange, fontSize: 12, fontWeight: "600" },
   cabecalho: { gap: 4 },
   h1: { fontSize: 24, fontWeight: "700", color: cores.branco },
   sub: { fontSize: 14, color: cores.slate400 },

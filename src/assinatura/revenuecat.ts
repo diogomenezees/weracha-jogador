@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import Purchases, { PURCHASES_ERROR_CODE, type PurchasesPackage } from "react-native-purchases";
 
 // Compra do Pro pelo RevenueCat (Google Play no Android, App Store no iPhone).
-// Spec: weracha-site/docs/pendente/01-assinatura-pro.md.
+// Spec: weracha-site/docs/especificacao/20-assinatura-pro.md.
 //
 // - A verdade sobre "tem Pro" é do site (que reconsulta o RevenueCat). Daqui só
 //   sai a compra/restauração; depois a tela chama `POST /api/v1/assinatura/sincronizar`.

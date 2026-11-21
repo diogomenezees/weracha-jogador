@@ -49,16 +49,16 @@ type Item =
 // Mesma ordem e mesmos ícones (lucide) do menu do site
 // (weracha-site/components/navbar.tsx). Telas não portadas cairiam no /em-breve
 // (nenhuma hoje).
-// Entra logo depois do Mural quando a assinatura está valendo pra pessoa.
+// Entra logo antes do Mural.
 const ITEM_ASSINATURA: Item = { rotulo: "Assinatura", Icone: Crown, tipo: "rota", rota: "/assinatura" };
-const POSICAO_ASSINATURA = 7;
+const POSICAO_ASSINATURA = 6;
 
 const ITENS: Item[] = [
   { rotulo: "Perfil", Icone: CircleUserRound, tipo: "rota", rota: "/perfil" },
   { rotulo: "Início", Icone: House, tipo: "rota", rota: "/painel" },
   { rotulo: "Performance", Icone: Activity, tipo: "rota", rota: "/indicadores" },
   { rotulo: "Artilheiros", Icone: Goal, tipo: "rota", rota: "/artilheiros" },
-  { rotulo: "Replays", Icone: Video, tipo: "rota", rota: "/replays", beta: true },
+  { rotulo: "Replays", Icone: Video, tipo: "rota", rota: "/replays" },
   { rotulo: "Enquetes", Icone: BarChart3, tipo: "rota", rota: "/enquetes" },
   { rotulo: "Mural", Icone: Megaphone, tipo: "rota", rota: "/mural" },
   { rotulo: "Parcerias", Icone: Store, tipo: "rota", rota: "/parcerias" },
@@ -164,14 +164,14 @@ function Gaveta({
   const { estado, ambiente, sair, chamarApi } = useSessao();
   const jogador = estado.fase === "logado" ? estado.jogador : null;
 
-  // Item "Assinatura": só com a cobrança do Pro ligada e depois do primeiro
-  // grupo (regra do site em /api/v1/assinatura/resumo). Confere ao abrir.
+  // Item "Assinatura": sempre pra qualquer pessoa logada (regra do site em
+  // /api/v1/assinatura/resumo, campo mostrarMenu).
   const [mostrarAssinatura, setMostrarAssinatura] = useState(false);
   useEffect(() => {
     if (!aberto || !jogador) return;
     let vivo = true;
     buscarResumoPro(chamarApi)
-      .then((r) => vivo && setMostrarAssinatura(r.mostrarEntradas))
+      .then((r) => vivo && setMostrarAssinatura(r.mostrarMenu ?? r.mostrarEntradas))
       .catch(() => {});
     return () => {
       vivo = false;

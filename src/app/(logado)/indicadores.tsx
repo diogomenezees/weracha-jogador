@@ -14,6 +14,7 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import type { DadosEstatisticas } from "@/contrato/tipos";
+import { ALTURA_RODAPE_SEM_GRUPO, EstadoSemGrupo, EstadoVazio, RodapeSemGrupo } from "@/ui/SemGrupo";
 
 // "Meus indicadores": os números do jogador logado com filtro de grupo e mês.
 // Uma leitura só (GET /api/v1/estatisticas); os filtros recalculam no aparelho.
@@ -85,11 +86,14 @@ export default function Estatisticas() {
     );
   }
 
+  const semGrupo = !contaPendente && dados.grupos.length === 0;
+  const semJogo = !contaPendente && !semGrupo && dados.jogos.length === 0;
+
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]}
+        contentContainerStyle={[styles.scroll, semGrupo ? { flexGrow: 1, paddingBottom: ALTURA_RODAPE_SEM_GRUPO + insets.bottom } : semJogo ? { flexGrow: 1, paddingBottom: 40 + insets.bottom } : { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -111,16 +115,32 @@ export default function Estatisticas() {
             </Text>
           </View>
         ) : dados.grupos.length === 0 ? (
-          <View style={styles.box}>
-            <Text style={styles.boxTitulo}>Sem grupos</Text>
-            <Text style={styles.boxTexto}>
-              Entre num grupo e jogue a primeira partida pra ver seus números aqui.
-            </Text>
-          </View>
+          <EstadoSemGrupo
+            Icone={Activity}
+            titulo="Sua performance começa no primeiro racha"
+            texto="Gols, presença e evolução aparecem aqui assim que você jogar com um grupo."
+          />
+        ) : semJogo ? (
+          // Tem grupo, mas nenhum jogo seu com resultado: no lugar de um monte de zeros,
+          // a tela espera o primeiro resultado (igual ao site).
+          dados.partidasRealizadas.some((p) => p.total > 0) ? (
+            <EstadoVazio
+              Icone={Activity}
+              titulo="Você ainda não entrou em campo"
+              texto="Seus gols, sua presença e sua evolução aparecem aqui depois do primeiro racha que você jogar."
+            />
+          ) : (
+            <EstadoVazio
+              Icone={Activity}
+              titulo="Aguardando o primeiro resultado"
+              texto="Seus gols, sua presença e sua evolução aparecem aqui assim que o primeiro racha do seu grupo tiver resultado."
+            />
+          )
         ) : (
           <TelaEstatisticas dados={dados} />
         )}
       </ScrollView>
+      {semGrupo && <RodapeSemGrupo />}
     </SafeAreaView>
   );
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { buscarDadosDoGrupo } from "@/api/grupos";
 import { buscarFeedResenha } from "@/api/resenha";
@@ -11,9 +11,9 @@ import { bannerDoFeedDepoisDe } from "@/contrato/bannersDoFeed";
 import { BannerDoFeed, useCampanhasNoAr } from "@/resenha/BannerDoFeed";
 import { BlocoCard } from "@/resenha/BlocoCard";
 import { AjudaExpiracao } from "@/resenha/AjudaExpiracao";
-import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
+import { ALTURA_RODAPE_SEM_GRUPO, EstadoVazio, RodapeComBotao } from "@/ui/SemGrupo";
 import { FiltroChips, opcoesDeMeses } from "@/ui/FiltroChips";
-import { Hourglass, MessageCircle, RefreshCw, Users } from "@/ui/Icone";
+import { Crown, Hourglass, MessageCircle, RefreshCw, Users } from "@/ui/Icone";
 import { MESES_COMUNICADOS } from "@/contrato/expiracaoReplays";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
@@ -85,23 +85,33 @@ export default function ResenhaDoGrupo() {
     (f.mes === undefined || f.mes === mesRef.current);
 
   const [bannerPro, setBannerPro] = useState(false);
+  // Grupo sem Pro de verdade (sem patrocínio nem cortesia, chave ligada ou não): sem
+  // vídeo, a Resenha vira o convite do Pro (igual à tela de Replays e ao site).
+  // Estado desconhecido (site antigo sem `pro`) conta como Pro.
+  const [grupoSemPro, setGrupoSemPro] = useState(false);
 
   const carregarPrimeira = useCallback(async () => {
     const [dados, f] = await Promise.all([
       buscarDadosDoGrupo(chamarApi, id),
       buscarFeedResenha(chamarApi, id, 0, abaRef.current, mesRef.current),
     ]);
-    return { nome: dados.grupo?.nome ?? "", bannerPro: dados.bannerPro ?? false, f };
+    return {
+      nome: dados.grupo?.nome ?? "",
+      bannerPro: dados.bannerPro ?? false,
+      semPro: dados.pro ? !dados.pro.pro : false,
+      f,
+    };
   }, [chamarApi, id]);
 
   useEffect(() => {
     let vivo = true;
     (async () => {
       try {
-        const { nome, bannerPro: banner, f } = await carregarPrimeira();
+        const { nome, bannerPro: banner, semPro, f } = await carregarPrimeira();
         if (!vivo || !daAbaAtual(f)) return;
         setGrupoNome(nome);
         setBannerPro(banner);
+        setGrupoSemPro(semPro);
         setFeed(f);
         setBlocos(f.blocos);
         setPagina(0);
@@ -243,6 +253,8 @@ export default function ResenhaDoGrupo() {
   // Sem nada em dia, mas o grupo já gravou: os replays venceram (mais de 4 meses).
   // Não é "a resenha está chegando"; o "!" continua. Espelha o site.
   const soVencidos = semVideos && !!feed.temVencidos;
+  // Sem vídeo e grupo sem Pro: a tela só diz que a Resenha é do Pro.
+  const soAssinatura = semVideos && !soVencidos && grupoSemPro;
   const meses = feed.meses ?? [];
   // Só com 2+ meses (com 1, "Geral" e o mês mostrariam a mesma coisa).
   const mostraMeses = !semVideos && (meses.length > 1 || !!mes);
@@ -262,7 +274,14 @@ export default function ResenhaDoGrupo() {
           setTimeout(() => listaRef.current?.scrollToIndex({ index, animated: true }), 250);
         }}
         keyExtractor={(b) => b.pedidoReplayId}
-        contentContainerStyle={[styles.lista, { paddingBottom: 40 + insets.bottom }]}
+        contentContainerStyle={[
+          styles.lista,
+          soAssinatura
+            ? { flexGrow: 1, paddingBottom: ALTURA_RODAPE_SEM_GRUPO + insets.bottom }
+            : semVideos
+              ? { flexGrow: 1, paddingBottom: 40 + insets.bottom }
+              : { paddingBottom: 40 + insets.bottom },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={atualizando} onRefresh={atualizar} tintColor={cores.teal} />
@@ -274,8 +293,6 @@ export default function ResenhaDoGrupo() {
               <View style={styles.tituloLinha}>
                 <View style={styles.tituloComSelo}>
                   <TituloTela>Resenha</TituloTela>
-                  {/* Mesmo selo da Repercussão em Minha performance. */}
-                  <Text style={styles.beta}>Beta</Text>
                 </View>
                 <Pressable
                   accessibilityLabel="Atualizar"
@@ -298,7 +315,7 @@ export default function ResenhaDoGrupo() {
               </View>
             </View>
             {/* Banner do Pro: a Resenha segue aberta sem o Pro (regra no site). */}
-            {bannerPro && <BannerPro style={{ marginTop: 10 }} />}
+            {bannerPro && !soAssinatura && <BannerPro style={{ marginTop: 10 }} />}
             {(!semVideos || soVencidos) && (
               <View style={styles.descLinha}>
                 <Text style={[styles.desc, { flex: 1 }]}>
@@ -360,10 +377,20 @@ export default function ResenhaDoGrupo() {
                 aparecem aqui.
               </Text>
             </View>
+          ) : soAssinatura ? (
+            // Mesma regra da tela de Replays: sem vídeo e sem Pro, só o convite
+            // ("Conhecer o Pro" no rodapé).
+            <EstadoVazio
+              Icone={Crown}
+              titulo="A Resenha é da assinatura Pro"
+              texto="Com o Pro, cada gol gravado pelo We Racha Cam vai pra nuvem e a galera assiste e comenta cada lance aqui. Uma pessoa patrocina e o grupo todo aproveita."
+            />
           ) : semVideos ? (
-            <EmDesenvolvimento
-              titulo="A resenha está chegando"
-              texto="Estamos preparando os replays dos gols para liberar em breve. Quando estiver pronto, a galera vai poder ver e comentar cada lance aqui."
+            // Grupo Pro, nenhum vídeo ainda.
+            <EstadoVazio
+              Icone={MessageCircle}
+              titulo="Esperando os lances do próximo racha"
+              texto="Quando o próximo jogo for gravado pelo We Racha Cam, cada gol aparece aqui pra galera assistir e comentar."
             />
           ) : trocandoAba ? (
             <View style={styles.vazio}>
@@ -423,6 +450,9 @@ export default function ResenhaDoGrupo() {
           ) : null
         }
       />
+      {soAssinatura && (
+        <RodapeComBotao titulo="Conhecer o Pro" Icone={Crown} onPress={() => router.push("/assinatura")} />
+      )}
     </SafeAreaView>
   );
 }
@@ -437,20 +467,6 @@ const styles = StyleSheet.create({
   item: { gap: 16 },
   tituloLinha: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
   tituloComSelo: { flexDirection: "row", alignItems: "center", gap: 8 },
-  beta: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    color: cores.beta,
-    borderWidth: 1,
-    borderColor: cores.betaBorda,
-    backgroundColor: cores.betaFundo,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    overflow: "hidden",
-  },
   atualizarBtn: {
     width: 36,
     height: 36,

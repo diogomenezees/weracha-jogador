@@ -949,7 +949,7 @@ export type MeusIndicadoresPainel = {
 
 // ── Assinatura Pro (GET /api/v1/assinatura, /resumo) ────────────────────────
 // Cópia de weracha-site/lib/services/assinatura.ts (tipos). Spec em
-// weracha-site/docs/pendente/01-assinatura-pro.md; contrato em 16-api-v1.md §16.
+// weracha-site/docs/especificacao/20-assinatura-pro.md; contrato em 16-api-v1.md §16.
 // Datas chegam como string ISO.
 
 export type OrigemPro = "COBRANCA_DESLIGADA" | "PATROCINIO" | "CORTESIA";
@@ -989,6 +989,11 @@ export type TelaAssinatura = {
 };
 
 export type ResumoPro = {
+  // Item "Assinatura" do menu: qualquer logado, com a cobrança ligada (opcional:
+  // site anterior não manda; aí vale mostrarEntradas).
+  mostrarMenu?: boolean;
+  // Não tem o Pro de jeito nenhum (sem assinatura, sem patrocínio, sem grupo Pro).
+  semPro?: boolean;
   mostrarEntradas: boolean;
   mostrarBannerGeral: boolean;
   ehPatrocinador: boolean;

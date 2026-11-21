@@ -10,7 +10,7 @@ import { useDialogos } from "@/ui/Dialogos";
 // Selo PRO, banner de assinatura e card de entrada da tela Assinatura. Espelham
 // weracha-site/components/{selo-pro,banner-pro}.tsx. Quem decide SE aparece é o
 // servidor (bannerPro da tela do grupo, ResumoPro); estes componentes só desenham.
-// Vocabulário: "patrocinador". Spec: weracha-site/docs/pendente/01-assinatura-pro.md.
+// Vocabulário: "patrocinador". Spec: weracha-site/docs/especificacao/20-assinatura-pro.md.
 
 export function dataCurta(iso: string): string {
   const d = new Date(iso);
@@ -25,19 +25,60 @@ export function textoDoPatrocinio(pro: EstadoProGrupo, meuId?: string): string {
   return "Grupo Pro";
 }
 
-// Badge laranja forte abaixo do nome do grupo. Tocar mostra quem patrocina.
-// Some com a cobrança desligada no /admin (aí todo grupo é Pro).
+// Pílula do plano do grupo, à direita das de esporte/horários e no MESMO formato
+// delas, mudando só a cor (decidido 2026-11-20): PRO laranja (tocar mostra quem
+// patrocina) e FREE cinza (tocar abre o modal com "Conhecer o Pro").
+// Grupo sem Pro ganha o selo FREE. Os dois valem com a cobrança ligada ou não.
 export function SeloPro({
   pro,
   meuId,
   style,
+  semFree,
 }: {
   pro: EstadoProGrupo | null | undefined;
   meuId?: string;
   style?: StyleProp<ViewStyle>;
+  // Sem o FREE (ex.: lista da própria tela Assinatura, onde ele levaria pra ela mesma).
+  semFree?: boolean;
 }) {
-  const { avisar } = useDialogos();
-  if (!pro?.pro || pro.origem === "COBRANCA_DESLIGADA") return null;
+  const { avisar, confirmar } = useDialogos();
+  // O selo mostra o estado real do grupo (PRO ou FREE), com a chave "Cobrança do
+  // Pro" ligada ou não (decidido 2026-11-20). COBRANCA_DESLIGADA só chega de telas
+  // que ainda usam o estado de comunicação: aí não desenha nada. null: nada.
+  if (!pro || pro.origem === "COBRANCA_DESLIGADA") return null;
+  if (!pro.pro) {
+    if (semFree) return null;
+    // Selo FREE (decidido 2026-11-20): cinza e discreto, no mesmo lugar do PRO.
+    // Tocar explica e leva pra assinatura. Espelha SeloFree do site.
+    return (
+      <Pressable
+        onPress={() =>
+          confirmar({
+            eyebrow: "Assinatura",
+            titulo: "Grupo no plano Free",
+            descricao: "Com o Pro, cada gol vai pra nuvem pro grupo todo assistir.",
+            confirmarLabel: "Conhecer o Pro",
+            Icone: Crown,
+            onConfirmar: () => router.push("/assinatura"),
+          })
+        }
+        accessibilityRole="button"
+        accessibilityLabel="Grupo no plano Free"
+        hitSlop={8}
+        // Apagado em repouso; pressionado ganha o cinza cheio (igual ao hover do site).
+        style={({ pressed }) => [styles.selo, styles.seloFree, pressed && styles.seloFreePressionado, style]}
+      >
+        {({ pressed }) => (
+          <>
+            <Crown size={12} color={pressed ? cores.slate300 : cores.zinc500} />
+            <Text style={[styles.seloTexto, styles.seloFreeTexto, pressed && styles.seloFreeTextoPressionado]}>
+              Free
+            </Text>
+          </>
+        )}
+      </Pressable>
+    );
+  }
   const texto = textoDoPatrocinio(pro, meuId) + (pro.ate ? `. Pro até ${dataCurta(pro.ate)}.` : ".");
   return (
     <Pressable
@@ -47,8 +88,8 @@ export function SeloPro({
       hitSlop={8}
       style={[styles.selo, style]}
     >
-      <Crown size={11} color={cores.branco} />
-      <Text style={styles.seloTexto}>PRO</Text>
+      <Crown size={12} color={cores.branco} />
+      <Text style={styles.seloTexto}>Pro</Text>
     </Pressable>
   );
 }
@@ -94,17 +135,27 @@ export function CardAssinatura({ resumo, style }: { resumo: ResumoPro | null; st
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
+  // Mesmo desenho das pílulas da tela do grupo (Horários, quadra).
   selo: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    gap: 4,
+    gap: 5,
     backgroundColor: cores.orange,
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
-  seloTexto: { color: cores.branco, fontSize: 10, fontWeight: "700", letterSpacing: 1 },
+  seloTexto: { color: cores.branco, fontSize: 12, fontWeight: "600" },
+  // Em repouso, igual ao infoPill do resultado (data, sorteio).
+  seloFree: {
+    gap: 4,
+    paddingVertical: 5,
+    backgroundColor: "rgba(113, 113, 122, 0.15)",
+  },
+  seloFreePressionado: { backgroundColor: "rgba(255,255,255,0.1)" },
+  seloFreeTexto: { color: cores.zinc500, fontWeight: "400" },
+  seloFreeTextoPressionado: { color: cores.slate300 },
   banner: {
     flexDirection: "row",
     alignItems: "flex-start",

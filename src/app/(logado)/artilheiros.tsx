@@ -14,6 +14,8 @@ import { TelaCarregando, TelaErro } from "@/painel/ui";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
 import { CHAVE_GERAL, type DadosArtilheiros } from "@/contrato/tipos";
+import { ALTURA_RODAPE_SEM_GRUPO, EstadoSemGrupo, EstadoVazio, RodapeSemGrupo } from "@/ui/SemGrupo";
+import { semGolAinda } from "@/artilheiros/ranking";
 
 export default function ArtilheirosGlobal() {
   // Sem folga embaixo, a barra de botões do Android fica em cima do último item.
@@ -89,10 +91,21 @@ export default function ArtilheirosGlobal() {
   const semGrupos =
     dados.escopo.tipo === "esporte" && dados.escopo.esportesDisponiveis.length === 0;
 
+  const semGrupoAinda = !contaPendente && semGrupos;
+  // Nenhum gol em nenhum grupo ainda (só no "Geral": depois de escolher um grupo sem
+  // gol, os chips continuam pra voltar, e a TelaArtilheiros mostra o vazio dela).
+  // Também no escopo de um grupo quando ele é o único da lista (a tela abre direto
+  // nele, sem chips pra trocar).
+  const aguardandoGol =
+    !contaPendente &&
+    !semGrupos &&
+    semGolAinda(dados) &&
+    (dados.escopo.tipo !== "grupo" || (dados.escopo.gruposDisponiveis?.length ?? 0) <= 1);
+
   return (
     <SafeAreaView style={styles.tela} edges={["top", "left", "right"]}>
       {voltar}
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, semGrupoAinda ? { flexGrow: 1, paddingBottom: ALTURA_RODAPE_SEM_GRUPO + insets.bottom } : aguardandoGol ? { flexGrow: 1, paddingBottom: 40 + insets.bottom } : { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
           <TituloTela Icone={Goal}>Artilheiros</TituloTela>
           <Text style={styles.sub}>Ranking de gols nos grupos que você faz parte.</Text>
@@ -105,12 +118,17 @@ export default function ArtilheirosGlobal() {
             </Text>
           </View>
         ) : semGrupos ? (
-          <View style={styles.box}>
-            <Text style={styles.boxTitulo}>Sem grupos</Text>
-            <Text style={styles.boxTexto}>
-              Entre num grupo pra ver o ranking de artilheiros dele.
-            </Text>
-          </View>
+          <EstadoSemGrupo
+            Icone={Goal}
+            titulo="O ranking de artilheiros é do seu grupo"
+            texto="Crie ou entre num grupo e cada gol marcado no racha entra na disputa do mês."
+          />
+        ) : aguardandoGol ? (
+          <EstadoVazio
+            Icone={Goal}
+            titulo="Aguardando o primeiro resultado"
+            texto="Quando o primeiro racha do seu grupo tiver resultado, cada gol entra aqui e o ranking do mês começa."
+          />
         ) : (
           <TelaArtilheiros
             dados={dados}
@@ -119,6 +137,7 @@ export default function ArtilheirosGlobal() {
           />
         )}
       </ScrollView>
+      {semGrupoAinda && <RodapeSemGrupo />}
     </SafeAreaView>
   );
 }

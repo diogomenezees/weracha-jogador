@@ -47,12 +47,17 @@ import { TituloTela } from "@/ui/TituloTela";
 // Tela "Assinatura": planos Free e Pro, a compra (só aqui no app, pela loja do
 // aparelho via RevenueCat) e, embaixo, os grupos da pessoa com o estado de Pro;
 // quem assina patrocina daqui (irreversível, com alerta). Espelha
-// weracha-site/app/assinatura/page.tsx. Spec: weracha-site/docs/pendente/01-assinatura-pro.md.
+// weracha-site/app/assinatura/page.tsx. Spec: weracha-site/docs/especificacao/20-assinatura-pro.md.
 
+// Chave "Cobrança do Pro" do /admin desligada (o We Racha Cam ainda não está nas
+// lojas, decidido 2026-11-20): some a gravação no celular, o Pro fica "Em breve" e
+// nada leva pro RevenueCat (nem a busca do preço). Igual a planosConforme em
+// weracha-site/lib/planos.ts.
+const RECURSO_GRAVA_NO_CELULAR = "We Racha Cam grava os replays no celular";
 const RECURSOS_FREE = [
   "Sem limite de jogadores no grupo",
   "Grupos, check-in, sorteio, ao vivo, resultado e artilheiros",
-  "We Racha Cam grava os replays no celular",
+  RECURSO_GRAVA_NO_CELULAR,
 ];
 const RECURSOS_PRO = [
   "Tudo do Free",
@@ -95,12 +100,14 @@ export default function Assinatura() {
   }, [carregar, tentativa]);
 
   // Preço vem da loja (offering do RevenueCat). Sem chave/SDK, sem botão de compra.
+  // Com a cobrança desligada no site, nem consulta (o Pro está "Em breve").
+  const cobrancaLigada = dados?.cobrancaLigada ?? false;
   useEffect(() => {
-    if (!compraDisponivel()) return;
+    if (!cobrancaLigada || !compraDisponivel()) return;
     buscarPacotePro()
       .then(setPacote)
       .catch((e) => console.warn("[assinatura] sem offering:", e));
-  }, []);
+  }, [cobrancaLigada]);
 
   async function atualizar() {
     setAtualizando(true);
@@ -262,7 +269,9 @@ export default function Assinatura() {
         <View style={styles.plano}>
           <Text style={styles.planoNome}>Free</Text>
           <Text style={styles.preco}>Grátis</Text>
-          {RECURSOS_FREE.map((r) => (
+          {RECURSOS_FREE.filter(
+            (r) => dados.cobrancaLigada || r !== RECURSO_GRAVA_NO_CELULAR,
+          ).map((r) => (
             <LinhaRecurso key={r} texto={r} />
           ))}
         </View>
@@ -270,7 +279,11 @@ export default function Assinatura() {
         <View style={[styles.plano, styles.planoPro]}>
           <View style={styles.linhaTitulo}>
             <Text style={styles.planoNome}>Pro</Text>
-            {souPro && <Text style={styles.seuPlano}>SEU PLANO</Text>}
+            {souPro ? (
+              <Text style={styles.seuPlano}>SEU PLANO</Text>
+            ) : !dados.cobrancaLigada ? (
+              <Text style={styles.emBreveSelo}>EM BREVE</Text>
+            ) : null}
           </View>
           <Text style={styles.preco}>
             {pacote?.product.priceString ?? "R$ 19,90"}
@@ -334,6 +347,15 @@ export default function Assinatura() {
                 >
                   Privacidade
                 </Text>
+              </Text>
+            </View>
+          ) : !dados.cobrancaLigada ? (
+            <View style={styles.compra}>
+              <View style={styles.emBreveBotao}>
+                <Text style={styles.emBreveBotaoTexto}>Em breve</Text>
+              </View>
+              <Text style={styles.letraMiuda}>
+                Quando lançar, você assina por aqui e escolhe os grupos que vai patrocinar.
               </Text>
             </View>
           ) : null}
@@ -432,7 +454,7 @@ function LinhaGrupo({
         <Text style={styles.grupoNome} numberOfLines={1}>
           {grupo.nome}
         </Text>
-        <SeloPro pro={grupo.pro} meuId={meuId} style={styles.seloGrupo} />
+        <SeloPro pro={grupo.pro} meuId={meuId} style={styles.seloGrupo} semFree />
         {detalhe && <Text style={styles.grupoDetalhe}>{detalhe}</Text>}
       </View>
       {podePatrocinar && !grupo.pro.pro && grupo.souMembro && (
@@ -492,6 +514,27 @@ const styles = StyleSheet.create({
   situacaoTexto: { color: cores.slate300, fontSize: 13 },
   vagas: { color: cores.branco, fontSize: 14, fontWeight: "600" },
   compra: { marginTop: 10, gap: 10 },
+  emBreveSelo: {
+    color: cores.orange,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
+    backgroundColor: "rgba(242,140,30,0.15)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    overflow: "hidden",
+  },
+  emBreveBotao: {
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: raio.campo,
+    borderWidth: 1,
+    borderColor: "rgba(242,140,30,0.4)",
+    backgroundColor: "rgba(242,140,30,0.1)",
+  },
+  emBreveBotaoTexto: { color: cores.orange, fontSize: 15, fontWeight: "600" },
   letraMiuda: { color: cores.slate500, fontSize: 11, lineHeight: 16 },
   linkLinha: { flexDirection: "row", alignItems: "center", gap: 6 },
   link: { color: cores.teal, fontSize: 12 },

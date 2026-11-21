@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text } from "@/ui/Texto";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 import { buscarStatusExclusao } from "@/api/conta";
 import { buscarFavoritos } from "@/api/favoritos";
@@ -23,9 +23,8 @@ import { BlocoCard } from "@/resenha/BlocoCard";
 import { AjudaExpiracao } from "@/resenha/AjudaExpiracao";
 import { useSessao } from "@/sessao/contexto";
 import { cores, raio } from "@/tema";
-import { EmDesenvolvimento } from "@/ui/EmDesenvolvimento";
 import { FiltroChips, opcoesDeMeses } from "@/ui/FiltroChips";
-import { Heart, Hourglass, Video, X } from "@/ui/Icone";
+import { Crown, Heart, Hourglass, Video, X } from "@/ui/Icone";
 import { Navbar } from "@/ui/Navbar";
 import { TituloTela } from "@/ui/TituloTela";
 import { useCarregarNoFim } from "@/ui/useCarregarNoFim";
@@ -38,6 +37,14 @@ import type {
 } from "@/contrato/tipos";
 import { buscarResumoPro } from "@/api/assinatura";
 import { BannerPro } from "@/assinatura/ui";
+import {
+  ALTURA_RODAPE_SEM_GRUPO,
+  EstadoSemGrupo,
+  EstadoVazio,
+  RodapeComBotao,
+  RodapeSemGrupo,
+  useTemGrupo,
+} from "@/ui/SemGrupo";
 
 // Abas: "Meus vídeos" (os replays dos meus gols, de qualquer grupo) e "Favoritos" (os
 // replays que marquei com o coração, de qualquer pessoa). Espelha
@@ -170,7 +177,18 @@ export default function Replays() {
     if (p.itens.length > 0 || (p.grupos?.length ?? 0) > 0 || p.temVencidos) setTemVideo(true);
   }, []);
 
-  const [bannerPro, setBannerPro] = useState(false);
+  // Assinatura Pro (igual ao site, weracha-site/app/replays): `semPro` = nem
+  // assinatura, nem patrocina, nem grupo Pro (cobrança desligada conta como Pro).
+  // - sem Pro e sem vídeo: some as abas e a tela só diz que o recurso é da
+  //   assinatura ("Conhecer o Pro" no rodapé);
+  // - sem Pro e com vídeo: banner acima dos vídeos;
+  // - com Pro e com vídeo: só os vídeos;
+  // - com Pro e sem vídeo: aguardando os replays do próximo racha.
+  // null enquanto carrega; falha conta como Pro (não empurra assinatura à toa).
+  const [semPro, setSemPro] = useState<boolean | null>(null);
+  // Sem grupo nenhum: no lugar do vazio (e do convite do Pro), o estado de
+  // começar/criar grupo, igual às outras telas gerais.
+  const temGrupo = useTemGrupo();
 
   const carregar = useCallback(async () => {
     const carga = ++cargaRef.current;
@@ -183,8 +201,8 @@ export default function Replays() {
     aplicarPrimeiraPagina(primeira);
     // Banner do Pro: só se nenhum grupo da pessoa é Pro e ela não patrocina.
     buscarResumoPro(chamarApi)
-      .then((r) => setBannerPro(r.mostrarBannerGeral))
-      .catch(() => {});
+      .then((r) => setSemPro(r.semPro ?? r.mostrarBannerGeral))
+      .catch(() => setSemPro(false));
   }, [chamarApi, buscarPagina, aplicarPrimeiraPagina]);
 
   useEffect(() => {
@@ -307,6 +325,17 @@ export default function Replays() {
   const gruposDosChips = opcoes.grupos ?? [];
   const mesesDosChips = opcoes.meses ?? [];
   const filtrando = !!filtro.grupoId || !!filtro.mes || !!filtro.expirando;
+  const semVideoNenhum =
+    !favoritos && !filtrando && !temVideo && !temVencidos && itens.length === 0 && !trocando;
+  const semGrupoAinda = !contaPendente && semVideoNenhum && temGrupo === false;
+  // Com grupo e sem vídeo: espera o resumo do Pro pra decidir entre o convite da
+  // assinatura e o "aguardando o próximo racha".
+  const vazioDecidindo =
+    !contaPendente && semVideoNenhum && !semGrupoAinda && (temGrupo === null || semPro === null);
+  const vazioSoAssinatura =
+    !contaPendente && semVideoNenhum && !semGrupoAinda && !vazioDecidindo && semPro === true;
+  const escondeAbas = semGrupoAinda || vazioDecidindo || vazioSoAssinatura;
+  const rodapeFixo = semGrupoAinda || vazioSoAssinatura;
   // Grupos só com 2+; meses só com 2+ (com 1, "Geral" e o mês mostram a mesma coisa).
   const mostraGrupos = !contaPendente && gruposDosChips.length > 1;
   const mostraMeses = !contaPendente && (mesesDosChips.length > 1 || !!filtro.mes);
@@ -319,7 +348,7 @@ export default function Replays() {
         // Campanhas chegam numa busca à parte: redesenha os banners quando vierem.
         extraData={campanhas}
         keyExtractor={(i) => i.bloco.pedidoReplayId}
-        contentContainerStyle={[styles.lista, { paddingBottom: 40 + insets.bottom }]}
+        contentContainerStyle={[styles.lista, rodapeFixo ? { flexGrow: 1, paddingBottom: ALTURA_RODAPE_SEM_GRUPO + insets.bottom } : { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -333,8 +362,6 @@ export default function Replays() {
           <View style={styles.cabecalho}>
             <View style={styles.tituloComSelo}>
               <TituloTela Icone={Video}>Replays</TituloTela>
-              {/* Mesmo selo da Resenha e da Repercussão em Minha performance. */}
-              <Text style={styles.beta}>Beta</Text>
             </View>
             <View style={styles.subLinha}>
               <Text style={[styles.sub, { flex: 1 }]}>
@@ -342,7 +369,7 @@ export default function Replays() {
               </Text>
               {temVideo && !contaPendente && <AjudaExpiracao />}
             </View>
-            {!contaPendente && bannerPro && <BannerPro style={{ marginTop: 10 }} />}
+            {!contaPendente && semPro && temVideo && <BannerPro style={{ marginTop: 10 }} />}
             {!contaPendente && filtro.expirando && !favoritos && (
               <Pressable
                 style={styles.chipExpirando}
@@ -380,7 +407,7 @@ export default function Replays() {
                 )}
               </View>
             )}
-            {!contaPendente && (
+            {!contaPendente && !escondeAbas && (
               <View style={styles.abas}>
                 {ABAS.map(({ valor, rotulo }) => {
                   const selecionada = aba === valor;
@@ -448,10 +475,26 @@ export default function Replays() {
                 <Text style={styles.limparTexto}>Ver Favoritos</Text>
               </Pressable>
             </View>
+          ) : semGrupoAinda ? (
+            <EstadoSemGrupo
+              Icone={Video}
+              titulo="Seus gols em vídeo aparecem aqui"
+              texto="Quando o seu grupo grava o racha com o We Racha Cam, cada gol seu vira replay pra assistir e compartilhar."
+            />
+          ) : vazioDecidindo ? (
+            <ActivityIndicator style={styles.trocando} color={cores.teal} />
+          ) : vazioSoAssinatura ? (
+            <EstadoVazio
+              Icone={Crown}
+              titulo="Replays são da assinatura Pro"
+              texto="Com o Pro, cada gol gravado pelo We Racha Cam vai pra nuvem e aparece aqui pra assistir, baixar e compartilhar. Uma pessoa assina e o grupo todo aproveita."
+            />
           ) : (
-            <EmDesenvolvimento
-              titulo="Seus gols em vídeo estão chegando"
-              texto="Estamos preparando os replays para liberar em breve. Quando estiver pronto, cada gol seu vai aparecer aqui em vídeo."
+            // Com o Pro e nenhum gol em vídeo ainda.
+            <EstadoVazio
+              Icone={Video}
+              titulo="Esperando os replays do próximo racha"
+              texto="Quando o próximo jogo for gravado pelo We Racha Cam, cada gol seu aparece aqui em vídeo pra assistir, baixar e compartilhar."
             />
           )
         }
@@ -501,6 +544,10 @@ export default function Replays() {
           ) : null
         }
       />
+      {semGrupoAinda && <RodapeSemGrupo />}
+      {vazioSoAssinatura && (
+        <RodapeComBotao titulo="Conhecer o Pro" Icone={Crown} onPress={() => router.push("/assinatura")} />
+      )}
     </SafeAreaView>
   );
 }

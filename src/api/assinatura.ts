@@ -4,7 +4,7 @@ import type { AssinaturaDoJogador, ResumoPro, TelaAssinatura } from "@/contrato/
 type ChamarApi = <T>(caminho: string, opcoes?: OpcoesRequisicao) => Promise<T>;
 
 // Assinatura Pro. Contrato em weracha-site/docs/especificacao/16-api-v1.md §16;
-// regras em weracha-site/docs/pendente/01-assinatura-pro.md.
+// regras em weracha-site/docs/especificacao/20-assinatura-pro.md.
 
 // GET /api/v1/assinatura — tela Assinatura: plano, vagas e os grupos com o estado de Pro.
 export function buscarTelaAssinatura(chamarApi: ChamarApi): Promise<TelaAssinatura> {

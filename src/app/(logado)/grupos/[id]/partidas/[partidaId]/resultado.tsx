@@ -493,11 +493,6 @@ export default function TelaResultado() {
             </Pressable>
           }
         />
-        <SeloPro
-          pro={estadoPro}
-          meuId={sessao.fase === "logado" ? sessao.jogador.id : undefined}
-          style={{ marginTop: 6 }}
-        />
         {/* Pílulas numa linha só: o que não couber rola pro lado. */}
         <ScrollView
           horizontal
@@ -534,6 +529,12 @@ export default function TelaResultado() {
               </Text>
             </View>
           )}
+          {/* Selo PRO/FREE à direita das pílulas (igual ao site). */}
+          <SeloPro
+            pro={estadoPro}
+            meuId={sessao.fase === "logado" ? sessao.jogador.id : undefined}
+            style={{ alignSelf: "center" }}
+          />
         </ScrollView>
         {/* Só no resultado de partida finalizada e com mais de uma pra navegar.
             replace: o "Grupo" do topo continua indo pro grupo, sem passar por cada

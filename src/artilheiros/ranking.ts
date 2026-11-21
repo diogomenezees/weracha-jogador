@@ -61,3 +61,11 @@ export function mesNaFrase(rotulo: string): string {
 }
 
 export { CHAVE_GERAL };
+
+// Nenhum gol no período "Geral" do escopo carregado: o grupo (ou todos os grupos, no
+// escopo geral) ainda não teve resultado com gol. A tela troca o ranking (pódio
+// vazio + elenco zerado) pelo "aguardando o primeiro resultado". Espelha
+// semGolAinda de weracha-site/lib/artilheiros.ts.
+export function semGolAinda(dados: DadosArtilheiros): boolean {
+  return !dados.jogadores.some((j) => (j.porPeriodo[CHAVE_GERAL]?.gols ?? 0) > 0);
+}

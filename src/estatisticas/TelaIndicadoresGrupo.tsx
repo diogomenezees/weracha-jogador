@@ -279,8 +279,13 @@ export function TelaIndicadoresGrupo({
     <View style={styles.container}>
       <View style={styles.filtroLinha}>
         <Text style={styles.filtroRotulo}>Meses</Text>
+        {/* Chips: "Geral" e depois do mês mais recente pro mais antigo (igual ao site).
+            O gráfico por mês continua em ordem cronológica. */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          {dados.periodos.map((p) => {
+          {[
+            ...dados.periodos.filter((p) => p.chave === CHAVE_GERAL),
+            ...dados.periodos.filter((p) => p.chave !== CHAVE_GERAL).reverse(),
+          ].map((p) => {
             const ativo = p.chave === dados.periodo;
             const carregando = p.chave === periodoCarregando;
             return (

@@ -284,6 +284,10 @@ export function AcoesRapidas({
           },
         ]
       : []),
+    // Mesma ordem do site: Enquetes já servem com o grupo recém-criado;
+    // Resultados, Artilheiros e Replays ficam bloqueados até o primeiro jogo com
+    // resultado; Sorteio rápido funciona sempre e fica por último.
+    { titulo: "Enquetes", subtitulo: "Vote e acompanhe", Icone: BarChart3, rota: "/enquetes" },
     {
       titulo: "Resultados",
       subtitulo: ultimoResultado
@@ -294,9 +298,18 @@ export function AcoesRapidas({
         ? `/grupos/${ultimoResultado.grupoId}/partidas/${ultimoResultado.partidaId}/resultado`
         : null,
     },
-    { titulo: "Enquetes", subtitulo: "Vote e acompanhe", Icone: BarChart3, rota: "/enquetes" },
-    { titulo: "Artilheiros", subtitulo: "Quem mais marcou", Icone: Medal, rota: "/artilheiros" },
-    { titulo: "Replays", subtitulo: "Seus gols em vídeo", Icone: Video, rota: "/replays" },
+    {
+      titulo: "Artilheiros",
+      subtitulo: ultimoResultado ? "Quem mais marcou" : "Depois do 1º jogo",
+      Icone: Medal,
+      rota: ultimoResultado ? "/artilheiros" : null,
+    },
+    {
+      titulo: "Replays",
+      subtitulo: ultimoResultado ? "Seus gols em vídeo" : "Depois do 1º jogo",
+      Icone: Video,
+      rota: ultimoResultado ? "/replays" : null,
+    },
     { titulo: "Sorteio rápido", subtitulo: "Times na hora", Icone: Shuffle, rota: "/sorteio" },
   ];
 

@@ -59,7 +59,6 @@ import {
   Share2,
   ThumbsUp,
   Trash2,
-  Trophy,
   UserPlus,
   Users,
 } from "@/ui/Icone";
@@ -637,9 +636,6 @@ export default function TelaGrupo() {
                 <EllipsisVertical size={22} color={cores.slate400} />
               </Pressable>
             </View>
-            {/* Selo PRO abaixo do nome (assinatura Pro); toque mostra o patrocinador. */}
-            <SeloPro pro={dados?.pro} meuId={meuId} style={{ marginTop: 6 }} />
-
             {grupo.descricao ? (
               <DescricaoGrupo texto={grupo.descricao} onVerMais={() => setVerDescricaoGrupo(true)} />
             ) : null}
@@ -662,21 +658,14 @@ export default function TelaGrupo() {
               <Clock size={12} color={cores.branco} />
               <Text style={styles.pillTexto}>Horários</Text>
             </Pressable>
+            {/* Selo PRO/FREE à direita das pílulas (igual ao site); toque explica. */}
+            <SeloPro pro={dados?.pro} meuId={meuId} style={{ alignSelf: "center" }} />
           </ScrollView>
         </View>
 
-        {/* Espelha o aviso do site: score ainda no padrão (nasceu do maior score
-            real do jogador em outro grupo do esporte, ou 50). Some depois que ele
-            ajusta pra um valor diferente. */}
-        {grupo.meuScoreOrigem === "PADRAO" && (
-          <Banner
-            cor="orange"
-            Icone={Trophy}
-            titulo="Seu score nesse grupo ainda está no padrão."
-            chamada="Ajustar meu score"
-            onPress={() => setMeuScoreAberto(true)}
-          />
-        )}
+        {/* O alerta "Seu score nesse grupo ainda está no padrão" saiu daqui em
+            2026-11-20 (igual ao site): o card "Meu score" dos Atalhos fica em
+            laranja no lugar (scorePadrao). */}
 
         {souAdmin && !grupo.quadraId && (
           <Banner
@@ -706,6 +695,10 @@ export default function TelaGrupo() {
           onAdicionarPartida={
             souAdmin && grupo.tipo === "AVULSO" ? () => abrirAdicionarPartida() : undefined
           }
+          // Nenhuma partida com resultado (sorteio com times ainda por confirmar não
+          // conta): atalhos na ordem de quem está começando. Igual ao site.
+          scorePadrao={grupo.meuScoreOrigem === "PADRAO"}
+          semResultado={!dados.idsComResultado.some((pid) => !idsAguardando.has(pid))}
         />
 
         {/* Título sempre visível: sem partida pela frente, o alerta laranja fica
